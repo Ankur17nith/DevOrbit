@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
-import { BadRequestError } from '../../lib/errors.js';
+import { BadRequestError, ForbiddenError } from '../../lib/errors.js';
 
 export const aiRouter = Router();
 
@@ -36,7 +36,14 @@ aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, nex
     }
 
     let convId = conversationId;
-    if (!convId) {
+    if (convId) {
+      const existingConv = await prisma.aiConversation.findFirst({
+        where: { id: convId, userId },
+      });
+      if (!existingConv) {
+        throw new ForbiddenError('Conversation not found or access denied');
+      }
+    } else {
       const conv = await prisma.aiConversation.create({
         data: {
           userId,

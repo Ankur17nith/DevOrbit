@@ -9,6 +9,8 @@ This document catalogues all official agent skills and reverse engineering tooli
 | Skill Name | Source Repository | Local Path | Verified Engine / Client | Role / Responsibility |
 |---|---|---|---|---|
 | **frontend-design** | [anthropics/skills](https://github.com/anthropics/skills) | `.agents/skills/frontend-design` | Antigravity, Universal | Guides distinctive visual design, design tokens, typography scales, layout hierarchy, and anti-cliché review. |
+| **ui-ux-pro-max** | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | `.agents/skills/ui-ux-pro-max`, `.agents/skills/design-system` | Antigravity, Universal | Design system generation, component hierarchy, spacing/sizing, dashboard layouts, accessibility, UI consistency. |
+| **emilkowalski/skills** | [emilkowalski/skills](https://github.com/emilkowalski/skills) | `.agents/skills/animate`, `.agents/skills/choreograph`, etc. (17 skills) | Antigravity, Universal | Micro-interactions, UI physics, animation performance, layout choreography, and Polish review. |
 | **vercel-react-best-practices** | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | `.agents/skills/vercel-react-best-practices` | Antigravity, Universal | React and Next.js performance optimization: waterfall elimination, dynamic imports, bundle size controls, re-render avoidance. |
 | **vercel-composition-patterns** | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | `.agents/skills/vercel-composition-patterns` | Antigravity, Universal | Scalable component composition patterns: compound components, state lifting, avoiding boolean prop proliferation. |
 | **web-design-guidelines** | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | `.agents/skills/web-design-guidelines` | Antigravity, Universal | Web interface guidelines compliance, accessibility audits (WCAG), focus management, keyboard navigation, tap targets. |
@@ -72,6 +74,31 @@ This document catalogues all official agent skills and reverse engineering tooli
   - CLI version: `6.8.0`
   - Skill status: `installed_version: "49", installed_tool_count: 229, state: aligned`
   - Client registration: `antigravity -> /home/ankurgupta/.gemini/config/mcp_config.json -> [/home/ankurgupta/.nvm/versions/node/v24.22.1/bin/rea, mcp] (aligned)`
+
+### 2.6 UI/UX Pro Max Suite
+- **Command**:
+  ```bash
+  npx ui-ux-pro-max-cli@latest init --ai antigravity
+  ```
+- **Verification**:
+  - Location: `.agents/skills/ui-ux-pro-max/SKILL.md`, `.agents/skills/design-system/`, `.agents/skills/ui-styling/`
+  - Templates installed: `design-system`, `ui-styling`, `brand`, `banner-design`, `slides`, `design`
+
+### 2.7 Emil Kowalski Skills Suite
+- **Command**:
+  ```bash
+  npx skills@latest add emilkowalski/skills
+  ```
+- **Verification**:
+  - Location: 17 individual skills in `.agents/skills/` (`animate`, `choreograph`, `improve-animations`, `review-animations`, `find-animation-opportunities`, etc.)
+  - Security audit: Socket & Snyk evaluated, 0 alerts.
+
+### 2.8 Component Primitives & Utilities
+- **Libraries**:
+  - `@radix-ui/react-slot`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-tabs`
+  - `class-variance-authority`, `clsx`, `tailwind-merge`
+- **Verification**:
+  - Seamlessly installed in `apps/web` with zero peer-dependency conflicts under React 19.
 
 ---
 

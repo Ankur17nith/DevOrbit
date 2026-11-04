@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { config } from './config/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -16,7 +17,10 @@ import { notificationsRouter } from './modules/notifications/notifications.route
 
 export const app = express();
 
-// Middlewares
+// Security & Parsing Middlewares
+app.use(helmet({
+  contentSecurityPolicy: false, // Allow local development UI and Vite assets
+}));
 app.use(cors({
   origin: config.corsOrigin,
   credentials: true,
