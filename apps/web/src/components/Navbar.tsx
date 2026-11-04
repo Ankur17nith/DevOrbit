@@ -16,7 +16,8 @@ import {
   Activity,
   Cpu,
   ShieldCheck,
-  Check
+  Check,
+  FolderTree
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { DevOrbitLogo } from './DevOrbitLogo.js';
@@ -241,6 +242,18 @@ export function Navbar({ currentTab, onSelectTab, onOpenAuthModal, unreadCount =
             >
               <Sparkles className="size-3.5 text-[#A78BFA]" />
               Orbit AI
+            </button>
+
+            <button
+              onClick={() => onSelectTab('navigator')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                currentTab === 'navigator' 
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm shadow-[#8B5CF6]/10' 
+                  : 'text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#12151D]'
+              }`}
+            >
+              <FolderTree className="size-3.5 text-[#8B5CF6]" />
+              Navigator
             </button>
 
             <button

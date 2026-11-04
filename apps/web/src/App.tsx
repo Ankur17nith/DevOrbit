@@ -18,6 +18,7 @@ import { WorkspacesPage } from './pages/WorkspacesPage.js';
 import { ForumPage } from './pages/ForumPage.js';
 import { SelfbotPage } from './pages/SelfbotPage.js';
 import { DeveloperProfilePage } from './pages/DeveloperProfilePage.js';
+import { CodebaseNavigatorPage } from './pages/CodebaseNavigatorPage.js';
 
 function AppContent() {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -48,6 +49,7 @@ function AppContent() {
         {currentTab === 'forum' && <ForumPage />}
         {currentTab === 'selfbot' && <SelfbotPage />}
         {currentTab === 'profile' && <DeveloperProfilePage />}
+        {currentTab === 'navigator' && <CodebaseNavigatorPage />}
       </main>
 
       {/* DevOrbit System Status Bottom Bar */}
