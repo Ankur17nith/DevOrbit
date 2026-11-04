@@ -270,6 +270,18 @@ export function Navbar({ currentTab, onSelectTab, onOpenAuthModal, unreadCount =
             </button>
 
             <button
+              onClick={() => onSelectTab('safechange')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                currentTab === 'safechange' 
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm shadow-[#8B5CF6]/10' 
+                  : 'text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#12151D]'
+              }`}
+            >
+              <ShieldCheck className="size-3.5 text-[#8B5CF6]" />
+              SafeChange
+            </button>
+
+            <button
               onClick={() => onSelectTab('workspaces')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
                 currentTab === 'workspaces' 
