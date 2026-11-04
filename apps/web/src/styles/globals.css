@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-canvas: #0E0F10;
+  --bg-surface: #181819;
+  --bg-surface-hover: #1F1F20;
+  --border-subtle: #242424;
+  --accent-emerald: #09AE5B;
+  --text-main: #E5E5E5;
+}
+
+body {
+  background-color: #0E0F10;
+  color: #E5E5E5;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0E0F10;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #242424;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* Technical Dashed Border */
+.technical-border {
+  background-image: repeating-linear-gradient(90deg, #333 0 5px, transparent 5px 10px),
+                    repeating-linear-gradient(90deg, #333 0 5px, transparent 5px 10px),
+                    repeating-linear-gradient(180deg, #333 0 5px, transparent 5px 10px),
+                    repeating-linear-gradient(180deg, #333 0 5px, transparent 5px 10px);
+  background-size: 100% 1px, 100% 1px, 1px 100%, 1px 100%;
+  background-position: top left, bottom left, top left, top right;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+}
