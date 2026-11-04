@@ -31,6 +31,8 @@ model User {
   bookmarks       UserBookmark[]
   dsaProgress     UserDsaProgress[]
   skillProfiles   UserSkillProfile[]
+  githubRepos     UserGithubRepo[]
+  contributionMetric UserContributionMetric?
   pipelineItems   ContributionPipelineItem[]
   selfbotConfigs  SelfbotConfig[]
   forumPosts      ForumPost[]
@@ -74,18 +76,71 @@ model UserPreference {
 }
 
 model IntegrationCredential {
-  id             String    @id @default(uuid())
-  userId         String
-  provider       String    // GITHUB, LEETCODE, CODEFORCES
-  encryptedToken String?
-  username       String?
-  lastSyncedAt   DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  userId             String
+  provider           String    // GITHUB, LEETCODE, CODEFORCES
+  encryptedToken     String?
+  username           String?
+  scopes             String?   // e.g. "read:user,repo,read:org"
+  rateLimitRemaining Int?
+  rateLimitReset     DateTime?
+  rateLimitTotal     Int?
+  lastSyncedAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  @@index([userId])
+}
+
+model UserGithubRepo {
+  id              String    @id @default(uuid())
+  userId          String
+  githubRepoId    Int
+  name            String
+  fullName        String
+  description     String?
+  language        String?
+  languagesJson   String?   // map of { "TypeScript": 140000, "Rust": 23000 }
+  topicsJson      String?   // JSON array of topics
+  stargazersCount Int       @default(0)
+  forksCount      Int       @default(0)
+  openIssuesCount Int       @default(0)
+  isPrivate       Boolean   @default(false)
+  isFork          Boolean   @default(false)
+  defaultBranch   String    @default("main")
+  license         String?
+  pushedAt        DateTime?
+  etag            String?
+  syncedAt        DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, githubRepoId])
+  @@index([userId])
+  @@index([fullName])
+}
+
+model UserContributionMetric {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  totalCommits        Int      @default(0)
+  totalPullRequests   Int      @default(0)
+  mergedPullRequests  Int      @default(0)
+  mergeRate           Float    @default(0.0) // 0.0 to 100.0%
+  activeStreak        Int      @default(0)
+  longestStreak       Int      @default(0)
+  commitHeatmapJson   String?  // JSON array of 52-week activity points
+  languageBytesJson   String?  // JSON map of aggregated language byte counts
+  projectTimelineJson String?  // JSON array of recent commit/PR activities
+  lastCalculatedAt    DateTime @default(now())
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 

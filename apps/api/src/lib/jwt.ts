@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 
+import crypto from 'node:crypto';
+
 export interface TokenPayload {
   userId: string;
   username: string;
@@ -8,7 +10,11 @@ export interface TokenPayload {
 }
 
 export function generateToken(payload: TokenPayload, expiresIn: string | number = '7d'): string {
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] });
+  return jwt.sign(
+    { ...payload, jti: crypto.randomUUID() },
+    config.jwtSecret,
+    { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
+  );
 }
 
 export function verifyToken(token: string): TokenPayload {
