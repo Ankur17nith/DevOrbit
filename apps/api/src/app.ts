@@ -18,6 +18,7 @@ import { githubRouter } from './modules/github/github.routes.js';
 import { navigatorRouter } from './modules/navigator/navigator.routes.js';
 import { fixRouter } from './modules/fix/fix.routes.js';
 import { safechangeRouter } from './modules/safechange/safechange.routes.js';
+import { integrationsRouter } from './modules/integrations/integrations.routes.js';
 
 export const app = express();
 
@@ -31,13 +32,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
-import os from 'os';
+import { systemRouter } from './modules/system/system.routes.js';
 
-let prevCpuUsage = process.cpuUsage();
-let prevCpuTime = Date.now();
-
-// Public Health & System Check
-app.get('/api/health', (req, res) => {
+// Public Health Check
+app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'devorbit-api',
@@ -48,32 +46,7 @@ app.get('/api/health', (req, res) => {
 
 // Mount Versioned API Modules
 const v1Router = express.Router();
-
-v1Router.get('/system/status', (req, res) => {
-  const mem = process.memoryUsage();
-  const currentCpuUsage = process.cpuUsage(prevCpuUsage);
-  const now = Date.now();
-  const timeDelta = (now - prevCpuTime) * 1000; // microseconds
-  const totalCpuTime = currentCpuUsage.user + currentCpuUsage.system;
-  const cpuCores = Math.max(1, os.cpus().length);
-  const cpuPercent = timeDelta > 0 ? Math.min(100, Math.round((totalCpuTime / (timeDelta * cpuCores)) * 1000) / 10) : 0.8;
-
-  prevCpuUsage = process.cpuUsage();
-  prevCpuTime = now;
-
-  res.json({
-    success: true,
-    data: {
-      cpuPercent: Math.max(0.2, cpuPercent),
-      memoryRssMb: Math.round((mem.rss / 1024 / 1024) * 10) / 10,
-      memoryHeapMb: Math.round((mem.heapUsed / 1024 / 1024) * 10) / 10,
-      uptimeSeconds: Math.round(process.uptime()),
-      dbConnected: true,
-      ecoMode: true,
-      platform: process.platform,
-    },
-  });
-});
+v1Router.use('/system', systemRouter);
 
 v1Router.use('/auth', authRouter);
 v1Router.use('/dashboard', dashboardRouter);
@@ -88,6 +61,7 @@ v1Router.use('/github', githubRouter);
 v1Router.use('/navigator', navigatorRouter);
 v1Router.use('/fix', fixRouter);
 v1Router.use('/safechange', safechangeRouter);
+v1Router.use('/integrations', integrationsRouter);
 
 app.use('/api/v1', v1Router);
 

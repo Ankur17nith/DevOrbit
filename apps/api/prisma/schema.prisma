@@ -86,6 +86,7 @@ model IntegrationCredential {
   rateLimitReset     DateTime?
   rateLimitTotal     Int?
   lastSyncedAt       DateTime?
+  metadataJson       String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
