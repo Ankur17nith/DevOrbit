@@ -5,6 +5,7 @@ import { leetCodeProvider, LeetCodeStats, LeetCodeImportPayload } from './leetco
 import { tufProvider, TufStats, TufImportPayload } from './tuf.provider.js';
 import { githubOAuthHandler } from './github.oauth.js';
 import { OllamaService } from '../ai/ollama.service.js';
+import { BadRequestError } from '../../lib/errors.js';
 
 export class IntegrationsService {
   private ollama = new OllamaService();
@@ -135,20 +136,18 @@ export class IntegrationsService {
 
   // --- LeetCode ---
   async connectLeetCode(userId: string, username: string) {
+    if (!username || !username.trim()) {
+      throw new BadRequestError('LeetCode username is required');
+    }
+    const cleanUsername = username.trim();
     let stats: LeetCodeStats;
     try {
-      stats = await leetCodeProvider.fetchUserProfile(username);
-    } catch {
-      // Fallback to manual entry template if public GraphQL is throttled
-      stats = {
-        username: username.trim(),
-        totalSolved: 0,
-        easySolved: 0,
-        mediumSolved: 0,
-        hardSolved: 0,
-        source: 'manual_import',
-        lastSyncedAt: new Date().toISOString(),
-      };
+      stats = await leetCodeProvider.fetchUserProfile(cleanUsername);
+    } catch (err: any) {
+      throw new BadRequestError(
+        `LeetCode user profile could not be verified on leetcode.com: ${err.message || 'User not found or endpoint rate-limited'}. ` +
+        `If LeetCode Cloudflare or GraphQL is throttling your local IP, please use the verified Manual Import option below.`
+      );
     }
 
     const credential = await prisma.integrationCredential.upsert({

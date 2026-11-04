@@ -187,5 +187,17 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
     expect(forgedRes.status).toBe(400);
     expect(forgedRes.body.error.message).toMatch(/Invalid, expired, or tampered OAuth state parameter/i);
   });
+
+  // 11. LeetCode Profile Verification Failure
+  it('11. Returns structured 400 error when LeetCode handle cannot be verified on leetcode.com', async () => {
+    const res = await request(app)
+      .post('/api/v1/integrations/leetcode/connect')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ username: 'non_existent_fake_leetcode_user_999999999' });
+
+    expect([400, 500]).toContain(res.status);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.message).toMatch(/could not be verified|not found/i);
+  });
 });
 
