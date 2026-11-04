@@ -1,0 +1,41 @@
+# Node & Dependencies
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+dist/
+build/
+.output/
+.turbo/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Database & SQLite
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+prisma/*.db
+prisma/*.db-journal
+devorbit.db
+devorbit.db-journal
+
+# Logs
+logs/
+*.log
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Scratch / Cache
+scratch/
+!scratch/ossium_recon/
+.cache/
