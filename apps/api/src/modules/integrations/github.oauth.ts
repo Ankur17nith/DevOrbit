@@ -1,14 +1,24 @@
+import crypto from 'crypto';
+
 export interface GitHubOAuthStatus {
   isConfigured: boolean;
   clientId?: string;
   authorizationUrl?: string;
+  state?: string;
   setupInstructions?: string;
+}
+
+interface OAuthStateRecord {
+  userId: string;
+  expiresAt: number;
 }
 
 export class GitHubOAuthHandler {
   private clientId: string | undefined;
   private clientSecret: string | undefined;
   private redirectUri: string;
+  // In-memory state store with 10-minute TTL
+  private stateStore: Map<string, OAuthStateRecord> = new Map();
 
   constructor() {
     this.clientId = process.env.GITHUB_CLIENT_ID;
@@ -20,10 +30,50 @@ export class GitHubOAuthHandler {
     return Boolean(this.clientId && this.clientSecret);
   }
 
-  getOAuthStatus(state: string = 'devorbit_oauth_state'): GitHubOAuthStatus {
+  /**
+   * Generates a cryptographically random 32-byte hex state with 10-minute TTL
+   */
+  generateOAuthState(userId: string): string {
+    this.pruneExpiredStates();
+    const state = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    this.stateStore.set(state, { userId, expiresAt });
+    return state;
+  }
+
+  /**
+   * Validates and immediately consumes the OAuth state parameter (single-use anti-replay)
+   */
+  validateAndConsumeState(state: string, userId: string): boolean {
+    this.pruneExpiredStates();
+    const record = this.stateStore.get(state);
+    if (!record) {
+      return false;
+    }
+
+    // Check user matching and expiration
+    const isValid = record.userId === userId && record.expiresAt > Date.now();
+    // Strictly delete on first use
+    this.stateStore.delete(state);
+    return isValid;
+  }
+
+  private pruneExpiredStates(): void {
+    const now = Date.now();
+    for (const [state, record] of this.stateStore.entries()) {
+      if (record.expiresAt <= now) {
+        this.stateStore.delete(state);
+      }
+    }
+  }
+
+  getOAuthStatus(userId: string): GitHubOAuthStatus {
+    const state = this.generateOAuthState(userId);
+
     if (!this.isConfigured()) {
       return {
         isConfigured: false,
+        state,
         setupInstructions:
           'GitHub OAuth application credentials are not yet configured in apps/api/.env. ' +
           'To enable one-click OAuth, create an OAuth app at https://github.com/settings/developers and set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET. ' +
@@ -42,6 +92,7 @@ export class GitHubOAuthHandler {
     return {
       isConfigured: true,
       clientId: this.clientId,
+      state,
       authorizationUrl: `https://github.com/login/oauth/authorize?${params.toString()}`,
     };
   }

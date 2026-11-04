@@ -47,6 +47,11 @@ export function IntegrationCenterPage() {
   const [tufCompleted, setTufCompleted] = useState<number>(0);
   const [tufStep, setTufStep] = useState<string>('Step 1: Learn the basics');
 
+  // OAuth States
+  const [oauthFeedback, setOauthFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showPatInput, setShowPatInput] = useState<boolean>(false);
+  const [oauthStatus, setOauthStatus] = useState<any>(null);
+
   const fetchIntegrations = () => {
     if (!token) return;
     setLoading(true);
@@ -66,6 +71,65 @@ export function IntegrationCenterPage() {
   useEffect(() => {
     fetchIntegrations();
   }, [token]);
+
+  // Check URL parameters for OAuth return
+  useEffect(() => {
+    if (!token) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
+    if (code && state) {
+      setModalLoading(true);
+      fetch('/api/v1/integrations/github/oauth/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code, state }),
+      })
+        .then(res => res.json())
+        .then(json => {
+          if (json.success) {
+            setOauthFeedback({ type: 'success', message: 'GitHub account connected successfully via OAuth!' });
+            fetchIntegrations();
+          } else {
+            setOauthFeedback({ type: 'error', message: json.error?.message || 'Failed to complete OAuth callback' });
+          }
+        })
+        .catch(err => {
+          setOauthFeedback({ type: 'error', message: err.message || 'OAuth network error' });
+        })
+        .finally(() => {
+          setModalLoading(false);
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
+        });
+    }
+  }, [token]);
+
+  const handleStartGithubOAuth = async () => {
+    setModalLoading(true);
+    setModalError(null);
+    try {
+      const res = await fetch('/api/v1/integrations/github/oauth/url', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || 'Could not initiate OAuth authorization');
+      }
+      setOauthStatus(json.data);
+      if (json.data.authorizationUrl) {
+        window.location.href = json.data.authorizationUrl;
+      }
+    } catch (err: any) {
+      setModalError(err.message);
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   // Connect GitHub PAT
   const handleConnectGithubPat = async () => {
@@ -310,6 +374,30 @@ export function IntegrationCenterPage() {
           <span>Refresh All Status</span>
         </button>
       </div>
+
+      {/* OAuth Feedback Alert Banner */}
+      {oauthFeedback && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between text-xs animate-in fade-in ${
+          oauthFeedback.type === 'success' 
+            ? 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E]' 
+            : 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444]'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            {oauthFeedback.type === 'success' ? (
+              <CheckCircle2 className="size-4 shrink-0" />
+            ) : (
+              <AlertCircle className="size-4 shrink-0" />
+            )}
+            <span className="font-medium">{oauthFeedback.message}</span>
+          </div>
+          <button 
+            onClick={() => setOauthFeedback(null)}
+            className="text-xs opacity-75 hover:opacity-100 p-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Grid of Integration Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -776,54 +864,110 @@ export function IntegrationCenterPage() {
 
       </div>
 
-      {/* MODAL: GITHUB PAT CONNECTION */}
+      {/* MODAL: GITHUB CONNECTION (OAuth primary + PAT fallback) */}
       {activeModal === 'github' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl bg-[#12151D] border border-[#1F2430] p-6 space-y-4 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl bg-[#12151D] border border-[#1F2430] p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <GithubIcon className="size-5 text-[#F8FAFC]" />
                 <h3 className="text-base font-bold text-[#F8FAFC]">Connect GitHub Account</h3>
               </div>
               <button onClick={() => setActiveModal(null)} className="text-[#686D79] hover:text-[#F8FAFC]">✕</button>
             </div>
 
-            <p className="text-xs text-[#686D79] leading-relaxed">
-              Enter your GitHub Personal Access Token (classic or fine-grained) with <code className="text-[#8B5CF6]">read:user</code> and <code className="text-[#8B5CF6]">repo</code> scopes. Your token is encrypted with AES-256-GCM authenticated cipher before local database persistence.
-            </p>
+            {/* 1. Primary Prominent Action: Direct OAuth 2.0 PKCE */}
+            <div className="p-4 rounded-xl bg-[#181C26] border border-[#8B5CF6]/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
+                  <Sparkles className="size-3.5 text-[#8B5CF6]" />
+                  <span>Direct GitHub OAuth 2.0 (Recommended)</span>
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8B5CF6]/20 text-[#A78BFA]">
+                  One-Click
+                </span>
+              </div>
+              <p className="text-[11px] text-[#686D79] leading-relaxed">
+                Seamlessly authorize repositories through GitHub with cryptographic 32-byte state verification (10-minute TTL).
+              </p>
+              <button
+                type="button"
+                onClick={handleStartGithubOAuth}
+                disabled={modalLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-[#8B5CF6]/20"
+              >
+                {modalLoading ? <RefreshCw className="size-3.5 animate-spin" /> : <GithubIcon className="size-4" />}
+                <span>Authorize with GitHub</span>
+                <ArrowRight className="size-3.5" />
+              </button>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[#C5C8D0]">Personal Access Token (PAT)</label>
-              <input
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                value={inputToken}
-                onChange={e => setInputToken(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-xs font-mono text-white focus:outline-none focus:border-[#8B5CF6]"
-              />
+              {oauthStatus && !oauthStatus.isConfigured && (
+                <div className="p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[11px] text-[#C5C8D0] space-y-1.5">
+                  <div className="font-semibold text-[#F8FAFC] flex items-center gap-1.5">
+                    <AlertCircle className="size-3.5 text-[#F59E0B]" />
+                    <span>OAuth App Credentials Notice</span>
+                  </div>
+                  <p className="text-[#686D79] leading-relaxed">
+                    Set <code className="text-[#8B5CF6]">GITHUB_CLIENT_ID</code> and <code className="text-[#8B5CF6]">GITHUB_CLIENT_SECRET</code> in <code className="text-[#8B5CF6]">apps/api/.env</code> to enable direct browser OAuth redirection.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Collapsible Advanced Option: Personal Access Token (PAT) */}
+            <div className="border-t border-[#1F2430] pt-3">
+              <button
+                type="button"
+                onClick={() => setShowPatInput(!showPatInput)}
+                className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] flex items-center justify-between w-full font-medium"
+              >
+                <span>Advanced Option: Personal Access Token (PAT)</span>
+                <span className="text-xs font-mono">{showPatInput ? '− Hide' : '+ Show Options'}</span>
+              </button>
+
+              {showPatInput && (
+                <div className="mt-3 space-y-3 p-3.5 rounded-xl bg-[#181C26]/60 border border-[#1F2430] animate-in fade-in duration-100">
+                  <p className="text-[11px] text-[#686D79] leading-relaxed">
+                    Provide a PAT with <code className="text-[#8B5CF6]">read:user</code> and <code className="text-[#8B5CF6]">repo</code> scopes. Your token is encrypted with AES-256-GCM before local storage.
+                  </p>
+
+                  <div className="space-y-1">
+                    <input
+                      type="password"
+                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={inputToken}
+                      onChange={e => setInputToken(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-[#12151D] border border-[#1F2430] text-xs font-mono text-white focus:outline-none focus:border-[#8B5CF6]"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleConnectGithubPat}
+                    disabled={modalLoading || !inputToken.trim()}
+                    className="w-full py-2 px-3 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {modalLoading ? <RefreshCw className="size-3.5 animate-spin" /> : <Plug className="size-3.5 text-[#8B5CF6]" />}
+                    <span>Verify & Encrypt PAT</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {modalError && (
-              <div className="p-2.5 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-xs flex items-center gap-2">
                 <AlertCircle className="size-4 shrink-0" />
                 <span>{modalError}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
               <button
+                type="button"
                 onClick={() => setActiveModal(null)}
                 className="px-3 py-1.5 rounded-lg bg-[#181C26] text-xs text-[#C5C8D0] hover:text-white"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleConnectGithubPat}
-                disabled={modalLoading || !inputToken.trim()}
-                className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-xs font-semibold text-white flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {modalLoading ? <RefreshCw className="size-3.5 animate-spin" /> : <Plug className="size-3.5" />}
-                <span>Verify & Encrypt</span>
+                Close
               </button>
             </div>
           </div>

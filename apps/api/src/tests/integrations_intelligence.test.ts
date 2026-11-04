@@ -153,4 +153,39 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
     expect(restoreRes.body.success).toBe(true);
     expect(restoreRes.body.message).toContain('restored successfully');
   });
+
+  // 9. GitHub OAuth State Generation
+  it('9. Generates cryptographic 32-byte state for GitHub OAuth flow', async () => {
+    const res = await request(app)
+      .get('/api/v1/integrations/github/oauth/url')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.state).toBeDefined();
+    // 32 bytes in hex = 64 characters
+    expect(res.body.data.state).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  // 10. Rejects forged or invalid OAuth state with 400
+  it('10. Rejects callback with tampered, missing, or forged OAuth state', async () => {
+    // Missing state
+    const missingRes = await request(app)
+      .post('/api/v1/integrations/github/oauth/callback')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ code: 'valid_looking_code' });
+
+    expect(missingRes.status).toBe(400);
+    expect(missingRes.body.error.message).toMatch(/state/i);
+
+    // Forged state
+    const forgedRes = await request(app)
+      .post('/api/v1/integrations/github/oauth/callback')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ code: 'valid_looking_code', state: 'attacker_forged_state_123' });
+
+    expect(forgedRes.status).toBe(400);
+    expect(forgedRes.body.error.message).toMatch(/Invalid, expired, or tampered OAuth state parameter/i);
+  });
 });
+

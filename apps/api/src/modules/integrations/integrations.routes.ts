@@ -22,16 +22,23 @@ integrationsRouter.get('/status', async (req: AuthRequest, res: Response, next: 
 
 // 2. GitHub Integration Endpoints
 integrationsRouter.get('/github/oauth/url', (req: AuthRequest, res: Response) => {
-  const state = `user_${req.user!.id}_${Date.now()}`;
-  const status = githubOAuthHandler.getOAuthStatus(state);
+  const status = githubOAuthHandler.getOAuthStatus(req.user!.id);
+  res.json({ success: true, data: status });
+});
+
+integrationsRouter.get('/github/oauth/authorize', (req: AuthRequest, res: Response) => {
+  const status = githubOAuthHandler.getOAuthStatus(req.user!.id);
   res.json({ success: true, data: status });
 });
 
 integrationsRouter.post('/github/oauth/callback', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { code } = req.body;
+    const { code, state } = req.body;
     if (!code) {
       throw new BadRequestError('Authorization code is required');
+    }
+    if (!state || !githubOAuthHandler.validateAndConsumeState(state, req.user!.id)) {
+      throw new BadRequestError('Invalid, expired, or tampered OAuth state parameter');
     }
     const token = await githubOAuthHandler.exchangeCode(code);
     const result = await githubService.connectAccount(req.user!.id, token);
