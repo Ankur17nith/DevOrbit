@@ -32,12 +32,19 @@ describe('Advanced DSA Intelligence & Spaced Repetition Tests (Milestone M3)', (
       where: { userId: { in: [userAId, userBId] } },
     });
     await prisma.dsaProblem.deleteMany({
-      where: { slug: { in: ['subarray-sum-equals-k', 'course-schedule'] } },
+      where: {
+        OR: [
+          { slug: { in: ['subarray-sum-equals-k-leetcode', 'course-schedule-leetcode', 'subarray-sum-equals-k', 'course-schedule'] } },
+          { canonicalSlug: { in: ['subarray-sum-equals-k', 'course-schedule'] } },
+        ],
+      },
     });
 
     // Fetch two persistent core problems from the remaining catalog
     const problems = await prisma.dsaProblem.findMany({
-      where: { slug: { notIn: ['subarray-sum-equals-k', 'course-schedule'] } },
+      where: {
+        slug: { notIn: ['subarray-sum-equals-k-leetcode', 'course-schedule-leetcode'] },
+      },
       take: 3,
     });
     expect(problems.length).toBeGreaterThanOrEqual(2);
