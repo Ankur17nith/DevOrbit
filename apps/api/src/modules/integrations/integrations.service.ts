@@ -60,7 +60,7 @@ export class IntegrationsService {
         rateLimitRemaining: (githubStatus as any).rateLimitRemaining,
         lastSyncedAt: (githubStatus as any).lastSyncedAt,
         repoCount: (githubStatus as any).repoCount || 0,
-        oauth: githubOAuthHandler.getOAuthStatus(),
+        oauth: githubOAuthHandler.getOAuthStatus(userId),
       },
       codeforces: {
         isConnected: Boolean(cfCred),
