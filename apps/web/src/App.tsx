@@ -17,6 +17,7 @@ import { OrbitAiPage } from './pages/OrbitAiPage.js';
 import { WorkspacesPage } from './pages/WorkspacesPage.js';
 import { ForumPage } from './pages/ForumPage.js';
 import { SelfbotPage } from './pages/SelfbotPage.js';
+import { DeveloperProfilePage } from './pages/DeveloperProfilePage.js';
 
 function AppContent() {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -46,6 +47,7 @@ function AppContent() {
         {currentTab === 'workspaces' && <WorkspacesPage />}
         {currentTab === 'forum' && <ForumPage />}
         {currentTab === 'selfbot' && <SelfbotPage />}
+        {currentTab === 'profile' && <DeveloperProfilePage />}
       </main>
 
       {/* DevOrbit System Status Bottom Bar */}

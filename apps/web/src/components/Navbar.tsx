@@ -264,6 +264,18 @@ export function Navbar({ currentTab, onSelectTab, onOpenAuthModal, unreadCount =
             >
               Community
             </button>
+
+            <button
+              onClick={() => onSelectTab('profile')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                currentTab === 'profile' 
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm shadow-[#8B5CF6]/10' 
+                  : 'text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#12151D]'
+              }`}
+            >
+              <UserCheck className="size-3.5 text-[#8B5CF6]" />
+              Profile
+            </button>
           </nav>
         </div>
 
@@ -373,6 +385,14 @@ export function Navbar({ currentTab, onSelectTab, onOpenAuthModal, unreadCount =
                   </button>
 
                   <div className="my-1.5 border-t border-[#1F2430]"></div>
+
+                  <button
+                    onClick={() => { onSelectTab('profile'); setUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#C5C8D0] hover:bg-[#181C26] transition-colors"
+                  >
+                    <UserCheck className="size-3.5 text-[#8B5CF6]" />
+                    <span>View Developer Profile...</span>
+                  </button>
 
                   <button
                     onClick={() => { onOpenAuthModal(); setUserMenuOpen(false); }}
