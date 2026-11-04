@@ -50,6 +50,81 @@ export class OpenSourceController {
     }
   }
 
+  async getPrograms(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await ossService.getPrograms();
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async matchIssueSkills(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const issueId = String(req.params.issueId);
+      const data = await ossService.matchIssueSkills(userId, issueId);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Contribution Pipeline
+  async getPipeline(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const stage = typeof req.query.stage === 'string' ? req.query.stage : undefined;
+      const data = await ossService.getPipeline(userId, stage);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async addToPipeline(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const data = await ossService.addToPipeline(userId, req.body);
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updatePipelineStage(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const pipelineItemId = String(req.params.id);
+      const data = await ossService.updatePipelineStage(userId, pipelineItemId, req.body);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removeFromPipeline(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const pipelineItemId = String(req.params.id);
+      const result = await ossService.removeFromPipeline(userId, pipelineItemId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async monitorOpportunities(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const result = await ossService.monitorOpportunities(userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Multi-user Bookmarking
   async toggleBookmark(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
@@ -70,6 +145,7 @@ export class OpenSourceController {
     }
   }
 
+  // GitHub Selfbot module
   async getSelfbotConfig(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;

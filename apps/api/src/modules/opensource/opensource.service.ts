@@ -320,4 +320,363 @@ export class OpenSourceService {
       },
     });
   }
+
+  // -----------------------------------------------------------
+  // CONTRIBUTION PIPELINE & LIFECYCLE
+  // -----------------------------------------------------------
+
+  async getPipeline(userId: string, stage?: string) {
+    const where: any = { userId };
+    if (stage && stage !== 'ALL') {
+      where.stage = stage;
+    }
+
+    const items = await prisma.contributionPipelineItem.findMany({
+      where,
+      include: {
+        issue: {
+          include: {
+            repository: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return items.map(item => ({
+      ...item,
+      issue: {
+        ...item.issue,
+        labels: item.issue.labelsJson ? JSON.parse(item.issue.labelsJson) : [],
+        repository: {
+          ...item.issue.repository,
+          topics: item.issue.repository.topicsJson ? JSON.parse(item.issue.repository.topicsJson) : [],
+        },
+      },
+    }));
+  }
+
+  async addToPipeline(userId: string, data: {
+    issueId: string;
+    stage?: string;
+    priority?: string;
+    notes?: string;
+    deadline?: string;
+  }) {
+    const issue = await prisma.ossIssue.findUnique({ where: { id: data.issueId } });
+    if (!issue) {
+      throw new NotFoundError('Target open source issue not found');
+    }
+
+    const stage = data.stage || 'SHORTLISTED';
+    const priority = data.priority || 'MEDIUM';
+
+    return prisma.contributionPipelineItem.upsert({
+      where: {
+        userId_issueId: {
+          userId,
+          issueId: data.issueId,
+        },
+      },
+      create: {
+        userId,
+        issueId: data.issueId,
+        stage,
+        priority,
+        notes: data.notes || null,
+        deadline: data.deadline ? new Date(data.deadline) : null,
+      },
+      update: {
+        stage,
+        priority,
+        notes: data.notes || undefined,
+        deadline: data.deadline ? new Date(data.deadline) : undefined,
+      },
+      include: {
+        issue: {
+          include: { repository: true },
+        },
+      },
+    });
+  }
+
+  async updatePipelineStage(userId: string, pipelineItemId: string, data: {
+    stage: string;
+    prUrl?: string;
+    notes?: string;
+    priority?: string;
+  }) {
+    const item = await prisma.contributionPipelineItem.findUnique({
+      where: { id: pipelineItemId },
+      include: { issue: { include: { repository: true } } },
+    });
+
+    if (!item || item.userId !== userId) {
+      throw new NotFoundError('Contribution pipeline item not found');
+    }
+
+    const updated = await prisma.contributionPipelineItem.update({
+      where: { id: pipelineItemId },
+      data: {
+        stage: data.stage,
+        prUrl: data.prUrl || item.prUrl,
+        notes: data.notes !== undefined ? data.notes : item.notes,
+        priority: data.priority || item.priority,
+      },
+      include: {
+        issue: { include: { repository: true } },
+      },
+    });
+
+    // If merged, automatically celebrate and record in notification table
+    if (data.stage === 'MERGED') {
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: '🎉 Contribution Merged into Main!',
+          message: `Your PR for "${item.issue.title}" has been successfully merged into ${item.issue.repository.fullName}.`,
+          type: 'OPPORTUNITY',
+          linkUrl: data.prUrl || item.issue.url,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  async removeFromPipeline(userId: string, pipelineItemId: string) {
+    const item = await prisma.contributionPipelineItem.findUnique({
+      where: { id: pipelineItemId },
+    });
+
+    if (!item || item.userId !== userId) {
+      throw new NotFoundError('Pipeline item not found');
+    }
+
+    await prisma.contributionPipelineItem.delete({
+      where: { id: pipelineItemId },
+    });
+
+    return { removed: true };
+  }
+
+  // -----------------------------------------------------------
+  // EXPLAINABLE SKILL MATCHING FOR ISSUES
+  // -----------------------------------------------------------
+
+  async matchIssueSkills(userId: string, issueId: string) {
+    const issue = await prisma.ossIssue.findUnique({
+      where: { id: issueId },
+      include: { repository: true },
+    });
+
+    if (!issue) {
+      throw new NotFoundError('Issue not found');
+    }
+
+    const userSkills = await prisma.userSkillProfile.findMany({
+      where: { userId },
+    });
+
+    const repoLanguage = issue.repository.language;
+    const repoTopics: string[] = issue.repository.topicsJson ? JSON.parse(issue.repository.topicsJson) : [];
+    const issueLabels: string[] = issue.labelsJson ? JSON.parse(issue.labelsJson).map((l: any) => (typeof l === 'string' ? l : l.name || '')) : [];
+
+    // Analyze requirements
+    const requiredSkills: string[] = [];
+    if (repoLanguage) requiredSkills.push(repoLanguage);
+
+    for (const topic of repoTopics) {
+      requiredSkills.push(topic);
+    }
+    for (const label of issueLabels) {
+      if (['react', 'typescript', 'rust', 'go', 'python', 'docker', 'graphql'].includes(label.toLowerCase())) {
+        requiredSkills.push(label);
+      }
+    }
+
+    const matchedSkills: Array<{ skillName: string; confidence: number; evidenceCount: number }> = [];
+    const missingSkills: string[] = [];
+
+    let totalScore = 0;
+    const langSkill = userSkills.find(s => s.skillName.toLowerCase() === repoLanguage?.toLowerCase());
+
+    if (langSkill) {
+      const langContribution = Math.round(55 * (langSkill.confidenceScore / 100));
+      totalScore += langContribution;
+      matchedSkills.push({
+        skillName: langSkill.skillName,
+        confidence: langSkill.confidenceScore,
+        evidenceCount: langSkill.verifiedEvidenceJson ? JSON.parse(langSkill.verifiedEvidenceJson).length : 1,
+      });
+    } else if (repoLanguage) {
+      missingSkills.push(repoLanguage);
+    }
+
+    // Match topic skills
+    for (const userSkill of userSkills) {
+      if (userSkill.skillName.toLowerCase() === repoLanguage?.toLowerCase()) continue;
+      const matchesTopic = repoTopics.some(t => t.toLowerCase().includes(userSkill.skillName.toLowerCase()));
+      const matchesLabel = issueLabels.some(l => l.toLowerCase().includes(userSkill.skillName.toLowerCase()));
+
+      if (matchesTopic || matchesLabel) {
+        totalScore += Math.round(20 * (userSkill.confidenceScore / 100));
+        matchedSkills.push({
+          skillName: userSkill.skillName,
+          confidence: userSkill.confidenceScore,
+          evidenceCount: userSkill.verifiedEvidenceJson ? JSON.parse(userSkill.verifiedEvidenceJson).length : 1,
+        });
+      }
+    }
+
+    const matchScore = Math.min(98, Math.max(15, totalScore));
+    let difficultyEstimate = 'INTERMEDIATE';
+    if (issue.difficulty === 'beginner' || issueLabels.some(l => l.toLowerCase().includes('good first issue'))) {
+      difficultyEstimate = 'BEGINNER';
+    } else if (issue.difficulty === 'advanced') {
+      difficultyEstimate = 'ADVANCED';
+    }
+
+    const explanation = matchedSkills.length > 0
+      ? `${matchScore}% match based on your verified ${matchedSkills.map(s => `${s.skillName} (${s.confidence}%)`).join(', ')} codebase evidence.`
+      : `Baseline match: You have not yet synced repository evidence in ${repoLanguage || 'the target language'}.`;
+
+    return {
+      issueId,
+      issueTitle: issue.title,
+      repository: issue.repository.fullName,
+      matchScore,
+      matchedSkills,
+      missingSkills,
+      difficultyEstimate,
+      explanation,
+    };
+  }
+
+  // -----------------------------------------------------------
+  // OSS PROGRAMS & OPPORTUNITY MONITORING
+  // -----------------------------------------------------------
+
+  async getPrograms() {
+    const canonicalPrograms = [
+      {
+        slug: 'gsoc-2026',
+        name: 'Google Summer of Code (GSoC 2026)',
+        category: 'GSOC',
+        description: 'Global program connecting students and open-source beginners with mentorship and stipends across 606+ participating organizations.',
+        website: 'https://summerofcode.withgoogle.com/',
+        status: 'ACTIVE',
+        deadlineDate: new Date('2026-04-08T18:00:00Z'),
+        timelineJson: JSON.stringify([
+          { stage: 'Organization Applications', date: 'Jan 15 - Feb 5, 2026' },
+          { stage: 'Accepted Orgs Announced', date: 'Feb 25, 2026' },
+          { stage: 'Student Proposal Window', date: 'March 18 - April 8, 2026' },
+          { stage: 'Coding Period Begins', date: 'May 26, 2026' },
+        ]),
+      },
+      {
+        slug: 'lfx-mentorship-2026',
+        name: 'Linux Foundation (LFX) Mentorship',
+        category: 'MENTORSHIP',
+        description: 'Paid open source mentorships on CNCF, Linux Kernel, Kubernetes, GraphQL, Hyperledger, and PyTorch.',
+        website: 'https://lfx.linuxfoundation.org/tools/mentorship/',
+        status: 'ACTIVE',
+        deadlineDate: new Date('2026-05-15T23:59:00Z'),
+        timelineJson: JSON.stringify([
+          { stage: 'Term 1 Spring', date: 'March 1 - May 31, 2026' },
+          { stage: 'Term 2 Summer', date: 'June 1 - August 31, 2026' },
+        ]),
+      },
+      {
+        slug: 'outreachy-2026',
+        name: 'Outreachy Diversity Internships',
+        category: 'MENTORSHIP',
+        description: 'Internships supporting diversity in free and open-source software with dedicated stipends.',
+        website: 'https://www.outreachy.org/',
+        status: 'ACTIVE',
+        deadlineDate: new Date('2026-06-01T16:00:00Z'),
+      },
+      {
+        slug: 'hacktoberfest-2026',
+        name: 'Hacktoberfest 2026',
+        category: 'HACKATHON',
+        description: 'Annual month-long celebration of open-source software with pull request challenges.',
+        website: 'https://hacktoberfest.com/',
+        status: 'SCHEDULED',
+        deadlineDate: new Date('2026-10-31T23:59:00Z'),
+      },
+    ];
+
+    for (const prog of canonicalPrograms) {
+      await prisma.ossProgram.upsert({
+        where: { slug: prog.slug },
+        update: {},
+        create: prog,
+      });
+    }
+
+    const programs = await prisma.ossProgram.findMany({
+      include: {
+        _count: {
+          select: { orgs: true },
+        },
+      },
+    });
+
+    return programs.map(p => ({
+      ...p,
+      timeline: p.timelineJson ? JSON.parse(p.timelineJson) : [],
+    }));
+  }
+
+  async monitorOpportunities(userId: string) {
+    const pipelineItems = await prisma.contributionPipelineItem.findMany({
+      where: {
+        userId,
+        stage: { in: ['SHORTLISTED', 'EXPLORING', 'PREPARING', 'WORKING'] },
+        deadline: { not: null },
+      },
+      include: {
+        issue: { include: { repository: true } },
+      },
+    });
+
+    const now = new Date();
+    const notificationsCreated = [];
+
+    for (const item of pipelineItems) {
+      if (item.deadline) {
+        const diffHours = (item.deadline.getTime() - now.getTime()) / (1000 * 3600);
+        // Alert if deadline within 72 hours
+        if (diffHours > 0 && diffHours <= 72) {
+          const existing = await prisma.notification.findFirst({
+            where: {
+              userId,
+              type: 'OPPORTUNITY',
+              message: { contains: item.issue.title },
+            },
+          });
+
+          if (!existing) {
+            const notif = await prisma.notification.create({
+              data: {
+                userId,
+                title: `⏰ Deadline Approaching: ${item.issue.repository.fullName}`,
+                message: `Target deadline for "${item.issue.title}" is in ${Math.round(diffHours)} hours (${item.priority} priority).`,
+                type: 'OPPORTUNITY',
+                linkUrl: item.issue.url,
+              },
+            });
+            notificationsCreated.push(notif);
+          }
+        }
+      }
+    }
+
+    return {
+      monitoredItemsCount: pipelineItems.length,
+      alertsDispatched: notificationsCreated.length,
+      alerts: notificationsCreated,
+    };
+  }
 }
