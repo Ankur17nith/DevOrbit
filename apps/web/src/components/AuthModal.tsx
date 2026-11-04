@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { login, register, switchUser, user } = useAuth();
+  const { login, register, demoLogin, user } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -74,50 +74,35 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <p className="text-xs text-[#686D79]">Local-first Multi-User Developer Intelligence OS</p>
         </div>
 
-        {/* Demo Fast Account Switching Section */}
+        {/* Explicit Demo Account Button (Development & Testing) */}
         <div className="mt-4 p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430]">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] font-semibold mb-2">
-            Instant Identity Switch
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] font-semibold">
+              Local Demo Session
+            </span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#8B5CF6]/20 text-[#A78BFA] font-mono">
+              Dev Only
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                await switchUser('alex_developer');
-                onClose();
-              }}
-              className="flex items-center gap-2 p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all text-left group"
-            >
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&crop=faces"
-                alt="Alex"
-                className="size-6 rounded-full border border-[#8B5CF6]/40"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-[#F8FAFC] truncate group-hover:text-[#A78BFA] transition-colors">Alex Rivera</div>
-                <div className="text-[10px] text-[#A78BFA] font-mono">Full-Stack Admin</div>
+          <button
+            type="button"
+            onClick={async () => {
+              await demoLogin();
+              onClose();
+            }}
+            className="w-full flex items-center justify-between p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all text-left"
+          >
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-full bg-[#8B5CF6]/20 text-[#A78BFA] flex items-center justify-center text-[10px] font-mono font-bold">
+                AL
               </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={async () => {
-                await switchUser('sara_chen');
-                onClose();
-              }}
-              className="flex items-center gap-2 p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all text-left group"
-            >
-              <img
-                src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=60&h=60&fit=crop&crop=faces"
-                alt="Sara"
-                className="size-6 rounded-full border border-[#60A5FA]/40"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-[#F8FAFC] truncate group-hover:text-[#60A5FA] transition-colors">Sara Chen</div>
-                <div className="text-[10px] text-[#60A5FA] font-mono">Systems / Rust</div>
+              <div>
+                <div className="text-xs font-semibold text-[#F8FAFC]">Alex Rivera (Demo Account)</div>
+                <div className="text-[10px] text-[#686D79]">Populates sample local projects & DSA</div>
               </div>
-            </button>
-          </div>
+            </div>
+            <span className="text-xs text-[#8B5CF6] font-medium">Use Demo →</span>
+          </button>
         </div>
 
         {error && (

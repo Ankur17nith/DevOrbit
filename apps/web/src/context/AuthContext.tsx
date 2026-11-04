@@ -22,7 +22,7 @@ interface AuthContextType {
   login: (login: string, pass: string) => Promise<boolean>;
   register: (email: string, username: string, pass: string, name?: string) => Promise<boolean>;
   logout: () => void;
-  switchUser: (username: string) => Promise<void>;
+  demoLogin: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,8 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       fetchCurrentUser(token);
     } else {
-      // Default to logging in as demo user Alex Rivera for seamless local exploration
-      login('alex_developer', 'DevOrbit123!').finally(() => setIsLoading(false));
+      setIsLoading(false);
     }
   }, []);
 
@@ -115,14 +114,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const switchUser = async (targetUsername: string) => {
+  const demoLogin = async (): Promise<boolean> => {
     setIsLoading(true);
-    await login(targetUsername, 'DevOrbit123!');
+    const success = await login('alex_developer', 'DevOrbit123!');
     setIsLoading(false);
+    return success;
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, switchUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, demoLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,7 +11,11 @@ import {
   Check, 
   Clock, 
   ExternalLink,
-  Sparkles
+  Sparkles,
+  LogOut,
+  UserCheck,
+  Users,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -30,10 +34,11 @@ export function TopBar({
   onOpenAuthModal,
   onOpenCommandPalette,
 }: TopBarProps) {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState<boolean>(false);
+  const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
   // Tab Breadcrumb labels mapping
   const breadcrumbMap: { [key: string]: { section: string; title: string } } = {
@@ -215,17 +220,73 @@ export function TopBar({
         </button>
 
         {/* User Pill / Switcher */}
-        <button
-          onClick={onOpenAuthModal}
-          className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#2E364A] transition-all"
-        >
-          <div className="size-6 rounded-full bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center font-bold font-mono text-[10px] text-[#A78BFA]">
-            {user?.username ? user.username.slice(0, 2).toUpperCase() : 'DO'}
-          </div>
-          <span className="text-xs font-semibold text-[#F8FAFC] hidden sm:inline">
-            {user?.username || 'Sign In'}
-          </span>
-        </button>
+        <div className="relative">
+          {user ? (
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#2E364A] transition-all"
+            >
+              <div className="size-6 rounded-full bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center font-bold font-mono text-[10px] text-[#A78BFA]">
+                {user.username ? user.username.slice(0, 2).toUpperCase() : 'DO'}
+              </div>
+              <span className="text-xs font-semibold text-[#F8FAFC] hidden sm:inline">
+                {user.username}
+              </span>
+              <ChevronDown className="size-3 text-[#686D79]" />
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAuthModal}
+              className="px-3 py-1 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold transition-all shadow-sm"
+            >
+              Sign In
+            </button>
+          )}
+
+          {/* User Menu Dropdown */}
+          {userMenuOpen && user && (
+            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#12151D] border border-[#1F2430] shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-2 border-b border-[#1F2430]">
+                <div className="text-xs font-semibold text-[#F8FAFC] truncate">
+                  {user.name || user.username}
+                </div>
+                <div className="text-[11px] text-[#686D79] truncate">{user.email}</div>
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-[#A78BFA] font-mono uppercase tracking-wider">
+                  <ShieldCheck className="size-3" />
+                  <span>{user.role} Account</span>
+                </div>
+              </div>
+
+              <div className="py-1">
+                <button
+                  onClick={() => { onSelectTab('profile'); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#C5C8D0] hover:bg-[#181C26] transition-colors"
+                >
+                  <UserCheck className="size-3.5 text-[#8B5CF6]" />
+                  <span>Developer Profile</span>
+                </button>
+
+                <button
+                  onClick={() => { onOpenAuthModal(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#C5C8D0] hover:bg-[#181C26] transition-colors"
+                >
+                  <Users className="size-3.5 text-[#686D79]" />
+                  <span>Switch / Add Account</span>
+                </button>
+
+                <div className="my-1 border-t border-[#1F2430]" />
+
+                <button
+                  onClick={() => { logout(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+                >
+                  <LogOut className="size-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

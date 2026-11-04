@@ -247,4 +247,41 @@ describe('Multi-User Security & Data Isolation Tests', () => {
     });
     expect(freshNotif?.isRead).toBe(false);
   });
+
+  it('11. Session Invalidation: Logging out invalidates the session and rejects future requests with 401', async () => {
+    // 1. Log in a temporary session for User A
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
+
+    expect(loginRes.status).toBe(200);
+    const tempToken = loginRes.body.data.token;
+    expect(tempToken).toBeDefined();
+
+    // 2. Verify token works on protected endpoint
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${tempToken}`);
+
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.data.username).toBe('alex_developer');
+
+    // 3. Log out with this token
+    const logoutRes = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Authorization', `Bearer ${tempToken}`);
+
+    expect(logoutRes.status).toBe(200);
+    expect(logoutRes.body.success).toBe(true);
+
+    // 4. Verify subsequent request with the logged-out token is rejected with 401
+    const rejectedRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${tempToken}`);
+
+    expect(rejectedRes.status).toBe(401);
+    expect(rejectedRes.body.success).toBe(false);
+    expect(rejectedRes.body.error.message).toMatch(/Session has expired or is invalid|Authentication/);
+  });
 });
+

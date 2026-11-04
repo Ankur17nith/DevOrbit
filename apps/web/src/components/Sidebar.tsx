@@ -23,6 +23,7 @@ import {
   Terminal,
   Activity,
   UserCheck,
+  LogOut,
   X
 } from 'lucide-react';
 import { DevOrbitLogo, DevOrbitMark } from './DevOrbitLogo.js';
@@ -50,7 +51,7 @@ interface NavGroup {
 }
 
 export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, onCloseMobile }: SidebarProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem('devorbit_sidebar_collapsed') === 'true';
@@ -278,15 +279,30 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
             </div>
             
             {!isCollapsed && (
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-xs font-semibold text-[#F8FAFC] truncate">
-                  {user?.name || user?.username || 'Local Developer'}
+              <>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-xs font-semibold text-[#F8FAFC] truncate">
+                    {user?.name || user?.username || 'Local Developer'}
+                  </div>
+                  <div className="text-[10px] text-[#686D79] truncate flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-[#22C55E]" />
+                    <span>Verified Session</span>
+                  </div>
                 </div>
-                <div className="text-[10px] text-[#686D79] truncate flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-[#22C55E]" />
-                  <span>Verified Session</span>
-                </div>
-              </div>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      logout();
+                    }}
+                    title="Sign Out"
+                    className="p-1 rounded text-[#686D79] hover:text-[#EF4444] hover:bg-[#181C26] transition-colors"
+                  >
+                    <LogOut className="size-3.5" />
+                  </button>
+                )}
+              </>
             )}
           </div>
 
