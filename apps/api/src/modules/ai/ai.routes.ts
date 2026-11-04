@@ -3,6 +3,7 @@ import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
 import { OllamaService } from './ollama.service.js';
+import { aiRateLimiter } from '../../middleware/rateLimit.js';
 
 export const aiRouter = Router();
 const ollamaService = new OllamaService();
@@ -153,7 +154,7 @@ aiRouter.delete('/conversations/:id', authenticate, async (req: AuthRequest, res
 });
 
 // 7. Chat with Orbit AI
-aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+aiRouter.post('/chat', authenticate, aiRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const { prompt, conversationId, modelName } = req.body;

@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
 import { BadRequestError } from '../../lib/errors.js';
+import { syncRateLimiter } from '../../middleware/rateLimit.js';
 import { integrationsService } from './integrations.service.js';
 import { githubService } from '../github/github.service.js';
 import { githubOAuthHandler } from './github.oauth.js';
@@ -84,7 +85,7 @@ integrationsRouter.post('/codeforces/connect', async (req: AuthRequest, res: Res
   }
 });
 
-integrationsRouter.post('/codeforces/sync', async (req: AuthRequest, res: Response, next: NextFunction) => {
+integrationsRouter.post('/codeforces/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await integrationsService.syncCodeforces(req.user!.id);
     res.json({ success: true, data: result.stats });

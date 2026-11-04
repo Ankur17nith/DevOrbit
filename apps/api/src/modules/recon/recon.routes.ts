@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
-import { BadRequestError } from '../../lib/errors.js';
+import { BadRequestError, NotFoundError } from '../../lib/errors.js';
 
 export const reconRouter = Router();
 
@@ -93,6 +93,51 @@ export function ReconstructedComponent() {
         tokens: extractedTokens,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get specific project (IDOR protection: only owner)
+reconRouter.get('/projects/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = String(req.params.id);
+    const project = await prisma.reconProject.findFirst({
+      where: { id, userId },
+    });
+
+    if (!project) {
+      throw new NotFoundError('Recon project not found or access denied');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...project,
+        tokens: project.extractedTokensJson ? JSON.parse(project.extractedTokensJson) : null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Delete recon project (IDOR protection: only owner)
+reconRouter.delete('/projects/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = String(req.params.id);
+    const project = await prisma.reconProject.findFirst({
+      where: { id, userId },
+    });
+
+    if (!project) {
+      throw new NotFoundError('Recon project not found or access denied');
+    }
+
+    await prisma.reconProject.delete({ where: { id } });
+    res.json({ success: true, message: 'Recon project deleted successfully' });
   } catch (err) {
     next(err);
   }

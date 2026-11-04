@@ -121,3 +121,118 @@ workspacesRouter.post('/:workspaceId/members', authenticate, async (req: AuthReq
     next(err);
   }
 });
+
+// Get workspace details (IDOR protected: must be a member)
+workspacesRouter.get('/:workspaceId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const workspaceId = String(req.params.workspaceId);
+
+    const membership = await prisma.workspaceMembership.findUnique({
+      where: {
+        workspaceId_userId: {
+          workspaceId,
+          userId,
+        },
+      },
+      include: {
+        workspace: {
+          include: {
+            owner: { select: { id: true, username: true, name: true, avatarUrl: true } },
+            memberships: {
+              include: {
+                user: { select: { id: true, username: true, name: true, avatarUrl: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenError('Access denied: You are not a member of this workspace');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: membership.workspace.id,
+        name: membership.workspace.name,
+        slug: membership.workspace.slug,
+        description: membership.workspace.description,
+        role: membership.role,
+        owner: membership.workspace.owner,
+        members: membership.workspace.memberships.map(m => ({
+          userId: m.user.id,
+          username: m.user.username,
+          name: m.user.name,
+          role: m.role,
+        })),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Delete workspace (Only Owner)
+workspacesRouter.delete('/:workspaceId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const workspaceId = String(req.params.workspaceId);
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+    });
+
+    if (!workspace) {
+      throw new NotFoundError('Workspace not found');
+    }
+
+    if (workspace.ownerId !== userId) {
+      throw new ForbiddenError('Only the workspace owner can delete this workspace');
+    }
+
+    await prisma.workspace.delete({ where: { id: workspaceId } });
+    res.json({ success: true, message: 'Workspace deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Remove member from workspace (Owner/Admin only)
+workspacesRouter.delete('/:workspaceId/members/:targetUserId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const workspaceId = String(req.params.workspaceId);
+    const targetUserId = String(req.params.targetUserId);
+
+    const callerMembership = await prisma.workspaceMembership.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+
+    if (!callerMembership || !['OWNER', 'ADMIN'].includes(callerMembership.role)) {
+      throw new ForbiddenError('Only workspace Owners and Admins can remove members');
+    }
+
+    const targetMembership = await prisma.workspaceMembership.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: targetUserId } },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundError('Target member not found in workspace');
+    }
+
+    if (targetMembership.role === 'OWNER') {
+      throw new ForbiddenError('Cannot remove workspace owner');
+    }
+
+    await prisma.workspaceMembership.delete({
+      where: { workspaceId_userId: { workspaceId, userId: targetUserId } },
+    });
+
+    res.json({ success: true, message: 'Member removed successfully' });
+  } catch (err) {
+    next(err);
+  }
+});

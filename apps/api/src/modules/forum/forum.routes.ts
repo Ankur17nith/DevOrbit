@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate, optionalAuthenticate } from '../../middleware/auth.js';
-import { BadRequestError, NotFoundError } from '../../lib/errors.js';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
 
 export const forumRouter = Router();
 
@@ -81,6 +81,30 @@ forumRouter.post('/posts/:postId/replies', authenticate, async (req: AuthRequest
     });
 
     res.status(201).json({ success: true, data: reply });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Delete post (Author or Admin only)
+forumRouter.delete('/posts/:postId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const postId = String(req.params.postId);
+
+    const post = await prisma.forumPost.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+
+    if (post.userId !== userId && req.user!.role !== 'ADMIN') {
+      throw new ForbiddenError('You can only delete your own forum posts');
+    }
+
+    await prisma.forumReply.deleteMany({ where: { postId } });
+    await prisma.forumPost.delete({ where: { id: postId } });
+
+    res.json({ success: true, message: 'Forum post deleted successfully' });
   } catch (err) {
     next(err);
   }
