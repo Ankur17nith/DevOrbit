@@ -2,8 +2,24 @@ import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
 import { BadRequestError, ForbiddenError } from '../../lib/errors.js';
+import { OllamaService } from './ollama.service.js';
 
 export const aiRouter = Router();
+const ollamaService = new OllamaService();
+
+// Check local AI / Ollama status
+aiRouter.get('/status', async (_req, res) => {
+  const isAvailable = await ollamaService.isOllamaAvailable();
+  res.json({
+    success: true,
+    data: {
+      ollamaAvailable: isAvailable,
+      activeEngine: isAvailable ? 'ollama-local-llm' : 'devorbit-deterministic-fallback',
+      defaultModel: isAvailable ? 'deepseek-coder' : 'devorbit-deterministic-v1',
+      privacy: '100% Local-First / Zero Cloud Exfiltration',
+    },
+  });
+});
 
 // Get user conversations
 aiRouter.get('/conversations', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -62,19 +78,9 @@ aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, nex
       },
     });
 
-    // Generate intelligent developer answer based on query & context
-    let responseText = '';
-    const lower = prompt.toLowerCase();
-
-    if (lower.includes('gsoc') || lower.includes('google summer of code')) {
-      responseText = `### 🌟 GSoC Contribution Strategy\n\n1. **Target Identification**: Filter organizations with at least 3 years of consistent participation.\n2. **Setup First**: Clone the repository, build locally, and run existing unit tests before drafting proposals.\n3. **First PR Strategy**: Locate a recent issue tagged \`good first issue\` or test coverage gap.\n4. **Proposal Structure**: Clearly map weekly deliverables, architectural diagrams, and test specifications.`;
-    } else if (lower.includes('dsa') || lower.includes('algorithm') || lower.includes('leetcode')) {
-      responseText = `### 🧠 Algorithmic Strategy & Weakness Guidance\n\n- **Pattern Recognition**: Identify whether the problem matches Two Pointers, Sliding Window, Topological Sort, or Dynamic Programming.\n- **Spaced Repetition**: Ensure problems tagged with \`REVISE\` in your DevOrbit queue are tackled within 48 hours to retain memory.\n- **Edge Cases**: Always test bounds: empty input, single element, negative numbers, overflow constraints.`;
-    } else if (lower.includes('explain') || lower.includes('architecture') || lower.includes('repo')) {
-      responseText = `### 🏗️ Repository Architecture Analysis\n\n- **Entry Points**: Inspect \`package.json\` or \`Cargo.toml\` to locate root entry scripts.\n- **Data Boundaries**: Review database schemas and API controllers to trace request flows.\n- **Contributing Guidelines**: Adhere to commit message conventions (Conventional Commits) and check formatting scripts (\`npm run lint\`).`;
-    } else {
-      responseText = `I have analyzed your request regarding **DevOrbit Developer Intelligence**.\n\n- **Action Item**: Review your active **Orbit OSS** bookmarks and current DSA spaced repetition queue.\n- **Recommended Next Step**: Pick a high-compatibility issue in your preferred language or revise your pending Dynamic Programming problems.\n\nLet me know if you want a detailed step-by-step contribution plan!`;
-    }
+    // Generate developer response using Local AI (Ollama or Deterministic Fallback)
+    const aiResponse = await ollamaService.generate(prompt);
+    const responseText = aiResponse.content;
 
     // Save assistant message
     const assistantMsg = await prisma.aiMessage.create({
@@ -90,6 +96,8 @@ aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, nex
       data: {
         conversationId: convId,
         message: assistantMsg,
+        aiEngine: aiResponse.source,
+        model: aiResponse.model,
       },
     });
   } catch (err) {
