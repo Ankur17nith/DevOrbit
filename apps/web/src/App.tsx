@@ -6,7 +6,13 @@ import { CommandPalette } from './components/CommandPalette.js';
 import { AuthModal } from './components/AuthModal.js';
 import { Database, Zap, Layers, RefreshCw } from 'lucide-react';
 
-// Application Pages
+// Public Pages (Figma Design System)
+import { PublicLandingPage } from './pages/PublicLandingPage.js';
+import { LoginPage } from './pages/LoginPage.js';
+import { RegisterPage } from './pages/RegisterPage.js';
+import { DocumentationPage } from './pages/DocumentationPage.js';
+
+// Application Workspace Pages
 import { DashboardPage } from './pages/DashboardPage.js';
 import { OssCatalogPage } from './pages/OssCatalogPage.js';
 import { TrendingPage } from './pages/TrendingPage.js';
@@ -26,35 +32,128 @@ import { OrbitSafeChangePage } from './pages/OrbitSafeChangePage.js';
 import { IntegrationCenterPage } from './pages/IntegrationCenterPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 
-function getInitialTab(): string {
+function getUrlRoute(): string {
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (hash) return hash;
   const path = window.location.pathname.replace(/^\//, '');
   if (path && path !== '') return path;
-  return 'dashboard';
+  return '';
 }
 
 function AppContent() {
-  const [currentTab, setCurrentTab] = useState<string>(getInitialTab);
+  const { user, isLoading, demoLogin } = useAuth();
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    const route = getUrlRoute();
+    if (route) return route;
+    return user ? 'dashboard' : 'landing';
+  });
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
-  const { user } = useAuth();
 
   useEffect(() => {
     const handleHashChange = () => {
-      const tab = getInitialTab();
-      if (tab) setCurrentTab(tab);
+      const route = getUrlRoute();
+      if (route) {
+        setCurrentTab(route);
+      }
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Update default tab if user logs in or out when on default route
+  useEffect(() => {
+    const route = getUrlRoute();
+    if (!route || route === 'landing') {
+      if (user && currentTab === 'landing') {
+        setCurrentTab('dashboard');
+      } else if (!user && currentTab !== 'login' && currentTab !== 'register' && currentTab !== 'documentation') {
+        setCurrentTab('landing');
+      }
+    }
+  }, [user]);
 
   const handleSelectTab = (tab: string) => {
     setCurrentTab(tab);
     window.location.hash = tab;
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0B0D12] flex items-center justify-center text-white font-mono text-xs">
+        <div className="flex items-center gap-2">
+          <span className="size-2 rounded-full bg-[#8B5CF6] animate-ping" />
+          <span>DevOrbit Local-First System Initializing...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. PUBLIC ROUTES FOR UNAUTHENTICATED VISITORS
+  if (!user) {
+    if (currentTab === 'login') {
+      return (
+        <LoginPage 
+          onNavigate={handleSelectTab} 
+          onSuccess={() => handleSelectTab('dashboard')} 
+        />
+      );
+    }
+
+    if (currentTab === 'register') {
+      return (
+        <RegisterPage 
+          onNavigate={handleSelectTab} 
+          onSuccess={() => handleSelectTab('dashboard')} 
+        />
+      );
+    }
+
+    if (currentTab === 'documentation') {
+      return (
+        <DocumentationPage 
+          onNavigate={handleSelectTab} 
+          onLaunchWorkspace={async () => {
+            await demoLogin();
+            handleSelectTab('dashboard');
+          }} 
+        />
+      );
+    }
+
+    // Default public landing page matching Figma
+    return (
+      <PublicLandingPage 
+        onNavigate={handleSelectTab} 
+        onLaunchDemo={async () => {
+          await demoLogin();
+          handleSelectTab('dashboard');
+        }} 
+      />
+    );
+  }
+
+  // 2. STANDALONE DOCUMENTATION OR LANDING ACCESSIBLE WHEN LOGGED IN
+  if (currentTab === 'documentation') {
+    return (
+      <DocumentationPage 
+        onNavigate={handleSelectTab} 
+        onLaunchWorkspace={() => handleSelectTab('dashboard')} 
+      />
+    );
+  }
+
+  if (currentTab === 'landing') {
+    return (
+      <PublicLandingPage 
+        onNavigate={handleSelectTab} 
+        onLaunchDemo={() => handleSelectTab('dashboard')} 
+      />
+    );
+  }
+
+  // 3. AUTHENTICATED WORKSPACE SHELL
   return (
     <div className="min-h-screen bg-[#0B0D12] text-[#F8FAFC] flex selection:bg-[#8B5CF6]/30 selection:text-white">
       
@@ -137,7 +236,7 @@ function AppContent() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
-        onNavigate={setCurrentTab}
+        onNavigate={handleSelectTab}
       />
 
       {/* Auth & Multi-User Switcher Modal */}

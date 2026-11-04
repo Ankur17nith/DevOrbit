@@ -24,6 +24,7 @@ import {
   Activity,
   UserCheck,
   LogOut,
+  BookOpen,
   X
 } from 'lucide-react';
 import { DevOrbitLogo, DevOrbitMark } from './DevOrbitLogo.js';
@@ -123,6 +124,12 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
       items: [
         { id: 'profile', label: 'Developer Profile', icon: UserCheck },
         { id: 'settings', label: 'Settings & Backups', icon: Settings },
+      ],
+    },
+    {
+      group: 'Resources',
+      items: [
+        { id: 'documentation', label: 'Documentation', icon: BookOpen, badge: 'Docs', badgeColor: 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30' },
       ],
     },
   ];

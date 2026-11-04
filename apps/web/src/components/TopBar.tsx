@@ -60,6 +60,7 @@ export function TopBar({
     forum: { section: 'Collaboration', title: 'Community Forum' },
     selfbot: { section: 'Collaboration', title: 'Selfbot Terminal' },
     settings: { section: 'Account', title: 'Settings & Backups' },
+    documentation: { section: 'Resources', title: 'Documentation' },
   };
 
   const currentCrumb = breadcrumbMap[currentTab] || { section: 'DevOrbit', title: currentTab };
