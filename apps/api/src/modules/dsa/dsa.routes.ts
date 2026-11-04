@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { DsaController } from './dsa.controller.js';
+import { dsaController } from './dsa.controller.js';
 import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 
 export const dsaRouter = Router();
-const controller = new DsaController();
 
-dsaRouter.get('/problems', optionalAuthenticate, controller.getProblems);
-dsaRouter.post('/problems/:problemId/progress', authenticate, controller.updateProgress);
-dsaRouter.get('/analytics', authenticate, controller.getAnalytics);
-dsaRouter.get('/revisions', authenticate, controller.getRevisionQueue);
+dsaRouter.get('/problems', optionalAuthenticate, dsaController.getProblems);
+dsaRouter.post('/problems/:problemId/progress', authenticate, dsaController.updateProgress);
+dsaRouter.get('/analytics', authenticate, dsaController.getAnalytics);
+dsaRouter.get('/revision-queue', authenticate, dsaController.getRevisionQueue);
+dsaRouter.get('/revisions', authenticate, dsaController.getRevisionQueue);
+dsaRouter.post('/review/:problemId', authenticate, dsaController.submitReview);
+dsaRouter.get('/recommendations', authenticate, dsaController.getRecommendations);
+dsaRouter.post('/import', authenticate, dsaController.importProblems);

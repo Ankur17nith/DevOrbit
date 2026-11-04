@@ -1,8 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { DsaService } from './dsa.service.js';
+import { Response, NextFunction } from 'express';
+import { dsaService } from './dsa.service.js';
 import { AuthRequest } from '../../middleware/auth.js';
-
-const dsaService = new DsaService();
 
 export class DsaController {
   async getProblems(req: AuthRequest, res: Response, next: NextFunction) {
@@ -48,4 +46,38 @@ export class DsaController {
       next(err);
     }
   }
+
+  async submitReview(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const problemId = String(req.params.problemId);
+      const { rating } = req.body;
+      const updated = await dsaService.submitSpacedReview(userId, problemId, Number(rating));
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getRecommendations(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const recommendations = await dsaService.getRecommendations(userId);
+      res.json({ success: true, data: recommendations });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async importProblems(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { type, content, defaultCategory } = req.body;
+      const result = await dsaService.importProblems(type || 'JSON', content, defaultCategory);
+      res.status(201).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
+
+export const dsaController = new DsaController();
