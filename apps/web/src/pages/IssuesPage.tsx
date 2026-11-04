@@ -33,23 +33,23 @@ export function IssuesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <CircleAlert className="size-6 text-purple-400" />
-            <h1 className="text-2xl font-bold font-display text-white tracking-tight">Issue Explorer</h1>
+            <CircleAlert className="size-6 text-[#8B5CF6]" />
+            <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Issue Explorer</h1>
           </div>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p className="text-xs text-[#686D79] mt-1">
             Curated beginner-friendly issues, good first issues, and unassigned tasks
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="relative w-64">
-            <Search className="absolute left-3 top-2.5 size-4 text-neutral-500" />
+            <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search issues..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181819] border border-[#242424] text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-[#09AE5B]"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
             />
           </div>
 
@@ -60,8 +60,8 @@ export function IssuesPage() {
                 onClick={() => setDifficulty(d)}
                 className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${
                   difficulty === d
-                    ? 'bg-[#25262C] text-white border border-neutral-600'
-                    : 'text-neutral-400 hover:text-white border border-transparent'
+                    ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold'
+                    : 'text-[#686D79] hover:text-[#F8FAFC] border border-transparent'
                 }`}
               >
                 {d}
@@ -75,42 +75,42 @@ export function IssuesPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-28 bg-[#181819] border border-[#242424] rounded-xl animate-pulse"></div>
+            <div key={i} className="h-28 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
       ) : issues.length === 0 ? (
-        <div className="text-center py-16 p-6 rounded-2xl bg-[#181819] border border-[#242424]">
-          <CircleAlert className="size-8 text-neutral-500 mx-auto" />
-          <h3 className="mt-3 text-sm font-semibold text-white">No open issues found</h3>
-          <p className="mt-1 text-xs text-neutral-400">Try loosening your search filters.</p>
+        <div className="text-center py-16 p-6 rounded-2xl bg-[#12151D] border border-[#1F2430]">
+          <CircleAlert className="size-8 text-[#686D79] mx-auto" />
+          <h3 className="mt-3 text-sm font-semibold text-[#F8FAFC]">No open issues found</h3>
+          <p className="mt-1 text-xs text-[#686D79]">Try loosening your search filters.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {issues.map(issue => (
             <div
               key={issue.id}
-              className="p-5 rounded-xl bg-[#181819] border border-[#242424] hover:border-neutral-600 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
             >
               <div className="min-w-0 space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-neutral-400">{issue.repository?.fullName}</span>
-                  <span className="text-xs font-mono text-neutral-600">#{issue.number}</span>
+                  <span className="text-xs font-mono text-[#686D79]">{issue.repository?.fullName}</span>
+                  <span className="text-xs font-mono text-[#686D79]">#{issue.number}</span>
                   <span className={`px-2 py-0.2 rounded text-[10px] font-mono uppercase font-semibold ${
                     issue.difficulty === 'beginner' 
-                      ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' 
-                      : 'bg-amber-950/60 text-amber-400 border border-amber-800/60'
+                      ? 'bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30' 
+                      : 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
                   }`}>
                     {issue.difficulty || 'Good First Issue'}
                   </span>
                 </div>
 
-                <h3 className="text-base font-semibold text-white truncate">{issue.title}</h3>
+                <h3 className="text-base font-semibold text-[#F8FAFC] truncate">{issue.title}</h3>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {issue.labels?.map((label: any, idx: number) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#0E0F10] text-neutral-300 border border-neutral-800"
+                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#C5C8D0] border border-[#1F2430]"
                     >
                       {typeof label === 'string' ? label : label.name}
                     </span>
@@ -120,7 +120,7 @@ export function IssuesPage() {
 
               <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
                 {issue.bountyAmount && (
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-mono font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] text-xs font-mono font-bold">
                     ${issue.bountyAmount} {issue.currency}
                   </span>
                 )}
@@ -129,7 +129,7 @@ export function IssuesPage() {
                   href={issue.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 rounded-lg bg-[#0E0F10] hover:bg-[#242424] border border-[#242424] text-xs font-medium text-white flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
                 >
                   <span>View Issue</span>
                   <ExternalLink className="size-3.5" />

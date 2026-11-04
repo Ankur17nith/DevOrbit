@@ -43,25 +43,27 @@ export function GsocPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold font-display text-white tracking-tight">Google Summer of Code (GSoC) Organizations</h1>
-            <span className="px-2 py-0.5 rounded-full bg-blue-950/60 border border-blue-800/60 text-blue-400 font-mono text-xs font-semibold">
+            <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
+              Google Summer of Code (GSoC) Organizations
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] font-mono text-xs font-semibold">
               606+ Organizations
             </span>
           </div>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p className="text-xs text-[#686D79] mt-1">
             Historical and current mentorship organization directory with verified participation years and tech stacks
           </p>
         </div>
 
         {/* Search Input */}
         <div className="relative w-72">
-          <Search className="absolute left-3 top-2.5 size-4 text-neutral-500" />
+          <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search organizations or tech..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181819] border border-[#242424] text-white text-xs placeholder:text-neutral-500 focus:outline-none focus:border-[#09AE5B]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
           />
         </div>
       </div>
@@ -74,8 +76,8 @@ export function GsocPage() {
             onClick={() => setSelectedTech(t)}
             className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
               selectedTech === t
-                ? 'bg-[#25262C] text-[#E5E5E5] border border-neutral-600'
-                : 'text-neutral-400 hover:text-white bg-transparent border border-neutral-800/80 hover:bg-white/[0.03]'
+                ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold'
+                : 'text-[#686D79] hover:text-[#F8FAFC] bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A]'
             }`}
           >
             {t}
@@ -87,21 +89,21 @@ export function GsocPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-44 bg-[#181819] border border-[#242424] rounded-xl animate-pulse"></div>
+            <div key={i} className="h-44 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
       ) : orgs.length === 0 ? (
-        <div className="text-center py-16 p-6 rounded-2xl bg-[#181819] border border-[#242424]">
-          <Building2 className="size-8 text-neutral-500 mx-auto" />
-          <h3 className="mt-3 text-sm font-semibold text-white">No organizations found</h3>
-          <p className="mt-1 text-xs text-neutral-400">Try modifying your technology or query.</p>
+        <div className="text-center py-16 p-6 rounded-2xl bg-[#12151D] border border-[#1F2430]">
+          <Building2 className="size-8 text-[#686D79] mx-auto" />
+          <h3 className="mt-3 text-sm font-semibold text-[#F8FAFC]">No organizations found</h3>
+          <p className="mt-1 text-xs text-[#686D79]">Try modifying your technology or query.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {orgs.map(org => (
             <div
               key={org.id}
-              className="p-5 rounded-xl bg-[#181819] border border-[#242424] hover:border-neutral-600 transition-all flex flex-col justify-between"
+              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start gap-3">
@@ -109,17 +111,17 @@ export function GsocPage() {
                     <img
                       src={org.logoUrl}
                       alt={org.name}
-                      className="size-10 rounded-lg object-contain bg-white/5 p-1 border border-neutral-800 shrink-0"
+                      className="size-10 rounded-lg object-contain bg-white/5 p-1 border border-[#1F2430] shrink-0"
                     />
                   ) : (
-                    <div className="size-10 rounded-lg bg-neutral-800 flex items-center justify-center text-neutral-400 shrink-0">
-                      <Building2 className="size-5" />
+                    <div className="size-10 rounded-lg bg-[#181C26] border border-[#1F2430] flex items-center justify-center text-[#686D79] shrink-0">
+                      <Building2 className="size-5 text-[#8B5CF6]" />
                     </div>
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-semibold text-white truncate">{org.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-neutral-400">
+                    <h3 className="text-base font-semibold text-[#F8FAFC] truncate">{org.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-[#686D79]">
                       <span>{org.totalProjects} projects</span>
                       <span>•</span>
                       <span>{org.participationYears?.length || 1} yrs active</span>
@@ -127,29 +129,29 @@ export function GsocPage() {
                   </div>
                 </div>
 
-                <p className="mt-3 text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                <p className="mt-3 text-xs text-[#C5C8D0] line-clamp-2 leading-relaxed">
                   {org.description || 'Google Summer of Code participating organization.'}
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#242424]/60 space-y-2.5">
+              <div className="mt-4 pt-3 border-t border-[#1F2430] space-y-2.5">
                 {/* Tech Tags */}
                 <div className="flex flex-wrap gap-1">
                   {org.technologies?.slice(0, 4).map((tech: string, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-900 text-neutral-300 border border-neutral-800">
+                    <span key={idx} className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#C5C8D0] border border-[#1F2430]">
                       {tech}
                     </span>
                   ))}
                   {org.technologies?.length > 4 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-neutral-500">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[#686D79]">
                       +{org.technologies.length - 4}
                     </span>
                   )}
                 </div>
 
                 {/* Footer with Website Link */}
-                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 pt-1">
-                  <span className="flex items-center gap-1 text-emerald-400">
+                <div className="flex items-center justify-between text-xs font-mono text-[#686D79] pt-1">
+                  <span className="flex items-center gap-1 text-[#22C55E]">
                     <Check className="size-3" />
                     <span>Verified Org</span>
                   </span>
@@ -159,7 +161,7 @@ export function GsocPage() {
                       href={org.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-1 text-xs text-[#686D79] hover:text-[#A78BFA] transition-colors"
                     >
                       <span>Website</span>
                       <ExternalLink className="size-3" />
@@ -178,17 +180,17 @@ export function GsocPage() {
           <button
             disabled={pagination.page <= 1}
             onClick={() => fetchOrgs(pagination.page - 1)}
-            className="px-3 py-1.5 rounded-lg bg-[#181819] border border-[#242424] text-xs font-medium text-neutral-300 disabled:opacity-40"
+            className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#C5C8D0] disabled:opacity-40 transition-colors"
           >
             Previous
           </button>
-          <span className="text-xs font-mono text-neutral-400 px-3">
+          <span className="text-xs font-mono text-[#686D79] px-3">
             Page {pagination.page} of {pagination.totalPages}
           </span>
           <button
             disabled={pagination.page >= pagination.totalPages}
             onClick={() => fetchOrgs(pagination.page + 1)}
-            className="px-3 py-1.5 rounded-lg bg-[#181819] border border-[#242424] text-xs font-medium text-neutral-300 disabled:opacity-40"
+            className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#C5C8D0] disabled:opacity-40 transition-colors"
           >
             Next
           </button>

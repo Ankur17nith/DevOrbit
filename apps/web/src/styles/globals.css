@@ -3,17 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --bg-canvas: #0E0F10;
-  --bg-surface: #181819;
-  --bg-surface-hover: #1F1F20;
-  --border-subtle: #242424;
-  --accent-emerald: #09AE5B;
-  --text-main: #E5E5E5;
+  --bg-canvas: #0B0D12;
+  --bg-surface: #12151D;
+  --bg-surface-hover: #181C26;
+  --bg-surface-muted: #202431;
+  --border-subtle: #1F2430;
+  --border-muted: #2E364A;
+  --accent-violet: #8B5CF6;
+  --accent-violet-hover: #A78BFA;
+  --text-main: #F8FAFC;
+  --text-secondary: #C5C8D0;
+  --text-muted: #686D79;
 }
 
 body {
-  background-color: #0E0F10;
-  color: #E5E5E5;
+  background-color: #0B0D12;
+  color: #F8FAFC;
   font-family: 'Inter', system-ui, sans-serif;
   overflow-x: hidden;
 }
@@ -25,16 +30,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0E0F10;
+  background: #0B0D12;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #242424;
+  background: #1F2430;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333333;
+  background: #2E364A;
 }
 
 /* Technical Dashed Border */

@@ -8,7 +8,9 @@ import {
   Layers, 
   Sparkles, 
   Palette,
-  ExternalLink
+  ExternalLink,
+  Zap,
+  Terminal
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -58,16 +60,18 @@ export function OrbitReconPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">
-          <ScanSearch className="size-6 text-emerald-400" />
-          <h1 className="text-2xl font-bold font-display text-white tracking-tight">Orbit Recon — UI Reverse Engineering & Vibe Coding</h1>
+          <ScanSearch className="size-6 text-[#8B5CF6]" />
+          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
+            Orbit Recon — UI Reverse Engineering & Vibe Coding
+          </h1>
         </div>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-[#686D79] mt-1">
           Inspect any permitted website's visible interface to extract design tokens, DOM hierarchy, and generate clean React + Tailwind components
         </p>
       </div>
 
       {/* URL Input Form */}
-      <form onSubmit={handleInspect} className="flex gap-3 p-2 bg-[#181819] border border-[#242424] rounded-2xl">
+      <form onSubmit={handleInspect} className="flex gap-3 p-2 bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-sm">
         <div className="relative flex-1">
           <input
             type="url"
@@ -75,13 +79,13 @@ export function OrbitReconPage() {
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://example.com"
-            className="w-full px-4 py-2.5 rounded-xl bg-[#0E0F10] border border-[#242424] text-white text-xs font-mono focus:outline-none focus:border-[#09AE5B]"
+            className="w-full px-4 py-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2.5 rounded-xl bg-[#09AE5B] hover:bg-[#078F4A] text-white text-xs font-semibold flex items-center gap-2 transition-colors shadow-lg shadow-[#09AE5B]/20 disabled:opacity-50"
+          className="px-6 py-2.5 rounded-xl bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -91,7 +95,7 @@ export function OrbitReconPage() {
           ) : (
             <>
               <Sparkles className="size-4" />
-              <span>Inspect & Generate</span>
+              <span>Inspect & Reconstruct</span>
             </>
           )}
         </button>
@@ -102,12 +106,14 @@ export function OrbitReconPage() {
         <div className="space-y-4">
           
           {/* View Toggles & Copy Bar */}
-          <div className="flex items-center justify-between border-b border-[#242424] pb-2">
+          <div className="flex items-center justify-between border-b border-[#1F2430] pb-2">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setActiveView('preview')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  activeView === 'preview' ? 'bg-white/[0.08] text-white' : 'text-neutral-400 hover:text-white'
+                  activeView === 'preview' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
                 <Eye className="size-3.5" />
@@ -116,7 +122,9 @@ export function OrbitReconPage() {
               <button
                 onClick={() => setActiveView('code')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  activeView === 'code' ? 'bg-white/[0.08] text-white' : 'text-neutral-400 hover:text-white'
+                  activeView === 'code' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
                 <Code2 className="size-3.5" />
@@ -125,7 +133,9 @@ export function OrbitReconPage() {
               <button
                 onClick={() => setActiveView('tokens')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  activeView === 'tokens' ? 'bg-white/[0.08] text-white' : 'text-neutral-400 hover:text-white'
+                  activeView === 'tokens' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
                 <Palette className="size-3.5" />
@@ -136,9 +146,9 @@ export function OrbitReconPage() {
             {activeView === 'code' && (
               <button
                 onClick={handleCopyCode}
-                className="px-3 py-1.5 rounded-lg bg-[#181819] hover:bg-[#222223] border border-[#242424] text-xs font-medium text-white flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
               >
-                {copied ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
+                {copied ? <Check className="size-3.5 text-[#22C55E]" /> : <Copy className="size-3.5" />}
                 <span>{copied ? 'Copied!' : 'Copy React Component'}</span>
               </button>
             )}
@@ -146,38 +156,38 @@ export function OrbitReconPage() {
 
           {/* View Body */}
           {activeView === 'preview' && (
-            <div className="rounded-2xl border border-[#242424] bg-[#0E0F10] p-6 shadow-2xl relative overflow-hidden">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 mb-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-6 shadow-2xl relative overflow-hidden">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] mb-4 flex items-center justify-between">
                 <span>Inspected Origin: {result.targetUrl}</span>
-                <span className="text-emerald-400">Component Render Complete</span>
+                <span className="text-[#22C55E]">Component Render Complete</span>
               </div>
 
               {/* Rendered Sandbox Simulation */}
-              <div className="p-6 rounded-xl bg-[#181819] border border-[#242424] space-y-6">
-                <div className="flex items-center justify-between border-b border-[#242424] pb-4">
+              <div className="p-6 rounded-xl bg-[#12151D] border border-[#1F2430] space-y-6">
+                <div className="flex items-center justify-between border-b border-[#1F2430] pb-4">
                   <div className="flex items-center gap-2">
-                    <div className="size-6 rounded bg-[#09AE5B] flex items-center justify-center font-bold text-xs text-white">
-                      R
+                    <div className="size-6 rounded bg-[#8B5CF6] flex items-center justify-center font-bold text-xs text-white">
+                      D
                     </div>
-                    <span className="font-bold text-white text-sm">Reconstructed Workstation Shell</span>
+                    <span className="font-bold text-[#F8FAFC] text-sm">Reconstructed Workstation Shell</span>
                   </div>
-                  <button className="px-3 py-1 rounded-lg bg-[#09AE5B] text-white text-xs font-medium">
+                  <button className="px-3 py-1 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-medium transition-colors">
                     Trigger Action
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-[#0E0F10] border border-[#242424] space-y-2">
-                    <span className="text-xs font-mono text-emerald-400 uppercase">Surface Card</span>
-                    <p className="text-xs text-neutral-300">Clean room recreation adhering strictly to extracted geometry and color tokens.</p>
+                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
+                    <span className="text-xs font-mono text-[#A78BFA] uppercase">Surface Card</span>
+                    <p className="text-xs text-[#C5C8D0]">Clean room recreation adhering strictly to extracted geometry and color tokens.</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0E0F10] border border-[#242424] space-y-2">
-                    <span className="text-xs font-mono text-cyan-400 uppercase">Typography Scale</span>
-                    <p className="text-xs text-neutral-300">Satoshi Display & Inter body fonts verified for high visual fidelity.</p>
+                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
+                    <span className="text-xs font-mono text-[#60A5FA] uppercase">Typography Scale</span>
+                    <p className="text-xs text-[#C5C8D0]">Manrope Display & Inter body fonts verified for high visual fidelity.</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0E0F10] border border-[#242424] space-y-2">
-                    <span className="text-xs font-mono text-amber-400 uppercase">Micro-Interaction</span>
-                    <p className="text-xs text-neutral-300">Smooth hover states without jarring layout shifts.</p>
+                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
+                    <span className="text-xs font-mono text-[#F59E0B] uppercase">Micro-Interaction</span>
+                    <p className="text-xs text-[#C5C8D0]">Smooth hover states without jarring layout shifts.</p>
                   </div>
                 </div>
               </div>
@@ -185,8 +195,8 @@ export function OrbitReconPage() {
           )}
 
           {activeView === 'code' && (
-            <div className="rounded-2xl border border-[#242424] bg-[#0E0F10] p-4 overflow-x-auto">
-              <pre className="text-xs font-mono text-neutral-300 leading-relaxed">
+            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-4 overflow-x-auto">
+              <pre className="text-xs font-mono text-[#C5C8D0] leading-relaxed">
                 <code>{result.generatedCode}</code>
               </pre>
             </div>
@@ -194,28 +204,28 @@ export function OrbitReconPage() {
 
           {activeView === 'tokens' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl bg-[#181819] border border-[#242424] space-y-3">
-                <h3 className="text-sm font-semibold text-white">Extracted Color Palette</h3>
+              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">Extracted Color Palette</h3>
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                   {Object.entries(result.tokens || {}).filter(([k]) => k.includes('Bg') || k.includes('Color')).map(([k, v]) => (
-                    <div key={k} className="p-2.5 rounded-lg bg-[#0E0F10] border border-[#242424] flex items-center gap-2">
-                      <div className="size-4 rounded border border-neutral-700" style={{ backgroundColor: v as string }} />
+                    <div key={k} className="p-2.5 rounded-lg bg-[#0B0D12] border border-[#1F2430] flex items-center gap-2">
+                      <div className="size-4 rounded border border-[#2E364A]" style={{ backgroundColor: v as string }} />
                       <div className="min-w-0">
-                        <div className="text-[10px] text-neutral-500 uppercase">{k}</div>
-                        <div className="text-white truncate">{v as string}</div>
+                        <div className="text-[10px] text-[#686D79] uppercase">{k}</div>
+                        <div className="text-[#F8FAFC] truncate">{v as string}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-[#181819] border border-[#242424] space-y-3">
-                <h3 className="text-sm font-semibold text-white">Typography & Fonts</h3>
+              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">Typography & Fonts</h3>
                 <div className="space-y-2 text-xs font-mono">
                   {result.tokens?.fonts?.map((f: string, i: number) => (
-                    <div key={i} className="p-2.5 rounded-lg bg-[#0E0F10] border border-[#242424] flex items-center justify-between">
-                      <span className="text-white">{f}</span>
-                      <span className="text-[10px] text-neutral-500 uppercase">Font Family</span>
+                    <div key={i} className="p-2.5 rounded-lg bg-[#0B0D12] border border-[#1F2430] flex items-center justify-between">
+                      <span className="text-[#F8FAFC]">{f}</span>
+                      <span className="text-[10px] text-[#686D79] uppercase">Font Family</span>
                     </div>
                   ))}
                 </div>
@@ -225,10 +235,10 @@ export function OrbitReconPage() {
 
         </div>
       ) : (
-        <div className="text-center py-20 p-8 rounded-2xl bg-[#181819] border border-[#242424] space-y-3">
-          <ScanSearch className="size-10 text-neutral-500 mx-auto" />
-          <h3 className="text-base font-bold text-white font-display">Enter a target URL above</h3>
-          <p className="text-xs text-neutral-400 max-w-md mx-auto">
+        <div className="text-center py-20 p-8 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+          <ScanSearch className="size-10 text-[#686D79] mx-auto" />
+          <h3 className="text-base font-bold text-[#F8FAFC] font-display">Enter a target URL above</h3>
+          <p className="text-xs text-[#686D79] max-w-md mx-auto">
             Orbit Recon automatically launches inspection protocols to parse DOM layout, computed styles, and construct an original React component.
           </p>
         </div>

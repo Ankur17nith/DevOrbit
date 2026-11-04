@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ExternalLink, Bookmark, Filter, ShieldCheck } from 'lucide-react';
+import { Star, ExternalLink, Bookmark, Filter, ShieldCheck, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
 export function BountiesPage() {
@@ -21,12 +21,12 @@ export function BountiesPage() {
     <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold font-display text-white tracking-tight">Open Source Bounties</h1>
-          <span className="px-2 py-0.5 rounded-full bg-amber-950/60 border border-amber-800/60 text-amber-400 font-mono text-xs font-semibold">
+          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Open Source Bounties</h1>
+          <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] font-mono text-xs font-semibold">
             Monetized Contributions
           </span>
         </div>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-[#686D79] mt-1">
           Verified open source bounties and paid developer issues with live reward tracking
         </p>
       </div>
@@ -34,7 +34,7 @@ export function BountiesPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-44 bg-[#181819] border border-[#242424] rounded-xl animate-pulse"></div>
+            <div key={i} className="h-44 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
       ) : (
@@ -42,31 +42,31 @@ export function BountiesPage() {
           {bounties.map(b => (
             <div
               key={b.id}
-              className="p-5 rounded-xl bg-[#181819] border border-[#242424] hover:border-neutral-600 transition-all flex flex-col justify-between"
+              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-xs font-mono text-neutral-400">{b.repository?.fullName || 'Open Source Repo'}</span>
-                    <h3 className="text-base font-semibold text-white mt-1 leading-snug">{b.title}</h3>
+                    <span className="text-xs font-mono text-[#686D79]">{b.repository?.fullName || 'Open Source Repo'}</span>
+                    <h3 className="text-base font-semibold text-[#F8FAFC] mt-1 leading-snug">{b.title}</h3>
                   </div>
 
-                  <span className="px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-800/60 text-emerald-400 font-mono text-xs font-bold shrink-0">
+                  <span className="px-3 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] font-mono text-xs font-bold shrink-0">
                     ${b.bountyAmount} {b.currency}
                   </span>
                 </div>
 
-                <p className="mt-3 text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                <p className="mt-3 text-xs text-[#C5C8D0] line-clamp-2 leading-relaxed">
                   {b.body || 'Open source contribution with verified cash reward upon merge.'}
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#242424]/60 flex items-center justify-between text-xs">
+              <div className="mt-4 pt-3 border-t border-[#1F2430] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-900 text-neutral-300 border border-neutral-800">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#C5C8D0] border border-[#1F2430]">
                     {b.difficulty || 'intermediate'}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950/40 text-amber-400 border border-amber-800/40">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">
                     Verified Reward
                   </span>
                 </div>
@@ -75,7 +75,7 @@ export function BountiesPage() {
                   href={b.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-[#A78BFA] hover:text-[#F8FAFC] font-medium transition-colors"
                 >
                   <span>Solve on GitHub</span>
                   <ExternalLink className="size-3" />

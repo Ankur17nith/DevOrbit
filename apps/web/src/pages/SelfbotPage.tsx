@@ -68,49 +68,49 @@ export function SelfbotPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">
-          <Bot className="size-6 text-cyan-400" />
-          <h1 className="text-2xl font-bold font-display text-white tracking-tight">GitHub Selfbot Automator</h1>
+          <Bot className="size-6 text-[#8B5CF6]" />
+          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">GitHub Selfbot Automator</h1>
         </div>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-[#686D79] mt-1">
           Zero-action GitHub maintainer automation: auto-respond to first-time contributors and manage slash commands
         </p>
       </div>
 
       {/* Safety Notice */}
-      <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-800/40 flex items-start gap-3">
-        <ShieldAlert className="size-5 text-cyan-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-neutral-300 leading-relaxed">
-          <strong className="text-white">Strict Permission Isolation:</strong> DevOrbit Selfbot operates only on explicit repositories where you possess maintainer or admin access. Automation runs under your identity and requires explicit activation.
+      <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-start gap-3">
+        <ShieldAlert className="size-5 text-[#8B5CF6] shrink-0 mt-0.5" />
+        <div className="text-xs text-[#C5C8D0] leading-relaxed">
+          <strong className="text-[#F8FAFC]">Strict Permission Isolation:</strong> DevOrbit Selfbot operates only on explicit repositories where you possess maintainer or admin access. Automation runs under your identity and requires explicit activation.
         </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         
         {/* Repo Target */}
-        <div className="p-5 rounded-2xl bg-[#181819] border border-[#242424] space-y-3">
-          <label className="block text-xs font-medium text-neutral-300">Target GitHub Repository</label>
+        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+          <label className="block text-xs font-medium text-[#C5C8D0]">Target GitHub Repository</label>
           <input
             type="text"
             required
             value={repo}
             onChange={e => setRepo(e.target.value)}
             placeholder="owner/repository"
-            className="w-full px-3 py-2 rounded-lg bg-[#0E0F10] border border-[#242424] text-white text-xs font-mono focus:outline-none focus:border-[#09AE5B]"
+            className="w-full px-3 py-2 rounded-lg bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
           />
         </div>
 
         {/* Welcome Message Module */}
-        <div className="p-5 rounded-2xl bg-[#181819] border border-[#242424] space-y-4">
+        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-white">Contributor Welcome Message</h3>
-              <p className="text-xs text-neutral-400">Automatically replies when a new contributor files their first issue or PR</p>
+              <h3 className="text-sm font-semibold text-[#F8FAFC]">Contributor Welcome Message</h3>
+              <p className="text-xs text-[#686D79]">Automatically replies when a new contributor files their first issue or PR</p>
             </div>
             <input
               type="checkbox"
               checked={welcomeEnabled}
               onChange={e => setWelcomeEnabled(e.target.checked)}
-              className="size-4 accent-[#09AE5B] rounded cursor-pointer"
+              className="size-4 accent-[#8B5CF6] rounded cursor-pointer"
             />
           </div>
 
@@ -119,26 +119,26 @@ export function SelfbotPage() {
             value={welcomeMessage}
             onChange={e => setWelcomeMessage(e.target.value)}
             rows={3}
-            className="w-full p-3 rounded-xl bg-[#0E0F10] border border-[#242424] text-white text-xs font-mono focus:outline-none focus:border-[#09AE5B] disabled:opacity-40"
+            className="w-full p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] disabled:opacity-40 transition-colors"
           />
         </div>
 
-        {/* Slash Command Mockup */}
-        <div className="p-5 rounded-2xl bg-[#181819] border border-[#242424] space-y-3">
+        {/* Slash Command Preview */}
+        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
           <div className="flex items-center gap-2">
-            <Terminal className="size-4 text-emerald-400" />
-            <h3 className="text-sm font-semibold text-white">Slash Command Rules</h3>
+            <Terminal className="size-4 text-[#8B5CF6]" />
+            <h3 className="text-sm font-semibold text-[#F8FAFC]">Slash Command Rules</h3>
           </div>
-          <div className="p-3 rounded-xl bg-[#0E0F10] border border-[#242424] text-xs font-mono space-y-1">
-            <div className="text-neutral-400">/guide &rarr; "Replies with CONTRIBUTING.md link and deletes command"</div>
-            <div className="text-neutral-400">/reproduce &rarr; "Requests step-by-step reproduction instructions"</div>
+          <div className="p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-xs font-mono space-y-1.5">
+            <div className="text-[#C5C8D0]">/guide &rarr; "Replies with CONTRIBUTING.md link and deletes command"</div>
+            <div className="text-[#C5C8D0]">/reproduce &rarr; "Requests step-by-step reproduction instructions"</div>
           </div>
         </div>
 
         {/* Save Bar */}
         <div className="flex items-center justify-between pt-2">
           {saved && (
-            <span className="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+            <span className="text-xs font-mono text-[#22C55E] flex items-center gap-1.5">
               <CheckCircle2 className="size-4" />
               <span>Selfbot configuration deployed!</span>
             </span>
@@ -146,10 +146,10 @@ export function SelfbotPage() {
           <button
             type="submit"
             disabled={saving}
-            className="ml-auto px-6 py-2.5 rounded-xl bg-[#09AE5B] hover:bg-[#078F4A] text-white text-xs font-semibold flex items-center gap-2 transition-colors shadow-lg shadow-[#09AE5B]/20 disabled:opacity-50"
+            className="ml-auto px-6 py-2.5 rounded-xl bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-50 active:scale-98"
           >
             <Save className="size-4" />
-            <span>{saving ? 'Saving...' : 'Deploy Configuration'}</span>
+            <span>{saving ? 'Deploying...' : 'Deploy Configuration'}</span>
           </button>
         </div>
 

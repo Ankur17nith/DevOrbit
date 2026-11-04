@@ -1,0 +1,9 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DevOrbit color mark">
+  
+  <g transform="translate(0 0) scale(1)">
+    <defs><mask id="color-cut"><rect width="96" height="96" fill="white"/><path d="M14 64C30 45 57 37 82 47" stroke="black" stroke-width="7" stroke-linecap="round"/></mask></defs>
+    <path d="M21 14H47C70.5 14 86 27.2 86 48C86 68.8 70.5 82 47 82H21V14ZM34 26V70H47C63.2 70 73 61.9 73 48C73 34.1 63.2 26 47 26H34Z" fill="#11141B" fill-rule="evenodd" clip-rule="evenodd" mask="url(#color-cut)"/>
+    <path d="M15 64C31 45 57 37 82 47" stroke="#11141B" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="77.5" cy="45.6" r="6.5" fill="#8B5CF6" stroke="#FFFFFF" stroke-width="3"/>
+  </g>
+</svg>
