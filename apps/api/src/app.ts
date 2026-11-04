@@ -15,6 +15,7 @@ import { aiRouter } from './modules/ai/ai.routes.js';
 import { reconRouter } from './modules/recon/recon.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { githubRouter } from './modules/github/github.routes.js';
+import { navigatorRouter } from './modules/navigator/navigator.routes.js';
 
 export const app = express();
 
@@ -82,6 +83,7 @@ v1Router.use('/ai', aiRouter);
 v1Router.use('/recon', reconRouter);
 v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/github', githubRouter);
+v1Router.use('/navigator', navigatorRouter);
 
 app.use('/api/v1', v1Router);
 
