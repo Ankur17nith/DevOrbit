@@ -27,19 +27,22 @@ describe('Advanced DSA Intelligence & Spaced Repetition Tests (Milestone M3)', (
     userBToken = resB.body.data.token;
     userBId = resB.body.data.user.id;
 
-    // Fetch two core problems
-    const problems = await prisma.dsaProblem.findMany({ take: 3 });
-    expect(problems.length).toBeGreaterThanOrEqual(2);
-    sampleProblemA = problems[0];
-    sampleProblemB = problems[1];
-
-    // Clear test user progress and test imported problems
+    // Clear test user progress and test imported problems FIRST
     await prisma.userDsaProgress.deleteMany({
       where: { userId: { in: [userAId, userBId] } },
     });
     await prisma.dsaProblem.deleteMany({
-      where: { canonicalSlug: { in: ['subarray-sum-equals-k', 'course-schedule'] } },
+      where: { slug: { in: ['subarray-sum-equals-k', 'course-schedule'] } },
     });
+
+    // Fetch two persistent core problems from the remaining catalog
+    const problems = await prisma.dsaProblem.findMany({
+      where: { slug: { notIn: ['subarray-sum-equals-k', 'course-schedule'] } },
+      take: 3,
+    });
+    expect(problems.length).toBeGreaterThanOrEqual(2);
+    sampleProblemA = problems[0];
+    sampleProblemB = problems[1];
   });
 
   afterAll(async () => {
