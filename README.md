@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite%20(Local--First)-003B57.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-69%2F69%20Passing%20(100%25)-success.svg)](./apps/api/src/tests/)
-[![Design System](https://img.shields.io/badge/Figma-Figma%20Brand%20Identity-8B5CF6.svg)](./docs/design/FIGMA_REFERENCE_ANALYSIS.md)
+[![Tests](https://img.shields.io/badge/Tests-91%2F91%20Passing%20(100%25)-success.svg)](./apps/api/src/tests/)
+[![Design System](https://img.shields.io/badge/Figma-Figma%20Brand%20Identity-8B5CF6.svg)](./docs/release/FIGMA_IMPLEMENTATION_REPORT.md)
 
 ---
 
@@ -33,27 +33,23 @@ Modern software engineers suffer from extreme tool fragmentation:
 
 ## 3. Product Visual Walkthrough
 
-DevOrbit's UI is designed strictly against the official Figma brand identity (*Orbit Black* `#0B0D12`, *Electric Violet* `#8B5CF6`, *Soft White* `#F8FAFC`, and *Signal Gray* `#686D79`), featuring a responsive, collapsible left-side navigation and zero emerald green bleed.
+DevOrbit's UI is designed strictly against the official Figma brand identity (*Orbit Black* `#0B0D12`, *Electric Violet* `#8B5CF6`, *Soft White* `#F8FAFC`, and *Signal Gray* `#686D79`), featuring responsive navigation, custom typography, and zero emerald green bleed.
 
-### Command Center (1440px Desktop)
-![DevOrbit Command Center](docs/design/visual-validation/m9/1440_dashboard.png)
-*Live unified KPIs: DSA Mastery, Codeforces rating history, 365-day verified commit activity, and active OSS pipeline.*
+### Public Landing Page (Figma Reference Canvas)
+![DevOrbit Public Landing Page](docs/design/verified_landing_page.png)
+*Faithful implementation of all 11 Figma sections: Light hero, 4 numbered cards, intelligence tabs, integration grid, and Electric Violet CTA.*
 
-### Integration Center (1280px Desktop)
-![DevOrbit Integration Center](docs/design/visual-validation/m9/1280_integrations.png)
-*Dedicated central hub for connecting GitHub (OAuth/PAT), Codeforces (live public API), LeetCode, Take U Forward, and Ollama.*
+### Command Center (Authenticated Workspace)
+![DevOrbit Command Center](docs/design/verified_command_center.png)
+*Date banner in Electric Violet (`THURSDAY, NOV 5`), 3 core summary cards (GitHub, DSA, OSS), recent activity log, and quick actions card.*
 
-### Orbit AI Studio (1024px Tablet/Desktop)
-![DevOrbit Orbit AI Studio](docs/design/visual-validation/m9/1024_orbit_ai.png)
-*Local-first conversational studio with conversation persistence, model discovery, and honest fallback indicators.*
+### Documentation Hub (Preview Route `/documentation`)
+![DevOrbit Documentation Hub](docs/design/verified_documentation_page.png)
+*Clean two-column technical docs, category sidebar, breadcrumb hierarchy, copyable shell blocks, and local API reference.*
 
-### DSA Spaced Repetition (768px Tablet)
-![DevOrbit DSA Spaced Repetition](docs/design/visual-validation/m9/768_dsa.png)
-*SuperMemo SM-2 transparent revision queue, solution mode tagging (Independent vs. Assisted), and weakness diagnosis.*
-
-### Mobile Responsive Command Center (390px Mobile)
-![DevOrbit Mobile View](docs/design/visual-validation/m9/390_mobile_command_center.png)
-*Touch-friendly mobile drawer navigation with zero horizontal overflow.*
+### Authentication & Fast Local Demo
+![DevOrbit Sign In Screen](docs/design/verified_login_page.png)
+*Secure sign-in with instant 1-click local demo authentication.*
 
 ---
 
@@ -222,7 +218,7 @@ Open your browser to **`http://localhost:5173`** to access the DevOrbit Command 
 
 ## 10. Automated Test Suite
 
-DevOrbit includes **69 automated integration tests** covering multi-user isolation, SuperMemo SM-2 calculations, token encryption, API validation, disaster recovery backups, and external provider adapters:
+DevOrbit includes **91 automated integration and unit tests** (82 API + 9 Web) covering multi-user isolation, SuperMemo SM-2 calculations, token encryption, API validation, disaster recovery backups, rate limiting, and external provider adapters:
 
 ```bash
 npm test
@@ -230,9 +226,9 @@ npm test
 
 ### Verification Output:
 ```text
-Test Files  9 passed (9)
-     Tests  69 passed (69)
-  Duration  1.65s
+Test Files  13 passed (13)
+     Tests  91 passed (91)
+  Duration  ~13.2s
 ```
 
 ---
@@ -272,8 +268,10 @@ curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:3001/api/v1/sy
 
 - **Zero Cloud Leakage**: No telemetry, tracking beacons, or analytics scripts.
 - **AES-256-GCM Token Storage**: Integration secrets (GitHub PATs, OAuth tokens) are encrypted with AES-256-GCM with unique 96-bit initialization vectors.
-- **Session Protection**: JWTs include high-entropy UUID `jti` claims and are verified on all protected API routes.
-- **Local Isolation**: Each user account is strictly isolated by foreign key constraints; cross-account resource access is rejected with HTTP 403/404.
+- **Session Protection**: JWTs include high-entropy UUID `jti` claims and are verified on all protected API routes. Session invalidation is enforced immediately upon logout.
+- **IDOR Prevention**: All user-specific database entities strictly enforce `where: { id, userId }` or workspace membership checks.
+- **Production Safeguards**: Refuses to launch in production if `JWT_SECRET` is weak/default or `CORS_ORIGIN` is wildcard (`*`).
+- **Rate Limiting**: Sliding-window rate limiters defend against brute force and resource exhaustion on auth, sync, and AI inference.
 - **Secure Headers**: Express is hardened with `helmet()` middleware protecting against MIME sniffing, clickjacking, and XSS.
 
 ---
@@ -282,6 +280,9 @@ curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:3001/api/v1/sy
 
 Detailed implementation guides and references are located in [`docs/`](./docs/):
 
+- [`docs/audits/SECURITY_REMEDIATION_REPORT.md`](./docs/audits/SECURITY_REMEDIATION_REPORT.md): Security vulnerability remediations and hardening audit.
+- [`docs/audits/FUNCTIONAL_VERIFICATION_REPORT.md`](./docs/audits/FUNCTIONAL_VERIFICATION_REPORT.md): Verified behavior of all 11 core functional modules.
+- [`docs/release/FIGMA_IMPLEMENTATION_REPORT.md`](./docs/release/FIGMA_IMPLEMENTATION_REPORT.md): Side-by-side Figma brand identity visual alignment report.
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md): Complete OS-specific installation manual.
 - [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md): Developer architecture and contributing workflow.
 - [`docs/PRODUCTION_DEPLOYMENT.md`](./docs/PRODUCTION_DEPLOYMENT.md): Production deployment and systemd service setup.
