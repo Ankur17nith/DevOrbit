@@ -19,7 +19,7 @@ Local-first, multi-user Developer Intelligence Operating System.
 | **M5** | Orbit Codebase Navigator | **COMPLETED** | Nov 4, 2026 | Polyglot AST symbol indexer (TS Compiler API, Python, Go, Rust), module dependency graph builder, dynamic Mermaid flowchart generation, Codebase Navigator UI with file tree & source-grounded symbol outline, 43 passing automated tests. |
 | **M6** | Orbit Fix | **COMPLETED** | Nov 4, 2026 | Multi-runtime error ingest (Node/V8, Vitest, Python, Go, Rust), source-grounded root-cause diagnosis, bug taxonomy categorization, unified diff patch studio, dry-run verification runner, 50 passing automated tests. |
 | **M7** | Orbit SafeChange & Engineering Quality | **COMPLETED** | Nov 4, 2026 | Transitive ripple impact analyzer, blast radius risk scorer (0-100), anti-destruction Prisma migration safety checker, dependency & tech debt quality guardian (A+ grade, 35% test ratio), 56 passing automated tests. |
-| **M8** | Orbit Recon, Local AI & Release Hardening | Scheduled | Upcoming | Controlled Ollama/deterministic fallback, desktop notifications, background opportunity monitor, release packaging. |
+| **M8** | Orbit Recon, Local AI & Release Hardening | **COMPLETED** | Nov 4, 2026 | Ollama local LLM integration with deterministic developer fallback, Orbit Pulse 72h deadline monitor, Orbit Recon Electric Violet design tokens, Tauri v2 packaging validation, 61 passing automated tests across 8 suites. |
 
 ---
 
@@ -82,6 +82,14 @@ Local-first, multi-user Developer Intelligence Operating System.
 - **Engineering Quality Guardian**: Implemented `DependencyGuardian` measuring test volume vs source volume ratio (35%), zero high-risk licenses, and awarding an A+ health grade.
 - **Frontend SafeChange Studio**: Built `OrbitSafeChangePage.tsx` with ripple effect impact visualizer, interactive migration safety auditor with preset error cases, and dependency quality dashboard.
 - **Testing & Verification**: Added 6 automated tests in `apps/api/src/tests/safechange_intelligence.test.ts` (total 56 passing automated tests monorepo-wide). Clean production builds on frontend and backend. Documentation in `docs/safechange/CHANGE_IMPACT_AND_QUALITY.md`.
+
+### Session 8 — Nov 4, 2026 (Milestone M8 Implementation)
+- **Local AI Engine**: Implemented `OllamaService` with real-time daemon reachability probe and deterministic rule-based fallback across 5 engineering modes (Code Review, Refactor, Security Audit, DSA, OSS strategy).
+- **Orbit Pulse Opportunity Monitor**: Developed background deadline monitor scanning OSS programs within a 72-hour cutoff, persistent desktop notifications, unread count telemetry, and read receipts.
+- **Orbit Recon Overhaul**: Modernized inspection endpoint with Electric Violet (`#8B5CF6`) and Brand Black (`#0B0D12`) tokens, eliminating legacy prototype emerald green bleed.
+- **Tauri v2 Desktop Packaging**: Verified `src-tauri/tauri.conf.json` desktop window configuration, build command wiring (`npm run build --workspace=apps/web`), and frontend dist asset linking.
+- **Testing & Verification**: Added 5 automated tests in `apps/api/src/tests/pulse_intelligence.test.ts` (bringing the monorepo suite to 61 passing automated tests across 8 test suites, 100% pass rate). Verified clean production builds on both frontend and backend. Documentation created in `docs/system/RELEASE_VERIFICATION_AND_PULSE.md`.
+
 
 
 
