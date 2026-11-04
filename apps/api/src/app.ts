@@ -17,6 +17,7 @@ import { notificationsRouter } from './modules/notifications/notifications.route
 import { githubRouter } from './modules/github/github.routes.js';
 import { navigatorRouter } from './modules/navigator/navigator.routes.js';
 import { fixRouter } from './modules/fix/fix.routes.js';
+import { safechangeRouter } from './modules/safechange/safechange.routes.js';
 
 export const app = express();
 
@@ -86,6 +87,7 @@ v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/github', githubRouter);
 v1Router.use('/navigator', navigatorRouter);
 v1Router.use('/fix', fixRouter);
+v1Router.use('/safechange', safechangeRouter);
 
 app.use('/api/v1', v1Router);
 
