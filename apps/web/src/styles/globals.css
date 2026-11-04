@@ -3,12 +3,34 @@
 @tailwind utilities;
 
 :root {
+  /* Official Brand Colors */
+  --orbit-black: #0B0D12;
+  --electric-violet: #8B5CF6;
+  --soft-white: #F8FAFC;
+  --signal-gray: #686D79;
+
+  /* Semantic Application Tokens */
+  --background: #0B0D12;
+  --foreground: #F8FAFC;
+  --surface: #12151D;
+  --surface-secondary: #181C26;
+  --surface-tertiary: #202431;
+  --primary: #8B5CF6;
+  --primary-hover: #A78BFA;
+  --muted: #686D79;
+  --border: rgba(248, 250, 252, 0.09);
+  --border-subtle: #1F2430;
+  --border-muted: #2E364A;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #60A5FA;
+
+  /* Legacy aliases for backward compatibility */
   --bg-canvas: #0B0D12;
   --bg-surface: #12151D;
   --bg-surface-hover: #181C26;
   --bg-surface-muted: #202431;
-  --border-subtle: #1F2430;
-  --border-muted: #2E364A;
   --accent-violet: #8B5CF6;
   --accent-violet-hover: #A78BFA;
   --text-main: #F8FAFC;
