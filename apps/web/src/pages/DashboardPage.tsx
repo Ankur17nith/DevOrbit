@@ -17,7 +17,10 @@ import {
   GitPullRequest,
   Check,
   AlertCircle,
-  FolderGit2
+  FolderGit2,
+  GitBranch,
+  BookOpen,
+  Compass
 } from 'lucide-react';
 import { GithubIcon } from '../components/icons/GithubIcon.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -78,95 +81,206 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
   return (
     <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-200">
       
-      {/* 1. Hero Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-[#12151D] via-[#181C26] to-[#0B0D12] border border-[#1F2430] relative overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-1/4 w-80 h-32 bg-[#8B5CF6]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-2 z-10">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl md:text-3xl font-bold font-display text-[#F8FAFC] tracking-tight">
-              Welcome back, {user?.name || user?.username}
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] text-xs font-mono font-medium">
-              Verified Session
-            </span>
+      {/* 1. Figma Command Center Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#1F2430]">
+        <div className="space-y-1">
+          <div className="text-[11px] font-mono uppercase font-bold text-[#8B5CF6] tracking-wider">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase()}
           </div>
-          <p className="text-xs sm:text-sm text-[#C5C8D0] max-w-xl leading-relaxed">
-            Your skills, algorithmic journey, open source opportunities, and workspaces synchronized in one universe.
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#F8FAFC] tracking-tight">
+            Good morning, {user?.name || user?.username || 'Alex'}.
+          </h1>
+          <p className="text-xs text-[#686D79]">
+            Your developer workspace at a glance.
           </p>
-
-          {/* Quick Integration Badges Strip */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {/* GitHub Badge */}
-            <button
-              onClick={() => onNavigate('integrations')}
-              className={`px-2 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5 transition-colors border ${
-                integrations?.github?.isConnected 
-                  ? 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E]' 
-                  : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <GithubIcon className="size-3" />
-              <span>{integrations?.github?.isConnected ? `@${integrations.github.username}` : 'GitHub (Offline)'}</span>
-            </button>
-
-            {/* Codeforces Badge */}
-            <button
-              onClick={() => onNavigate('integrations')}
-              className={`px-2 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5 transition-colors border ${
-                integrations?.codeforces?.isConnected 
-                  ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/30 text-[#A78BFA]' 
-                  : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <TrendingUp className="size-3" />
-              <span>{integrations?.codeforces?.isConnected ? `${integrations.codeforces.handle} (${integrations.codeforces.stats?.profile?.rating || 'Unrated'})` : 'Codeforces (Offline)'}</span>
-            </button>
-
-            {/* LeetCode Badge */}
-            <button
-              onClick={() => onNavigate('integrations')}
-              className={`px-2 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5 transition-colors border ${
-                integrations?.leetcode?.isConnected 
-                  ? 'bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B]' 
-                  : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <Brain className="size-3" />
-              <span>{integrations?.leetcode?.isConnected ? `LeetCode: ${integrations.leetcode.stats?.totalSolved || 0}` : 'LeetCode (Offline)'}</span>
-            </button>
-
-            {/* Take U Forward Badge */}
-            <button
-              onClick={() => onNavigate('integrations')}
-              className={`px-2 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5 transition-colors border ${
-                integrations?.tuf?.isConnected 
-                  ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/30 text-[#A78BFA]' 
-                  : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <Layers className="size-3" />
-              <span>{integrations?.tuf?.isConnected ? `TUF: ${integrations.tuf.stats?.totalCompleted || 0}/455` : 'TUF (Offline)'}</span>
-            </button>
-          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 z-10 shrink-0">
-          <button
-            onClick={() => onNavigate('dsa')}
-            className="px-3.5 py-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[#F8FAFC] text-xs font-medium flex items-center gap-2 transition-all shadow-sm"
-          >
-            <RotateCw className="size-3.5 text-[#F59E0B]" />
-            <span>Revision Queue ({stats?.dsaRevisionsDue || 0})</span>
-          </button>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate('integrations')}
-            className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20"
+            className="px-3.5 py-2 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20"
           >
             <Plug className="size-3.5" />
-            <span>Connect Accounts</span>
+            <span>Integrations</span>
           </button>
         </div>
+      </div>
+
+      {/* 2. Three Primary Summary Cards (Figma Mockup) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        {/* Card 1: GITHUB ACTIVITY */}
+        <div 
+          onClick={() => onNavigate(integrations?.github?.isConnected ? 'profile' : 'integrations')}
+          className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all cursor-pointer group shadow-xs"
+        >
+          <div className="flex items-center justify-between mb-3 text-xs">
+            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-[#686D79]">
+              GITHUB ACTIVITY
+            </span>
+            <GitBranch className="size-4 text-[#8B5CF6]" />
+          </div>
+          {integrations?.github?.isConnected ? (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">
+                @{integrations.github.username}
+              </div>
+              <div className="text-xs text-[#22C55E] flex items-center gap-1.5 font-mono">
+                <span className="size-1.5 rounded-full bg-[#22C55E]" />
+                <span>{stats?.totalCommits || 0} commits synchronized</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">Connect GitHub</div>
+              <div className="text-xs text-[#8B5CF6] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                <span>OAuth required</span>
+                <ArrowRight className="size-3" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Card 2: DSA PROGRESS */}
+        <div 
+          onClick={() => onNavigate('dsa')}
+          className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all cursor-pointer group shadow-xs"
+        >
+          <div className="flex items-center justify-between mb-3 text-xs">
+            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-[#686D79]">
+              DSA PROGRESS
+            </span>
+            <BookOpen className="size-4 text-[#F59E0B]" />
+          </div>
+          {(stats?.solvedDsaCount || 0) > 0 ? (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">
+                {stats.solvedDsaCount} Problems Solved
+              </div>
+              <div className="text-xs text-[#F59E0B] flex items-center gap-1.5 font-mono">
+                <span>{stats?.dsaRevisionsDue || 0} revisions due today</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">No problems yet</div>
+              <div className="text-xs text-[#8B5CF6] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Add your first problem</span>
+                <ArrowRight className="size-3" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Card 3: OPEN SOURCE */}
+        <div 
+          onClick={() => onNavigate((pipeline?.total || 0) > 0 ? 'issues' : 'catalog')}
+          className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all cursor-pointer group shadow-xs"
+        >
+          <div className="flex items-center justify-between mb-3 text-xs">
+            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-[#686D79]">
+              OPEN SOURCE
+            </span>
+            <Compass className="size-4 text-[#60A5FA]" />
+          </div>
+          {(pipeline?.total || 0) > 0 ? (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">
+                {pipeline.total} Active Issues
+              </div>
+              <div className="text-xs text-[#60A5FA] flex items-center gap-1.5 font-mono">
+                <span>{pipeline?.stages?.PR_SUBMITTED || 0} PRs submitted</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <div className="text-base font-bold text-[#F8FAFC]">No saved issues</div>
+              <div className="text-xs text-[#8B5CF6] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Discover opportunities</span>
+                <ArrowRight className="size-3" />
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* 3. Lower Row: Recent Activity & Quick Actions (Figma Mockup) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        {/* Recent Activity (8 cols) */}
+        <div className="lg:col-span-8 p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-[#F8FAFC]">Recent activity</span>
+              {activity?.recentEvents && activity.recentEvents.length > 0 && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/30">
+                  Live
+                </span>
+              )}
+            </div>
+            <ExternalLink className="size-3.5 text-[#686D79]" />
+          </div>
+
+          {activity?.recentEvents && activity.recentEvents.length > 0 ? (
+            <div className="divide-y divide-[#1F2430]">
+              {activity.recentEvents.slice(0, 5).map((evt: any, idx: number) => (
+                <div key={idx} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="size-1.5 rounded-full bg-[#8B5CF6]" />
+                    <span className="text-[#F8FAFC] truncate">{evt.title || evt.description}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-[#686D79] shrink-0">
+                    {evt.timeAgo || 'Recent'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-[#686D79] space-y-2">
+              <div className="size-9 rounded-full bg-[#181C26] border border-[#1F2430] flex items-center justify-center mx-auto text-[#686D79] text-base">
+                ↗
+              </div>
+              <p>Connect an integration to see activity.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions (4 cols, Dark container) */}
+        <div className="lg:col-span-4 p-6 rounded-2xl bg-[#0E1117] border border-[#1F2430] flex flex-col justify-between space-y-4">
+          <div>
+            <span className="text-sm font-bold text-[#F8FAFC] block mb-3">Quick actions</span>
+            <div className="space-y-2">
+              <button 
+                onClick={() => onNavigate('navigator')}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-left text-xs text-[#C5C8D0] hover:text-[#F8FAFC] flex items-center justify-between transition-colors"
+              >
+                <span>Open repository</span>
+                <span className="text-[#686D79]">→</span>
+              </button>
+              <button 
+                onClick={() => onNavigate('dsa')}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-left text-xs text-[#C5C8D0] hover:text-[#F8FAFC] flex items-center justify-between transition-colors"
+              >
+                <span>Track DSA problem</span>
+                <span className="text-[#686D79]">→</span>
+              </button>
+              <button 
+                onClick={() => onNavigate('integrations')}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-left text-xs text-[#C5C8D0] hover:text-[#F8FAFC] flex items-center justify-between transition-colors"
+              >
+                <span>Connect integration</span>
+                <span className="text-[#686D79]">→</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-[#1F2430] text-[10px] font-mono text-[#686D79] flex items-center justify-between">
+            <span>DevOrbit v0.1.0</span>
+            <span className="text-[#22C55E]">● Local Engine Active</span>
+          </div>
+        </div>
+
       </div>
 
       {/* 2. KPI Metrics Grid */}

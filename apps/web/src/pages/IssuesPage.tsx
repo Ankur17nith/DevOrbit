@@ -55,7 +55,7 @@ const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color:
   { key: 'PREPARING', label: 'Preparing', color: 'border-indigo-500/30 text-indigo-400' },
   { key: 'WORKING', label: 'In Progress', color: 'border-amber-500/30 text-amber-400' },
   { key: 'PR_SUBMITTED', label: 'PR Submitted', color: 'border-purple-500/30 text-purple-400' },
-  { key: 'MERGED', label: 'Merged 🎉', color: 'border-emerald-500/30 text-emerald-400' },
+  { key: 'MERGED', label: 'Merged 🎉', color: 'border-green-500/30 text-green-400' },
 ];
 
 export function IssuesPage() {
