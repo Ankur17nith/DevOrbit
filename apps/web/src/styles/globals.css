@@ -36,6 +36,24 @@
   --text-main: #F8FAFC;
   --text-secondary: #C5C8D0;
   --text-muted: #686D79;
+
+  /* Figma Design Reference Tokens */
+  --bg-public: #FFFFFF;
+  --bg-public-alt: #F8FAFC;
+  --bg-dark-section: #0B0D12;
+  --bg-app-shell: #0E1117;
+  --bg-app-canvas: #F8FAFC;
+  --text-primary: #0E121B;
+  --text-public-secondary: #4B5565;
+  --text-public-muted: #64748B;
+  --violet-primary: #8B5CF6;
+  --violet-light: #EDE9FE;
+  --violet-glow: rgba(139, 92, 246, 0.15);
+  --border-light: #E2E8F0;
+  --border-dark: rgba(248, 250, 252, 0.09);
+  --surface-card-light: #FFFFFF;
+  --surface-card-dark: #12151D;
+  --surface-card-dark-alt: #1A1E29;
 }
 
 body {

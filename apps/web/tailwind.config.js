@@ -28,6 +28,19 @@ export default {
           warning: '#F59E0B',
           danger: '#EF4444',
           info: '#60A5FA',
+        },
+        figma: {
+          publicBg: '#FFFFFF',
+          publicBgAlt: '#F8FAFC',
+          darkSection: '#0B0D12',
+          appShell: '#0E1117',
+          appCanvas: '#F8FAFC',
+          textPrimary: '#0E121B',
+          textSecondary: '#4B5565',
+          textMuted: '#64748B',
+          violet: '#8B5CF6',
+          violetLight: '#EDE9FE',
+          borderLight: '#E2E8F0',
         }
       },
       fontFamily: {
