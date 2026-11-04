@@ -4,24 +4,22 @@ import {
   Send, 
   Bot, 
   User, 
-  ArrowRight, 
   Code, 
   Copy, 
   Check, 
-  Bookmark, 
-  GitPullRequest, 
-  ScanSearch, 
   Plus, 
-  Paperclip, 
   SlidersHorizontal, 
-  ChevronRight, 
-  Cpu, 
-  Zap,
+  History, 
+  Trash2, 
+  Edit2, 
+  RefreshCw, 
+  Terminal, 
+  AlertCircle, 
+  CheckCircle2, 
+  ExternalLink,
+  Search,
   MessageSquare,
-  FileCode,
-  Layers,
-  History,
-  Terminal
+  Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -30,7 +28,8 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   createdAt?: string;
-  contextChips?: string[];
+  isFallback?: boolean;
+  model?: string;
 }
 
 interface Conversation {
@@ -43,63 +42,149 @@ interface Conversation {
 export function OrbitAiPage() {
   const { token, user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [searchConvQuery, setSearchConvQuery] = useState('');
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [selectedMode, setSelectedMode] = useState<'Architecture' | 'Debugging' | 'Learning' | 'Contribution'>('Architecture');
-  const [attachedContext, setAttachedContext] = useState<string[]>(['DevOrbit Monorepo', 'GSoC 2026']);
-  const [copiedAction, setCopiedAction] = useState<string | null>(null);
+  const [copiedCmd, setCopiedCmd] = useState(false);
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editTitleInput, setEditTitleInput] = useState('');
+
+  // AI Runtime & Models State
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const [models, setModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('deepseek-coder');
+  const [checkingRuntime, setCheckingRuntime] = useState<boolean>(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch status and models
+  const checkStatus = () => {
+    setCheckingRuntime(true);
+    fetch('/api/v1/ai/status')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setAiStatus(json.data);
+      })
+      .finally(() => setCheckingRuntime(false));
+
+    fetch('/api/v1/ai/models')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data.models) {
+          setModels(json.data.models);
+          if (json.data.models.length > 0 && !selectedModel) {
+            setSelectedModel(json.data.models[0].name);
+          }
+        }
+      });
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
 
   // Fetch user conversations
-  useEffect(() => {
+  const fetchConversations = async () => {
     if (!token) return;
-    const fetchConversations = async () => {
-      try {
-        const res = await fetch('/api/v1/ai/conversations', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data.length > 0) {
-            setConversations(json.data);
+    try {
+      const res = await fetch('/api/v1/ai/conversations', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setConversations(json.data);
+          if (json.data.length > 0 && !activeConvId) {
             setActiveConvId(json.data[0].id);
             setMessages(json.data[0].messages || []);
           }
         }
-      } catch (err) {
-        console.error('Failed to load conversations', err);
       }
-    };
+    } catch (err) {
+      console.error('Failed to load conversations', err);
+    }
+  };
+
+  useEffect(() => {
     fetchConversations();
   }, [token]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   const handleStartNewChat = () => {
     setActiveConvId(null);
     setMessages([]);
+    if (textareaRef.current) textareaRef.current.focus();
   };
 
-  const handleSelectConversation = (conv: Conversation) => {
-    setActiveConvId(conv.id);
-    setMessages(conv.messages || []);
+  const handleSelectConversation = async (convId: string) => {
+    setActiveConvId(convId);
+    try {
+      const res = await fetch(`/api/v1/ai/conversations/${convId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setMessages(json.data.messages || []);
+      }
+    } catch (err) {
+      console.error('Failed to load thread messages', err);
+    }
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
+    e.stopPropagation();
+    if (!confirm('Delete this conversation?')) return;
+    try {
+      await fetch(`/api/v1/ai/conversations/${convId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setConversations(prev => prev.filter(c => c.id !== convId));
+      if (activeConvId === convId) {
+        handleStartNewChat();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleStartRename = (e: React.MouseEvent, c: Conversation) => {
+    e.stopPropagation();
+    setEditingConvId(c.id);
+    setEditTitleInput(c.title);
+  };
+
+  const handleSaveRename = async (convId: string) => {
+    if (!editTitleInput.trim()) return;
+    try {
+      await fetch(`/api/v1/ai/conversations/${convId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: editTitleInput.trim() }),
+      });
+      setConversations(prev => prev.map(c => c.id === convId ? { ...c, title: editTitleInput.trim() } : c));
+    } finally {
+      setEditingConvId(null);
+    }
   };
 
   const handleSend = async (textToSend?: string) => {
     const text = textToSend || input;
-    if (!text.trim() || !token) return;
+    if (!text.trim() || !token || loading) return;
 
     const userMessage: Message = { 
       role: 'user', 
-      content: text,
-      contextChips: [...attachedContext],
+      content: text.trim(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -114,18 +199,25 @@ export function OrbitAiPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          prompt: text,
+          prompt: text.trim(),
           conversationId: activeConvId,
-          mode: selectedMode,
-          contextChips: attachedContext,
+          modelName: selectedModel,
         }),
       });
 
       const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         const newConvId = json.data.conversationId;
         setActiveConvId(newConvId);
-        setMessages(prev => [...prev, json.data.message]);
+        
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: json.data.message.content,
+          isFallback: json.data.isFallback,
+          model: json.data.model,
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
 
         // Refresh conversation history list
         setConversations(prev => {
@@ -144,49 +236,34 @@ export function OrbitAiPage() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const handleCopyCode = (codeText: string, idx: number) => {
     navigator.clipboard.writeText(codeText);
     setCopiedIndex(idx);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleTriggerAction = (actionName: string) => {
-    setCopiedAction(actionName);
-    setTimeout(() => setCopiedAction(null), 2500);
+  const copyOllamaCmd = () => {
+    navigator.clipboard.writeText('ollama run deepseek-coder');
+    setCopiedCmd(true);
+    setTimeout(() => setCopiedCmd(false), 2000);
   };
 
-  const suggestedPrompts = [
-    {
-      category: 'Open Source Strategy',
-      title: 'Analyze GSoC 2026 Timeline & Orgs',
-      desc: 'Filter 606+ historical organizations for high acceptance and beginner tags.',
-      prompt: 'Analyze GSoC 2026 timeline and recommend high-acceptance organizations in TypeScript and Rust with beginner mentorship.',
-    },
-    {
-      category: 'Algorithmic Mastery',
-      title: 'Optimal Two Pointers & Trapping Rain Water',
-      desc: 'Deconstruct O(1) space two-pointer derivation with boundary proofs.',
-      prompt: 'Explain the Two Pointers pattern and show the optimal O(1) space Trapping Rain Water derivation with edge-case proofs.',
-    },
-    {
-      category: 'Codebase Architecture',
-      title: 'DevOrbit Architecture Audit',
-      desc: 'Contrast local-first modular Express/Prisma design against standard cloud SaaS.',
-      prompt: 'Compare DevOrbit architecture against standard developer platforms and outline the Orbit Fix patch verification engine.',
-    },
-    {
-      category: 'Contribution Drafting',
-      title: 'Draft PR Proposal for Large Repo',
-      desc: 'Formulate an RFC-style PR description adhering to Conventional Commits.',
-      prompt: 'Draft an RFC-style contribution proposal for an open-source project following Conventional Commits and automated test standards.',
-    },
-  ];
+  const filteredConversations = conversations.filter(c =>
+    c.title.toLowerCase().includes(searchConvQuery.toLowerCase())
+  );
 
   return (
     <div className="h-[calc(100vh-56px)] flex bg-[#0B0D12] overflow-hidden animate-in fade-in duration-200">
       
-      {/* ── LEFT PANEL: Conversation History & Saved Prompts ── */}
-      <aside className="w-64 bg-[#12151D] border-r border-[#1F2430] flex flex-col shrink-0">
+      {/* ── LEFT PANEL: Conversation History & Models ── */}
+      <aside className="w-64 bg-[#12151D] border-r border-[#1F2430] flex flex-col shrink-0 select-none">
         
         {/* Panel Header */}
         <div className="p-3 border-b border-[#1F2430] flex items-center justify-between">
@@ -196,139 +273,196 @@ export function OrbitAiPage() {
           </div>
           <button
             onClick={handleStartNewChat}
-            className="p-1 rounded-lg bg-[#181C26] hover:bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
+            className="p-1.5 rounded-lg bg-[#181C26] hover:bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
             title="Start New Thread"
           >
             <Plus className="size-3.5" />
           </button>
         </div>
 
+        {/* Search Conversations */}
+        <div className="p-2 border-b border-[#1F2430]">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#181C26] border border-[#1F2430] text-xs">
+            <Search className="size-3.5 text-[#686D79]" />
+            <input
+              type="text"
+              placeholder="Search chats..."
+              value={searchConvQuery}
+              onChange={e => setSearchConvQuery(e.target.value)}
+              className="bg-transparent text-xs text-[#F8FAFC] placeholder:text-[#686D79] focus:outline-none w-full"
+            />
+          </div>
+        </div>
+
         {/* Conversation List */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {conversations.length === 0 ? (
+          {filteredConversations.length === 0 ? (
             <div className="p-4 text-center text-xs text-[#686D79]">
-              No previous threads. Start a new session!
+              {searchConvQuery ? 'No matching conversations' : 'No previous threads. Start a new chat!'}
             </div>
           ) : (
-            conversations.map(c => (
-              <button
+            filteredConversations.map(c => (
+              <div
                 key={c.id}
-                onClick={() => handleSelectConversation(c)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs transition-colors ${
+                onClick={() => handleSelectConversation(c.id)}
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-colors group cursor-pointer ${
                   activeConvId === c.id
                     ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 font-medium'
                     : 'text-[#C5C8D0] hover:bg-[#181C26]/60 hover:text-[#F8FAFC]'
                 }`}
               >
-                <MessageSquare className="size-3.5 text-[#8B5CF6] shrink-0" />
-                <span className="truncate">{c.title || 'Conversation'}</span>
-              </button>
+                <div className="flex items-center gap-2 truncate flex-1">
+                  <MessageSquare className="size-3.5 text-[#8B5CF6] shrink-0" />
+                  {editingConvId === c.id ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      value={editTitleInput}
+                      onChange={e => setEditTitleInput(e.target.value)}
+                      onBlur={() => handleSaveRename(c.id)}
+                      onKeyDown={e => e.key === 'Enter' && handleSaveRename(c.id)}
+                      className="bg-[#202431] px-1 py-0.5 rounded text-xs text-white focus:outline-none w-full"
+                    />
+                  ) : (
+                    <span className="truncate">{c.title || 'Untitled Session'}</span>
+                  )}
+                </div>
+
+                <div className="hidden group-hover:flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={e => handleStartRename(e, c)}
+                    className="p-1 rounded text-[#686D79] hover:text-[#F8FAFC]"
+                    title="Rename"
+                  >
+                    <Edit2 className="size-3" />
+                  </button>
+                  <button
+                    onClick={e => handleDeleteConversation(e, c.id)}
+                    className="p-1 rounded text-[#686D79] hover:text-[#EF4444]"
+                    title="Delete"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              </div>
             ))
           )}
         </div>
 
-        {/* Bottom Pinned Contexts */}
-        <div className="p-3 border-t border-[#1F2430] bg-[#0B0D12]/60">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] mb-2 font-semibold">
-            Active Context Scope
+        {/* Runtime Status Footer */}
+        <div className="p-3 border-t border-[#1F2430] bg-[#0B0D12] space-y-2 text-xs">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-[#686D79] font-medium">Model Engine:</span>
+            <button 
+              onClick={checkStatus} 
+              disabled={checkingRuntime}
+              className="text-[#8B5CF6] hover:text-[#A78BFA] flex items-center gap-1 text-[10px]"
+            >
+              <RefreshCw className={`size-3 ${checkingRuntime ? 'animate-spin' : ''}`} />
+              <span>Probe</span>
+            </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {attachedContext.map((chip, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30"
-              >
-                <span>{chip}</span>
-              </span>
+
+          <select
+            value={selectedModel}
+            onChange={e => setSelectedModel(e.target.value)}
+            className="w-full bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6]"
+          >
+            {models.map(m => (
+              <option key={m.name} value={m.name}>
+                {m.name} {m.isFallback ? '(Fallback)' : ''}
+              </option>
             ))}
+          </select>
+
+          <div className="flex items-center gap-1.5 text-[10px] font-mono">
+            <span className={`size-1.5 rounded-full ${aiStatus?.ollamaAvailable ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}`} />
+            <span className={aiStatus?.ollamaAvailable ? 'text-[#22C55E]' : 'text-[#F59E0B]'}>
+              {aiStatus?.ollamaAvailable ? 'Ollama Online (11434)' : 'Offline (Rule Engine Active)'}
+            </span>
           </div>
         </div>
       </aside>
 
-      {/* ── CENTER PANEL: Main Workspace & Chat Thread ── */}
+      {/* ── CENTER PANEL: Main Chat Workspace ── */}
       <main className="flex-1 flex flex-col bg-[#0B0D12] overflow-hidden">
         
-        {/* Workspace Top Bar */}
-        <div className="h-12 border-b border-[#1F2430] px-4 flex items-center justify-between bg-[#12151D]/60 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-[#F8FAFC]">
-              <Sparkles className="size-4 text-[#8B5CF6]" />
-              <span>Orbit AI Workspace</span>
-            </div>
+        {/* Workspace Top Header */}
+        <div className="h-12 border-b border-[#1F2430] px-4 flex items-center justify-between bg-[#12151D]/60 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="size-4 text-[#8B5CF6]" />
+            <span className="text-xs font-bold text-[#F8FAFC]">Orbit AI Developer Studio</span>
             <span className="text-[#1F2430]">|</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#686D79]">Mode:</span>
-              <select
-                value={selectedMode}
-                onChange={e => setSelectedMode(e.target.value as any)}
-                className="bg-[#181C26] border border-[#1F2430] text-[#A78BFA] text-xs rounded-md px-2 py-1 outline-none focus:border-[#8B5CF6]"
-              >
-                <option value="Architecture">Architecture Design</option>
-                <option value="Debugging">Root-Cause Debugging</option>
-                <option value="Learning">Algorithmic Learning</option>
-                <option value="Contribution">OSS Contribution</option>
-              </select>
-            </div>
+            <span className="text-[11px] font-mono text-[#686D79]">
+              Active: {selectedModel || 'devorbit-deterministic-v1'}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
-              <span className="size-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-              <span>Deterministic Rule-Engine Ready</span>
+            <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-mono">
+              100% Local-First
             </span>
-
-            <button
-              onClick={() => setInspectorOpen(!inspectorOpen)}
-              className={`p-1.5 rounded-lg border text-xs transition-colors flex items-center gap-1 ${
-                inspectorOpen 
-                  ? 'bg-[#181C26] text-[#A78BFA] border-[#8B5CF6]/40' 
-                  : 'bg-[#12151D] text-[#686D79] border-[#1F2430] hover:text-[#F8FAFC]'
-              }`}
-              title="Toggle Context & Model Inspector"
-            >
-              <SlidersHorizontal className="size-3.5" />
-            </button>
           </div>
         </div>
 
-        {/* Action notification toast */}
-        {copiedAction && (
-          <div className="mx-4 mt-2 p-2 rounded-lg bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 text-[#F8FAFC] text-xs flex items-center gap-2 animate-in fade-in duration-150">
-            <Check className="size-3.5 text-[#22C55E]" />
-            <span>{copiedAction}</span>
+        {/* Offline Ollama Informative Notice Banner */}
+        {!aiStatus?.ollamaAvailable && (
+          <div className="bg-[#181C26] border-b border-[#1F2430] px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-[#F59E0B]">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>
+                Local Ollama is offline. Responses will use the <strong>DevOrbit Deterministic Engine</strong>.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <code className="text-[11px] font-mono bg-[#0B0D12] px-2 py-0.5 rounded text-[#F8FAFC]">
+                ollama run deepseek-coder
+              </code>
+              <button
+                onClick={copyOllamaCmd}
+                className="px-2 py-0.5 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[11px] font-medium flex items-center gap-1 transition-colors"
+              >
+                {copiedCmd ? <Check className="size-3" /> : <Copy className="size-3" />}
+                <span>{copiedCmd ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        {/* Messages Scroll Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {messages.length === 0 ? (
-            /* Categorized Empty State */
-            <div className="max-w-2xl mx-auto py-8 space-y-6">
-              <div className="text-center space-y-2">
-                <div className="size-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] mx-auto shadow-lg shadow-[#8B5CF6]/10">
-                  <Sparkles className="size-6" />
-                </div>
-                <h2 className="text-lg font-bold font-display text-[#F8FAFC]">Orbit AI Developer Intelligence</h2>
-                <p className="text-xs text-[#686D79] max-w-md mx-auto">
-                  Ground your code exploration in verified repositories, real algorithmic sheets, and local architectural models.
+            <div className="max-w-xl mx-auto py-12 text-center space-y-4">
+              <div className="size-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] mx-auto shadow-lg shadow-[#8B5CF6]/10">
+                <Sparkles className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-base font-bold font-display text-[#F8FAFC]">
+                  Orbit AI Assistant Ready
+                </h2>
+                <p className="text-xs text-[#686D79] max-w-sm mx-auto">
+                  Ask architectural questions, request code reviews, algorithmic derivations, or security audits.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {suggestedPrompts.map((p, idx) => (
+              {/* Sample Prompts */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-left">
+                {[
+                  { title: 'Explain REST API Architecture', prompt: 'Explain what a REST API is and contrast it with GraphQL and gRPC.' },
+                  { title: 'Security Audit Checklist', prompt: 'Please review our authentication flow for potential security vulnerabilities.' },
+                  { title: 'DSA: Two Pointers Optimal', prompt: 'How to solve Two Sum and Trapping Rain Water using algorithms?' },
+                  { title: 'GSoC Open Source Strategy', prompt: 'What is the optimal strategy to find high-impact open source issues?' },
+                ].map((item, i) => (
                   <button
-                    key={idx}
-                    onClick={() => handleSend(p.prompt)}
-                    className="p-3.5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/50 hover:bg-[#181C26] transition-all text-left group"
+                    key={i}
+                    onClick={() => handleSend(item.prompt)}
+                    className="p-3 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/50 hover:bg-[#181C26] transition-all group"
                   >
-                    <div className="text-[10px] font-mono text-[#A78BFA] font-semibold uppercase mb-1">
-                      {p.category}
+                    <div className="text-xs font-semibold text-[#F8FAFC] group-hover:text-[#A78BFA] transition-colors">
+                      {item.title}
                     </div>
-                    <div className="text-xs font-bold text-[#F8FAFC] group-hover:text-[#A78BFA] transition-colors mb-1">
-                      {p.title}
-                    </div>
-                    <div className="text-[11px] text-[#686D79] leading-relaxed">
-                      {p.desc}
+                    <div className="text-[11px] text-[#686D79] mt-0.5 line-clamp-1">
+                      {item.prompt}
                     </div>
                   </button>
                 ))}
@@ -346,211 +480,92 @@ export function OrbitAiPage() {
                   </div>
                 )}
 
-                <div className={`max-w-3xl space-y-2 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+                <div className={`max-w-2xl space-y-1.5 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
                   
-                  {/* Context Chips Attached to Message */}
-                  {m.contextChips && m.contextChips.length > 0 && (
-                    <div className={`flex flex-wrap gap-1 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      {m.contextChips.map((c, i) => (
-                        <span key={i} className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#181C26] text-[#A78BFA] border border-[#1F2430]">
-                          @{c}
-                        </span>
-                      ))}
+                  {/* Assistant Engine Badge */}
+                  {m.role === 'assistant' && (
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-[#686D79]">
+                      <span className={`px-1.5 py-0.2 rounded border ${
+                        m.isFallback 
+                          ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30' 
+                          : 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30'
+                      }`}>
+                        {m.isFallback ? 'Deterministic Rule Engine' : `Model: ${m.model || 'deepseek-coder'}`}
+                      </span>
                     </div>
                   )}
 
                   {/* Message Bubble */}
-                  <div
-                    className={`p-4 rounded-xl text-xs leading-relaxed ${
-                      m.role === 'user'
-                        ? 'bg-[#181C26] border border-[#8B5CF6]/40 text-[#F8FAFC] rounded-tr-sm inline-block'
-                        : 'bg-[#12151D] border border-[#1F2430] text-[#C5C8D0] rounded-tl-sm space-y-3'
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap font-sans text-left">
-                      {m.content}
-                    </div>
-
-                    {/* Rich Assistant Action Bar */}
-                    {m.role === 'assistant' && (
-                      <div className="pt-2 border-t border-[#1F2430] flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={() => handleCopyCode(m.content, idx)}
-                          className="px-2.5 py-1 rounded-md bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[11px] text-[#F8FAFC] transition-colors flex items-center gap-1.5"
-                        >
-                          {copiedIndex === idx ? <Check className="size-3 text-[#22C55E]" /> : <Copy className="size-3 text-[#686D79]" />}
-                          <span>{copiedIndex === idx ? 'Copied' : 'Copy Response'}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleTriggerAction('Added guidance snippet to private DSA Notes')}
-                          className="px-2.5 py-1 rounded-md bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[11px] text-[#F8FAFC] transition-colors flex items-center gap-1.5"
-                        >
-                          <Bookmark className="size-3 text-[#A78BFA]" />
-                          <span>Add to DSA Notes</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleTriggerAction('Added targeted issue to Contribution Pipeline')}
-                          className="px-2.5 py-1 rounded-md bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[11px] text-[#F8FAFC] transition-colors flex items-center gap-1.5"
-                        >
-                          <GitPullRequest className="size-3 text-[#22C55E]" />
-                          <span>Create Pipeline Item</span>
-                        </button>
-                      </div>
-                    )}
+                  <div className={`p-4 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
+                    m.role === 'user'
+                      ? 'bg-[#8B5CF6] text-white rounded-tr-none font-medium shadow-md shadow-[#8B5CF6]/20'
+                      : 'bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] rounded-tl-none font-sans'
+                  }`}>
+                    {m.content}
                   </div>
+
+                  {m.role === 'assistant' && (
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <button
+                        onClick={() => handleCopyCode(m.content, idx)}
+                        className="text-[10px] text-[#686D79] hover:text-[#C5C8D0] flex items-center gap-1 transition-colors"
+                      >
+                        {copiedIndex === idx ? <Check className="size-3 text-[#22C55E]" /> : <Copy className="size-3" />}
+                        <span>{copiedIndex === idx ? 'Copied' : 'Copy response'}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {m.role === 'user' && (
-                  <img
-                    src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&crop=faces'}
-                    alt={user?.name}
-                    className="size-8 rounded-full shrink-0 object-cover mt-0.5 border border-[#8B5CF6]/30"
-                  />
+                  <div className="size-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center text-white shrink-0 mt-0.5 font-bold font-mono text-xs">
+                    {user?.username ? user.username.slice(0, 2).toUpperCase() : 'U'}
+                  </div>
                 )}
               </div>
             ))
           )}
 
           {loading && (
-            <div className="flex items-center gap-2.5 text-xs text-[#A78BFA] font-mono p-3 bg-[#12151D] border border-[#1F2430] rounded-xl max-w-xs">
-              <div className="size-3.5 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
-              <span>Orbit AI Synthesizing Architecture...</span>
+            <div className="flex items-start gap-3">
+              <div className="size-8 rounded-lg bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 animate-pulse">
+                <Bot className="size-4" />
+              </div>
+              <div className="p-3 rounded-2xl bg-[#12151D] border border-[#1F2430] text-xs text-[#686D79] flex items-center gap-2">
+                <RefreshCw className="size-3 animate-spin text-[#8B5CF6]" />
+                <span>Generating developer intelligence...</span>
+              </div>
             </div>
           )}
+
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input Composer */}
-        <div className="p-4 border-t border-[#1F2430] bg-[#12151D]">
-          <div className="relative rounded-xl bg-[#181C26] border border-[#1F2430] focus-within:border-[#8B5CF6] transition-all">
+        {/* Composer Input Bar */}
+        <div className="p-4 border-t border-[#1F2430] bg-[#12151D]/60 backdrop-blur-md shrink-0">
+          <div className="max-w-4xl mx-auto flex items-end gap-2 p-2 rounded-2xl bg-[#181C26] border border-[#1F2430] focus-within:border-[#8B5CF6]/60 transition-colors">
             <textarea
+              ref={textareaRef}
               rows={2}
+              placeholder="Ask Orbit AI (Enter sends, Shift+Enter for newline)..."
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Ask Orbit AI about architecture, DSA weaknesses, or GSoC strategies (Ctrl/Cmd + Enter to send)..."
-              className="w-full px-4 pt-3 pb-10 bg-transparent text-[#F8FAFC] text-xs placeholder:text-[#686D79] outline-none resize-none"
+              onKeyDown={handleKeyDown}
+              className="flex-1 bg-transparent text-xs text-[#F8FAFC] placeholder:text-[#686D79] resize-none focus:outline-none p-1.5 max-h-32"
             />
-
-            {/* Composer Footer Bar */}
-            <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setAttachedContext(prev => [...prev, 'Repo: facebook/react'])}
-                  className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#12151D] hover:bg-[#202431] text-[#C5C8D0] border border-[#1F2430] transition-colors flex items-center gap-1"
-                >
-                  <Paperclip className="size-2.5 text-[#8B5CF6]" />
-                  <span>+ Attach Repo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttachedContext(prev => [...prev, 'Problem: Two Sum'])}
-                  className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#12151D] hover:bg-[#202431] text-[#C5C8D0] border border-[#1F2430] transition-colors flex items-center gap-1"
-                >
-                  <FileCode className="size-2.5 text-[#60A5FA]" />
-                  <span>+ Attach DSA</span>
-                </button>
-              </div>
-
-              <button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || loading}
-                className="px-3.5 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-40 flex items-center gap-1.5"
-              >
-                <span>Send</span>
-                <Send className="size-3" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* ── RIGHT PANEL (Collapsible): Context & Model Inspector ── */}
-      {inspectorOpen && (
-        <aside className="w-72 bg-[#12151D] border-l border-[#1F2430] flex flex-col shrink-0 overflow-y-auto animate-in slide-in-from-right-4 duration-150">
-          <div className="p-3 border-b border-[#1F2430] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Cpu className="size-4 text-[#8B5CF6]" />
-              <span className="text-xs font-bold text-[#F8FAFC]">Runtime Inspector</span>
-            </div>
+            
             <button
-              onClick={() => setInspectorOpen(false)}
-              className="p-1 rounded text-[#686D79] hover:text-[#F8FAFC]"
+              onClick={() => handleSend()}
+              disabled={loading || !input.trim()}
+              className="size-8 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-50 text-white flex items-center justify-center shrink-0 transition-colors shadow-sm"
+              title="Send Message"
             >
-              <ChevronRight className="size-3.5" />
+              <Send className="size-4" />
             </button>
           </div>
+        </div>
 
-          <div className="p-4 space-y-4 text-xs">
-            {/* Active Model Card */}
-            <div className="p-3 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-2">
-              <div className="text-[10px] font-mono uppercase text-[#686D79] font-semibold">Active Engine</div>
-              <div className="flex items-center gap-2 text-[#F8FAFC] font-semibold">
-                <Zap className="size-4 text-[#F59E0B]" />
-                <span>Deterministic Rule Engine</span>
-              </div>
-              <div className="text-[11px] text-[#686D79]">
-                Zero-telemetry offline model with GSoC, DSA, and architecture knowledge bases.
-              </div>
-            </div>
-
-            {/* Ollama Local Integration Status */}
-            <div className="p-3 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1.5">
-              <div className="text-[10px] font-mono uppercase text-[#686D79] font-semibold">Local LLM Gateway</div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#F8FAFC]">Ollama Daemon</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30">
-                  Ready (M8)
-                </span>
-              </div>
-              <div className="text-[11px] text-[#686D79]">
-                Target model: `qwen2.5-coder:7b` / `llama3.2:3b` via `http://localhost:11434`.
-              </div>
-            </div>
-
-            {/* Context Payload Breakdown */}
-            <div className="space-y-2">
-              <div className="text-[10px] font-mono uppercase text-[#686D79] font-semibold">Attached Context Data</div>
-              <div className="p-2.5 rounded-lg bg-[#0B0D12] border border-[#1F2430] font-mono text-[10px] text-[#C5C8D0] space-y-1">
-                <div>{`{`}</div>
-                <div className="pl-3">"mode": "{selectedMode}",</div>
-                <div className="pl-3">"tokensEstimate": ~412,</div>
-                <div className="pl-3">"userRole": "{user?.role || 'DEVELOPER'}",</div>
-                <div className="pl-3">"attachments": {JSON.stringify(attachedContext)}</div>
-                <div>{`}`}</div>
-              </div>
-            </div>
-
-            {/* Model Hyperparameters */}
-            <div className="space-y-2 pt-2 border-t border-[#1F2430]">
-              <div className="text-[10px] font-mono uppercase text-[#686D79] font-semibold">Inference Settings</div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] text-[#C5C8D0]">
-                  <span>Temperature</span>
-                  <span className="font-mono text-[#A78BFA]">0.2 (Precise)</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  defaultValue="0.2"
-                  className="w-full accent-[#8B5CF6] h-1 bg-[#181C26] rounded-lg cursor-pointer"
-                />
-              </div>
-            </div>
-
-          </div>
-        </aside>
-      )}
+      </main>
 
     </div>
   );

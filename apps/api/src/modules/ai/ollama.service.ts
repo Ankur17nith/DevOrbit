@@ -28,6 +28,33 @@ export class OllamaService {
   }
 
   /**
+   * List installed models in local Ollama daemon
+   */
+  public async listModels(): Promise<{ name: string; size?: number; modifiedAt?: string }[]> {
+    const isOnline = await this.isOllamaAvailable();
+    if (!isOnline) return [];
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${this.baseUrl}/api/tags`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = (await res.json()) as { models?: { name: string; size?: number; modified_at?: string }[] };
+        return (json.models || []).map(m => ({
+          name: m.name,
+          size: m.size,
+          modifiedAt: m.modified_at,
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+    return [];
+  }
+
+  /**
    * Generate completion with automatic deterministic fallback
    */
   public async generate(prompt: string, modelName: string = 'deepseek-coder'): Promise<LocalAiResponse> {
