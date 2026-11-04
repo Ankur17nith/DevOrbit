@@ -300,45 +300,59 @@ model UserBookmark {
 // -------------------------------------------------------------
 
 model DsaProblem {
-  id          String            @id @default(uuid())
-  externalId  String?
-  platform    String            // LEETCODE, CODEFORCES, STRIVER_A2Z, TLE, TUF
-  title       String
-  slug        String
-  difficulty  String            // EASY, MEDIUM, HARD
-  topic       String            // Array, String, Binary Tree, DP, Graph, etc.
-  subtopic    String?
-  url         String
-  createdAt   DateTime          @default(now())
+  id            String            @id @default(uuid())
+  externalId    String?
+  platform      String            // LEETCODE, CODEFORCES, STRIVER_A2Z, TLE, TUF
+  title         String
+  slug          String
+  canonicalSlug String?           // For cross-platform deduplication
+  difficulty    String            // EASY, MEDIUM, HARD
+  topic         String            // Array, String, Binary Tree, DP, Graph, etc.
+  subtopic      String?
+  tagsJson      String?           // serialized JSON array
+  constraints   String?
+  sheetCategory String?           // STRIVER_A2Z, BLIND_75, NEETCODE_150, CODEFORCES_DIV2, CUSTOM
+  url           String
+  createdAt     DateTime          @default(now())
 
-  progress    UserDsaProgress[]
+  progress      UserDsaProgress[]
 
   @@unique([platform, slug])
   @@index([difficulty])
   @@index([topic])
+  @@index([canonicalSlug])
+  @@index([sheetCategory])
 }
 
 model UserDsaProgress {
-  id               String     @id @default(uuid())
-  userId           String
-  problemId        String
-  status           String     @default("TODO") // TODO, ATTEMPTED, SOLVED, REVISE
-  attemptsCount    Int        @default(0)
-  timeSpentSeconds Int        @default(0)
-  hintUsed         Boolean    @default(false)
-  codeSnippet      String?
-  notes            String?
-  nextReviewDate   DateTime?
-  lastSolvedAt     DateTime?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  id                   String     @id @default(uuid())
+  userId               String
+  problemId            String
+  status               String     @default("TODO") // TODO, ATTEMPTED, SOLVED, REVISE
+  solutionMode         String?    // INDEPENDENT, WITH_HINTS, WITH_EDITORIAL, WITH_AI, REATTEMPTED, FAILED
+  masteryScore         Float      @default(0.0) // 0.0 to 100.0%
+  confidenceRating     Int?       // 1 to 5 (SM-2 recall rating)
+  repetitionCount      Int        @default(0) // spaced repetition count
+  easeFactor           Float      @default(2.5) // SM-2 ease factor
+  reviewIntervalDays   Int        @default(1)
+  repeatedMistakesJson String?    // JSON array of mistake tags
+  attemptsCount        Int        @default(0)
+  timeSpentSeconds     Int        @default(0)
+  hintUsed             Boolean    @default(false)
+  codeSnippet          String?
+  notes                String?
+  nextReviewDate       DateTime?
+  lastSolvedAt         DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
-  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem          DsaProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem              DsaProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, problemId])
   @@index([userId])
   @@index([status])
+  @@index([solutionMode])
   @@index([nextReviewDate])
 }
 
