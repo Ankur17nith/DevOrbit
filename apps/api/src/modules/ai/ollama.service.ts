@@ -8,7 +8,7 @@ export interface LocalAiResponse {
 export class OllamaService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://127.0.0.1:11434') {
+  constructor(baseUrl: string = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434') {
     this.baseUrl = baseUrl;
   }
 
@@ -18,7 +18,7 @@ export class OllamaService {
   public async isOllamaAvailable(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800);
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
       const res = await fetch(`${this.baseUrl}/api/tags`, { signal: controller.signal });
       clearTimeout(timeoutId);
       return res.ok;
@@ -36,7 +36,7 @@ export class OllamaService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`${this.baseUrl}/api/tags`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -57,7 +57,7 @@ export class OllamaService {
   /**
    * Generate completion with automatic deterministic fallback
    */
-  public async generate(prompt: string, modelName: string = 'deepseek-coder'): Promise<LocalAiResponse> {
+  public async generate(prompt: string, modelName: string = 'qwen2.5-coder'): Promise<LocalAiResponse> {
     const isOnline = await this.isOllamaAvailable();
 
     if (isOnline) {

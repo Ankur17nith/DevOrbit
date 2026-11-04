@@ -55,7 +55,7 @@ export function OrbitAiPage() {
   // AI Runtime & Models State
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [models, setModels] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>('deepseek-coder');
+  const [selectedModel, setSelectedModel] = useState<string>('qwen2.5-coder');
   const [checkingRuntime, setCheckingRuntime] = useState<boolean>(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -74,10 +74,13 @@ export function OrbitAiPage() {
     fetch('/api/v1/ai/models')
       .then(res => res.json())
       .then(json => {
-        if (json.success && json.data.models) {
-          setModels(json.data.models);
-          if (json.data.models.length > 0 && !selectedModel) {
-            setSelectedModel(json.data.models[0].name);
+        if (json.success && json.data) {
+          const availableModels = json.data.models || [];
+          setModels(availableModels);
+          if (availableModels.length > 0) {
+            setSelectedModel(availableModels[0].name);
+          } else {
+            setSelectedModel('devorbit-deterministic-v1');
           }
         }
       });
@@ -250,7 +253,7 @@ export function OrbitAiPage() {
   };
 
   const copyOllamaCmd = () => {
-    navigator.clipboard.writeText('ollama run deepseek-coder');
+    navigator.clipboard.writeText('ollama run qwen2.5-coder');
     setCopiedCmd(true);
     setTimeout(() => setCopiedCmd(false), 2000);
   };
@@ -366,19 +369,26 @@ export function OrbitAiPage() {
           <select
             value={selectedModel}
             onChange={e => setSelectedModel(e.target.value)}
-            className="w-full bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6]"
+            disabled={!aiStatus?.reachable && models.length === 0}
+            className="w-full bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6] disabled:opacity-80"
           >
-            {models.map(m => (
-              <option key={m.name} value={m.name}>
-                {m.name} {m.isFallback ? '(Fallback)' : ''}
+            {models.length > 0 ? (
+              models.map(m => (
+                <option key={m.name} value={m.name}>
+                  {m.name} {m.size ? `(${Math.round(m.size / (1024 * 1024))}MB)` : ''}
+                </option>
+              ))
+            ) : (
+              <option value="devorbit-deterministic-v1">
+                Deterministic Rule Engine (Offline Fallback)
               </option>
-            ))}
+            )}
           </select>
 
           <div className="flex items-center gap-1.5 text-[10px] font-mono">
-            <span className={`size-1.5 rounded-full ${aiStatus?.ollamaAvailable ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}`} />
-            <span className={aiStatus?.ollamaAvailable ? 'text-[#22C55E]' : 'text-[#F59E0B]'}>
-              {aiStatus?.ollamaAvailable ? 'Ollama Online (11434)' : 'Offline (Rule Engine Active)'}
+            <span className={`size-1.5 rounded-full ${aiStatus?.reachable ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}`} />
+            <span className={aiStatus?.reachable ? 'text-[#22C55E]' : 'text-[#F59E0B]'}>
+              {aiStatus?.reachable ? 'Local Ollama Connected (11434)' : 'Offline / Fallback Mode'}
             </span>
           </div>
         </div>
@@ -394,7 +404,7 @@ export function OrbitAiPage() {
             <span className="text-xs font-bold text-[#F8FAFC]">Orbit AI Developer Studio</span>
             <span className="text-[#1F2430]">|</span>
             <span className="text-[11px] font-mono text-[#686D79]">
-              Active: {selectedModel || 'devorbit-deterministic-v1'}
+              Active: {aiStatus?.reachable && selectedModel !== 'devorbit-deterministic-v1' ? selectedModel : 'Deterministic Engine (Offline Fallback)'}
             </span>
           </div>
 
@@ -406,24 +416,21 @@ export function OrbitAiPage() {
         </div>
 
         {/* Offline Ollama Informative Notice Banner */}
-        {!aiStatus?.ollamaAvailable && (
-          <div className="bg-[#181C26] border-b border-[#1F2430] px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        {!aiStatus?.reachable && (
+          <div className="bg-[#181C26] border-b border-[#1F2430] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 text-[#F59E0B]">
               <AlertCircle className="size-4 shrink-0" />
               <span>
-                Local Ollama is offline. Responses will use the <strong>DevOrbit Deterministic Engine</strong>.
+                Local Ollama is unreachable. Run <code className="bg-[#0B0D12] px-1.5 py-0.5 rounded text-[#F8FAFC] font-mono text-[11px]">ollama run qwen2.5-coder</code> or configure an external endpoint in Settings.
               </span>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-              <code className="text-[11px] font-mono bg-[#0B0D12] px-2 py-0.5 rounded text-[#F8FAFC]">
-                ollama run deepseek-coder
-              </code>
               <button
                 onClick={copyOllamaCmd}
-                className="px-2 py-0.5 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[11px] font-medium flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[11px] font-medium flex items-center gap-1 transition-colors shadow-sm"
               >
                 {copiedCmd ? <Check className="size-3" /> : <Copy className="size-3" />}
-                <span>{copiedCmd ? 'Copied' : 'Copy'}</span>
+                <span>{copiedCmd ? 'Copied' : 'Copy command'}</span>
               </button>
             </div>
           </div>
@@ -484,13 +491,23 @@ export function OrbitAiPage() {
                   
                   {/* Assistant Engine Badge */}
                   {m.role === 'assistant' && (
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-[#686D79]">
-                      <span className={`px-1.5 py-0.2 rounded border ${
+                    <div className="flex items-center gap-2 text-[10px] font-mono">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
                         m.isFallback 
-                          ? 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30' 
-                          : 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30'
+                          ? 'bg-[#181C26] text-[#94A3B8] border-[#334155]' 
+                          : 'bg-[#8B5CF6]/15 text-[#C4B5FD] border-[#8B5CF6]/30'
                       }`}>
-                        {m.isFallback ? 'Deterministic Rule Engine' : `Model: ${m.model || 'deepseek-coder'}`}
+                        {m.isFallback ? (
+                          <>
+                            <SlidersHorizontal className="size-3 text-[#94A3B8]" />
+                            <span>Generated via Deterministic Rule Engine (Offline Fallback)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="size-3 text-[#8B5CF6]" />
+                            <span>Local Neural Model: {m.model || 'qwen2.5-coder'}</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   )}

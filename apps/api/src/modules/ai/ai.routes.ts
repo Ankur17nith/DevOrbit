@@ -14,10 +14,11 @@ aiRouter.get('/status', async (_req, res) => {
     success: true,
     data: {
       ollamaAvailable: isAvailable,
+      reachable: isAvailable,
       activeEngine: isAvailable ? 'ollama-local-llm' : 'devorbit-deterministic-fallback',
-      defaultModel: isAvailable ? 'deepseek-coder' : 'devorbit-deterministic-v1',
+      defaultModel: isAvailable ? 'qwen2.5-coder' : 'devorbit-deterministic-v1',
       privacy: '100% Local-First / Zero Cloud Exfiltration',
-      hostUrl: 'http://127.0.0.1:11434',
+      hostUrl: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434',
     },
   });
 });
@@ -29,12 +30,11 @@ aiRouter.get('/models', async (_req, res) => {
     return res.json({
       success: true,
       data: {
+        reachable: false,
         isAvailable: false,
         activeEngine: 'devorbit-deterministic-fallback',
-        models: [
-          { name: 'devorbit-deterministic-v1', isFallback: true, size: 0, description: 'Local Rule-Based Developer Intelligence Engine' },
-        ],
-        message: 'Ollama is offline. Start the daemon with `ollama run deepseek-coder` for local neural models.',
+        models: [],
+        message: 'Local Ollama is unreachable. Run `ollama run qwen2.5-coder` or configure an external endpoint in Settings.',
       },
     });
   }
@@ -43,12 +43,13 @@ aiRouter.get('/models', async (_req, res) => {
   res.json({
     success: true,
     data: {
+      reachable: true,
       isAvailable: true,
       activeEngine: 'ollama-local-llm',
-      models: models.length > 0 ? models : [
-        { name: 'deepseek-coder', isRecommended: true },
-        { name: 'llama3:8b', isRecommended: false },
-      ],
+      models: models,
+      message: models.length === 0
+        ? 'Ollama is reachable, but no models have been pulled yet. Run `ollama pull qwen2.5-coder`.'
+        : undefined,
     },
   });
 });
@@ -188,15 +189,17 @@ aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, nex
     });
 
     // Generate developer response using Local AI (Ollama or Deterministic Fallback)
-    const aiResponse = await ollamaService.generate(prompt.trim(), modelName || 'deepseek-coder');
+    const aiResponse = await ollamaService.generate(prompt.trim(), modelName || 'qwen2.5-coder');
     const responseText = aiResponse.content;
 
-    // Save assistant message
+    // Save assistant message with provenance
     const assistantMsg = await prisma.aiMessage.create({
       data: {
         conversationId: convId,
         role: 'assistant',
         content: responseText,
+        model: aiResponse.model,
+        isFallback: aiResponse.source === 'deterministic_fallback',
       },
     });
 
@@ -214,6 +217,10 @@ aiRouter.post('/chat', authenticate, async (req: AuthRequest, res: Response, nex
         aiEngine: aiResponse.source,
         model: aiResponse.model,
         isFallback: aiResponse.source === 'deterministic_fallback',
+        isRealModel: aiResponse.source === 'ollama',
+        provenance: aiResponse.source === 'ollama'
+          ? `Local Neural Inference (${aiResponse.model})`
+          : 'Generated via Deterministic Rule Engine (Offline Fallback)',
       },
     });
   } catch (err) {

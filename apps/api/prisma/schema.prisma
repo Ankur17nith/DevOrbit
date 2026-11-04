@@ -527,6 +527,8 @@ model AiMessage {
   conversationId String
   role           String         // system, user, assistant
   content        String
+  model          String?
+  isFallback     Boolean        @default(false)
   createdAt      DateTime       @default(now())
 
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
