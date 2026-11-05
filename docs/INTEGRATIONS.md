@@ -41,7 +41,7 @@ All sensitive secrets (GitHub Personal Access Tokens and OAuth tokens) are encry
 - **Authentication Tag**: 16-byte GCM authentication tag verifying ciphertext authenticity
 - **Storage Format**: `ivHex:tagHex:cipherHex` stored in `IntegrationCredential.encryptedToken`
 
-Tokens are decrypted strictly in-memory during sync operations and never exposed in API payloads or client-side JavaScript.
+Tokens are decrypted strictly in-memory during sync operations and never exposed in API payloads or client-side JavaScript. The `/api/v1/integrations/status` endpoint exposes only masked tokens (e.g., `ghp_••••3a4f`) and expiration timestamps (`tokenExpiresAt`).
 
 ---
 
@@ -55,11 +55,14 @@ Tokens are decrypted strictly in-memory during sync operations and never exposed
 4. Paste the token into DevOrbit and click **Save & Sync**.
 5. DevOrbit queries `https://api.github.com/user` and `https://api.github.com/user/repos` to populate your Command Center.
 
-### Connecting with GitHub OAuth
+### Connecting with GitHub OAuth (Anti-Replay Defense)
 1. Create a GitHub OAuth App at [https://github.com/settings/developers](https://github.com/settings/developers).
 2. Set Authorization callback URL: `http://localhost:3001/api/v1/integrations/github/callback`.
 3. Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to `.env`.
-4. DevOrbit will render a 1-click **Connect GitHub OAuth** button.
+4. When OAuth flow initiates (`POST /api/v1/integrations/github/oauth/start`):
+   - A cryptographically random 32-byte state token is generated.
+   - Its SHA-256 hash is persisted in the `OAuthState` database table with a 10-minute expiry.
+   - Upon GitHub redirect to callback, the state token is hashed, verified, and consumed atomically (`delete`), preventing CSRF and replay attacks.
 
 ---
 
@@ -69,6 +72,9 @@ Codeforces statistics are fetched via their official public API (`https://codefo
 - `user.info`: Current rating, peak rating, rank title.
 - `user.rating`: Complete contest history and delta calculations.
 - `user.status`: Accepted submissions and tag/difficulty distributions.
+
+### Rate Limiting & Throttling:
+To comply with the official Codeforces API acceptable use policy (maximum 1 request per 2 seconds), DevOrbit's `CodeforcesProvider` implements an in-memory queue that automatically throttles outgoing requests with a 2,000ms delay between calls (50ms in test environment).
 
 No password or API secret is required; simply input your public handle in the Integration Center.
 

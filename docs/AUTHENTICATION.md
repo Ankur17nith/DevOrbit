@@ -49,11 +49,14 @@ Authentication tokens are standard signed JSON Web Tokens (JWT) containing:
 - `iat`: Issued At timestamp
 - `exp`: Expiration timestamp (7 days default)
 
-### Bearer Token Verification Guard
-Protected API routes pass through the `authenticateToken` middleware (`apps/api/src/middleware/auth.middleware.ts`):
+### Bearer Token & httpOnly Cookie Verification Guards
+Protected API routes pass through the `authenticateToken` middleware (`apps/api/src/middleware/auth.middleware.ts`). The guard inspects credentials with dual-mode fallback:
+1. **httpOnly Session Cookie**: Inspects `req.cookies.devorbit_token`, set with `httpOnly: true`, `sameSite: 'lax'`, and `secure: process.env.NODE_ENV === 'production'`.
+2. **Authorization Header**: Inspects `req.headers['authorization']` (`Bearer <token>`) for headless CLI or third-party client integrations.
+
 ```typescript
-const authHeader = req.headers['authorization'];
-const token = authHeader && authHeader.split(' ')[1];
+const token = req.cookies?.devorbit_token || 
+  (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 // Verifies cryptographic signature against JWT_SECRET
 ```
 If a token is expired, tampered with, or malformed, the API responds with HTTP 401 or 403.

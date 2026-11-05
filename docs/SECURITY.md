@@ -24,6 +24,7 @@ DevOrbit is designed under a **Local-First, Zero-Trust Architecture**:
 |---|---|---|---|
 | **Password Storage** | `bcrypt` (adaptive key stretching) | `bcryptjs` | Salt rounds: 10, per-user cryptographic salt |
 | **Token Encryption** | `aes-256-gcm` (Authenticated Cipher) | Node.js `crypto` | Key: 256-bit derived, IV: 12-byte random, Tag: 16-byte GCM |
+| **OAuth Anti-Replay** | `SHA-256` (Single-Use Hash) | Node.js `crypto` | 32-byte cryptographic random state, 10m TTL |
 | **Session Signing** | `HMAC-SHA256` | `jsonwebtoken` | Secret: high-entropy string, UUIDv4 `jti` claim |
 | **Token Identifiers** | `UUIDv4` | `uuid` | RFC 4122 cryptographic random |
 
