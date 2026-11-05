@@ -234,10 +234,20 @@ export function TopBar({
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setUserMenuOpen(prev => !prev)}
-            className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center hover:opacity-90 transition select-none"
+            className="size-8 rounded-lg flex items-center justify-center hover:opacity-90 transition select-none overflow-hidden"
             title={user ? `${user.name || user.username}` : 'Sign in'}
           >
-            {getInitials(user?.name || user?.username)}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name || user.username}
+                className="size-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center">
+                {getInitials(user?.name || user?.username)}
+              </div>
+            )}
           </button>
 
           {userMenuOpen && (

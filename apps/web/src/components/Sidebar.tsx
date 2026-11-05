@@ -244,9 +244,19 @@ export function Sidebar({
               <button
                 onClick={() => onSelectTab('settings')}
                 title="Settings"
-                className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[10px] font-bold flex items-center justify-center hover:opacity-90"
+                className="size-8 rounded-lg flex items-center justify-center hover:opacity-90 overflow-hidden"
               >
-                {getInitials(user?.name || user?.username)}
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name || user.username}
+                    className="size-8 rounded-lg object-cover border border-white/10"
+                  />
+                ) : (
+                  <div className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[10px] font-bold flex items-center justify-center">
+                    {getInitials(user?.name || user?.username)}
+                  </div>
+                )}
               </button>
               {onToggleCollapse && (
                 <button
@@ -264,9 +274,17 @@ export function Sidebar({
                 onClick={() => onSelectTab('profile')}
                 className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/5 text-left transition group"
               >
-                <div className="size-7 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center shrink-0">
-                  {getInitials(user?.name || user?.username)}
-                </div>
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name || user.username}
+                    className="size-7 rounded-lg object-cover shrink-0 border border-white/10"
+                  />
+                ) : (
+                  <div className="size-7 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center shrink-0">
+                    {getInitials(user?.name || user?.username)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold text-white truncate leading-snug">
                     {user?.name || user?.username || 'Dev User'}
