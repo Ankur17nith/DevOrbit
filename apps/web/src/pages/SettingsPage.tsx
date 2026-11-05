@@ -15,6 +15,7 @@ import {
   Server
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 export function SettingsPage() {
   const { user, token } = useAuth();
@@ -93,26 +94,24 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-200">
-      
+    <PageContainer>
       {/* Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-[#1F2430]">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC]">
-            Settings & System Preferences
-          </h1>
-          <p className="text-xs text-[#686D79] mt-1">
-            Manage your account credentials, local AI runtime, database backups, and hardware resource footprint.
-          </p>
-        </div>
-      </div>
+      <PageHeading
+        title="Settings & System Preferences"
+        description="Manage your account credentials, local AI runtime, database backups, and hardware resource footprint."
+        badges={[
+          <StatusBadge key="sys" variant="violet">
+            System Preferences
+          </StatusBadge>
+        ]}
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-[#1F2430] pb-2 text-xs font-medium">
         <button
           onClick={() => setActiveTab('account')}
           className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'account' ? 'bg-[#181C26] text-white font-semibold border border-[#1F2430]' : 'text-[#686D79] hover:text-[#C5C8D0]'
+            activeTab === 'account' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
           }`}
         >
           <User className="size-3.5" />
@@ -121,7 +120,7 @@ export function SettingsPage() {
         <button
           onClick={() => setActiveTab('ai')}
           className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'ai' ? 'bg-[#181C26] text-white font-semibold border border-[#1F2430]' : 'text-[#686D79] hover:text-[#C5C8D0]'
+            activeTab === 'ai' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
           }`}
         >
           <Sparkles className="size-3.5 text-[#8B5CF6]" />
@@ -130,19 +129,19 @@ export function SettingsPage() {
         <button
           onClick={() => setActiveTab('backup')}
           className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'backup' ? 'bg-[#181C26] text-white font-semibold border border-[#1F2430]' : 'text-[#686D79] hover:text-[#C5C8D0]'
+            activeTab === 'backup' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
           }`}
         >
-          <Database className="size-3.5 text-[#22C55E]" />
+          <Database className="size-3.5 text-[#4ADE80]" />
           <span>Backups & Restore</span>
         </button>
         <button
           onClick={() => setActiveTab('app')}
           className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'app' ? 'bg-[#181C26] text-white font-semibold border border-[#1F2430]' : 'text-[#686D79] hover:text-[#C5C8D0]'
+            activeTab === 'app' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
           }`}
         >
-          <Zap className="size-3.5 text-[#F59E0B]" />
+          <Zap className="size-3.5 text-[#FBBF24]" />
           <span>App Preferences</span>
         </button>
       </div>
@@ -154,21 +153,21 @@ export function SettingsPage() {
             <h2 className="text-sm font-semibold text-[#F8FAFC]">Active User Session</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                 <span className="text-[#686D79]">Username</span>
                 <p className="font-mono font-medium text-white">@{user?.username || 'alex_developer'}</p>
               </div>
-              <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                 <span className="text-[#686D79]">Email Address</span>
                 <p className="font-mono font-medium text-white">{user?.email || 'alex@devorbit.local'}</p>
               </div>
-              <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                 <span className="text-[#686D79]">Full Name</span>
                 <p className="font-medium text-white">{user?.name || 'Alex Chen'}</p>
               </div>
-              <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                 <span className="text-[#686D79]">Session Token Integrity</span>
-                <p className="font-mono text-[#22C55E] flex items-center gap-1">
+                <p className="font-mono text-[#4ADE80] flex items-center gap-1.5">
                   <CheckCircle2 className="size-3.5" /> Authenticated JWT (UUID jti)
                 </p>
               </div>
@@ -188,13 +187,9 @@ export function SettingsPage() {
                   DevOrbit connects to local LLMs over HTTP on <code className="text-[#8B5CF6]">127.0.0.1:11434</code>.
                 </p>
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-medium border ${
-                aiStatus?.ollamaAvailable 
-                  ? 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30' 
-                  : 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30'
-              }`}>
+              <StatusBadge variant={aiStatus?.ollamaAvailable ? 'success' : 'warning'}>
                 {aiStatus?.ollamaAvailable ? 'Online' : 'Offline (Fallback Mode)'}
-              </span>
+              </StatusBadge>
             </div>
 
             <div className="p-4 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-2 text-xs">
@@ -208,7 +203,7 @@ export function SettingsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-[#686D79]">Privacy Guarantee:</span>
-                <span className="text-[#22C55E] font-medium">{aiStatus?.privacy}</span>
+                <span className="text-[#4ADE80] font-medium">{aiStatus?.privacy}</span>
               </div>
             </div>
 
@@ -222,13 +217,13 @@ export function SettingsPage() {
                       {m.description && <p className="text-[11px] text-[#686D79]">{m.description}</p>}
                     </div>
                     {m.isFallback ? (
-                      <span className="px-2 py-0.5 rounded bg-[#F59E0B]/15 text-[#F59E0B] text-[10px] font-mono">
+                      <StatusBadge variant="warning">
                         Deterministic Fallback
-                      </span>
+                      </StatusBadge>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-mono">
+                      <StatusBadge variant="success">
                         Neural LLM
-                      </span>
+                      </StatusBadge>
                     )}
                   </div>
                 ))}
@@ -250,17 +245,18 @@ export function SettingsPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={handleDownloadBackup}
                 disabled={backupLoading}
-                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                icon={<Download className="size-3.5" />}
               >
-                <Download className="size-3.5" />
-                <span>{backupLoading ? 'Generating Snapshot...' : 'Export Local JSON Backup'}</span>
-              </button>
+                {backupLoading ? 'Generating Snapshot...' : 'Export Local JSON Backup'}
+              </Button>
 
-              <label className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                <Upload className="size-3.5 text-[#22C55E]" />
+              <label className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                <Upload className="size-3.5 text-[#4ADE80]" />
                 <span>Restore From Backup File</span>
                 <input
                   type="file"
@@ -272,7 +268,7 @@ export function SettingsPage() {
             </div>
 
             {restoreStatus && (
-              <div className="p-3 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#22C55E] text-xs flex items-center gap-2">
+              <div className="p-3 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#4ADE80] text-xs flex items-center gap-2">
                 <CheckCircle2 className="size-4 shrink-0" />
                 <span>{restoreStatus}</span>
               </div>
@@ -289,15 +285,15 @@ export function SettingsPage() {
 
             {healthData && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                   <span className="text-[#686D79]">SQLite Query Latency</span>
                   <p className="font-mono text-white font-medium">{healthData.database?.latencyMs} ms</p>
                 </div>
-                <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                   <span className="text-[#686D79]">Free System RAM</span>
                   <p className="font-mono text-white font-medium">{healthData.system?.freeMemoryMb} MB</p>
                 </div>
-                <div className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] space-y-1">
+                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
                   <span className="text-[#686D79]">Platform Architecture</span>
                   <p className="font-mono text-white font-medium">{healthData.system?.platform} ({healthData.system?.arch})</p>
                 </div>
@@ -323,7 +319,6 @@ export function SettingsPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </PageContainer>
   );
 }

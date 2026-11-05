@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { GithubIcon } from '../components/icons/GithubIcon.js';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 export function IntegrationCenterPage() {
   const { user, token } = useAuth();
@@ -331,49 +332,40 @@ export function IntegrationCenterPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-7xl mx-auto space-y-6 animate-pulse">
-        <div className="h-24 bg-[#12151D] border border-[#1F2430] rounded-2xl" />
+      <PageContainer>
+        <div className="h-24 bg-[#12151D] border border-[#1F2430] rounded-2xl animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-64 bg-[#12151D] border border-[#1F2430] rounded-xl" />
+            <div key={i} className="h-64 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse" />
           ))}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   const { github, codeforces, leetcode, tuf, striver, ollama } = integrationsData || {};
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-200">
-      
-      {/* Hero Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-[#12151D] via-[#181C26] to-[#0B0D12] border border-[#1F2430] relative overflow-hidden shadow-xl">
-        <div className="space-y-1.5 z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]">
-              <Plug className="size-4" />
-            </div>
-            <h1 className="text-2xl font-bold font-display text-[#F8FAFC]">
-              Integration Center
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-mono font-medium">
-              Real Integrations Engine
-            </span>
-          </div>
-          <p className="text-xs text-[#686D79] max-w-2xl leading-relaxed">
-            Connect your code repositories, competitive programming handles, and algorithmic problem trackers. All tokens are encrypted locally with AES-256-GCM.
-          </p>
-        </div>
-
-        <button
-          onClick={fetchIntegrations}
-          className="h-8 px-3 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs text-[#F8FAFC] flex items-center gap-2 transition-all self-start md:self-auto shrink-0"
-        >
-          <RefreshCw className="size-3.5 text-[#8B5CF6]" />
-          <span>Refresh All Status</span>
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeading
+        title="Integration Center"
+        description="Connect your code repositories, competitive programming handles, and algorithmic problem trackers. All tokens are encrypted locally with AES-256-GCM."
+        badges={[
+          <StatusBadge key="engine" variant="violet">
+            Real Integrations Engine
+          </StatusBadge>
+        ]}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={fetchIntegrations}
+            icon={<RefreshCw className="size-3.5 text-[#8B5CF6]" />}
+          >
+            Refresh All Status
+          </Button>
+        }
+      />
 
       {/* OAuth Feedback Alert Banner */}
       {oauthFeedback && (
@@ -1182,6 +1174,6 @@ export function IntegrationCenterPage() {
         </div>
       )}
 
-    </div>
+    </PageContainer>
   );
 }
