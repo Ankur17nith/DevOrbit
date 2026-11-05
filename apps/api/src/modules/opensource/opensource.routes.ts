@@ -14,6 +14,7 @@ opensourceRouter.get('/bounties', controller.getBounties);
 opensourceRouter.get('/programs', controller.getPrograms);
 
 // Authenticated Skill Matching & Contribution Pipeline
+opensourceRouter.get('/recommendations', authenticate, controller.getRecommendations);
 opensourceRouter.get('/issues/:issueId/match', authenticate, controller.matchIssueSkills);
 opensourceRouter.get('/pipeline', authenticate, controller.getPipeline);
 opensourceRouter.post('/pipeline', authenticate, controller.addToPipeline);

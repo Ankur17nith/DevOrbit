@@ -61,10 +61,12 @@ const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color:
 
 export function IssuesPage() {
   const { token, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'explore' | 'pipeline'>('explore');
+  const [activeTab, setActiveTab] = useState<'explore' | 'recommendations' | 'pipeline'>('explore');
   const [issues, setIssues] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   const [pipeline, setPipeline] = useState<PipelineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [difficulty, setDifficulty] = useState('All');
   const [search, setSearch] = useState('');
@@ -95,6 +97,21 @@ export function IssuesPage() {
       .finally(() => setLoading(false));
   }, [difficulty, search]);
 
+  // Fetch recommendations
+  const fetchRecommendations = () => {
+    if (!token) return;
+    setRecommendationsLoading(true);
+    fetch('/api/v1/opensource/recommendations', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) setRecommendations(json.data);
+      })
+      .catch(console.error)
+      .finally(() => setRecommendationsLoading(false));
+  };
+
   // Fetch user pipeline
   const fetchPipeline = () => {
     if (!token) return;
@@ -113,6 +130,8 @@ export function IssuesPage() {
   useEffect(() => {
     if (activeTab === 'pipeline') {
       fetchPipeline();
+    } else if (activeTab === 'recommendations') {
+      fetchRecommendations();
     }
   }, [activeTab, token]);
 
@@ -248,6 +267,21 @@ export function IssuesPage() {
             >
               <ListFilter className="size-3.5" />
               <span>Explore Issues</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('recommendations')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'recommendations'
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
+                  : 'text-[#686D79] hover:text-[#C5C8D0]'
+              }`}
+            >
+              <Sparkles className="size-3.5 text-[#8B5CF6]" />
+              <span>Recommended</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/30">
+                AI Match
+              </span>
             </button>
 
             <button
@@ -514,6 +548,100 @@ export function IssuesPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: RECOMMENDED (EVIDENCE-GROUNDED OPPORTUNITIES) */}
+      {activeTab === 'recommendations' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#C5C8D0]">
+              <Sparkles className="size-4 text-[#8B5CF6]" />
+              <span>Grounded in your connected GitHub repositories, languages, and topic history.</span>
+            </div>
+            <StatusBadge variant="violet">
+              Evidence Grounded
+            </StatusBadge>
+          </div>
+
+          {recommendationsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : recommendations.length === 0 ? (
+            <EmptyState
+              title="No recommendations generated yet"
+              description="Connect your GitHub account in Integrations Center or star repositories to activate personalized AI matching."
+              icon={<Sparkles className="size-8 text-[#8B5CF6]" />}
+            />
+          ) : (
+            <div className="space-y-3">
+              {recommendations.map(issue => (
+                <div
+                  key={issue.id}
+                  className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-[#8B5CF6] font-semibold">
+                        {issue.repository?.fullName} #{issue.number}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30">
+                        {issue.matchScore}% Match
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleInspectMatch(issue)}
+                        className="px-2.5 py-1 rounded-lg bg-[#181C26] hover:bg-[#1F2430] border border-[#1F2430] text-[#C5C8D0] hover:text-[#F8FAFC] text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Info className="size-3 text-[#8B5CF6]" />
+                        <span>Inspect Match</span>
+                      </button>
+                      <button
+                        onClick={() => handleAddToPipeline(issue.id, 'SHORTLISTED')}
+                        className="px-3 py-1 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Plus className="size-3" />
+                        <span>Add to Pipeline</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-[#F8FAFC]">{issue.title}</h3>
+                    <p className="mt-1 text-xs text-[#A78BFA] font-mono bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 p-2 rounded-lg">
+                      {issue.explanation}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#1F2430] text-xs font-mono text-[#686D79]">
+                    <div className="flex flex-wrap gap-1.5">
+                      {issue.labels?.map((label: any, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-[#181C26] border border-[#1F2430] text-[#C5C8D0] text-[10px]">
+                          {typeof label === 'string' ? label : label.name}
+                        </span>
+                      ))}
+                    </div>
+                    {issue.url && (
+                      <a
+                        href={issue.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[#686D79] hover:text-[#8B5CF6] transition-colors"
+                      >
+                        <span>GitHub</span>
+                        <ExternalLink className="size-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

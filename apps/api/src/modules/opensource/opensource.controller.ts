@@ -70,6 +70,17 @@ export class OpenSourceController {
     }
   }
 
+  async getRecommendations(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const limit = Number(req.query.limit) || 10;
+      const data = await ossService.getRecommendedOpportunities(userId, limit);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // Contribution Pipeline
   async getPipeline(req: AuthRequest, res: Response, next: NextFunction) {
     try {
