@@ -38,12 +38,23 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm ci
 
+      - name: Configure Environment Files
+        run: |
+          cp .env.example .env
+          cp apps/api/.env.example apps/api/.env
+          echo "DATABASE_URL=\"file:${{ github.workspace }}/ci-test.db\"" >> .env
+          echo "DATABASE_URL=\"file:${{ github.workspace }}/ci-test.db\"" >> apps/api/.env
+
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/ci-test.db"
         run: npm run db:generate
 
       - name: Prepare Isolated CI Database Schema
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/ci-test.db"
         run: |
-          npm run db:push
+          npm run db:push -- --accept-data-loss
           npm run db:seed
 
       - name: Run TypeScript Type Checks
