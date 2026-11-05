@@ -22,14 +22,22 @@ integrationsRouter.get('/status', async (req: AuthRequest, res: Response, next: 
 });
 
 // 2. GitHub Integration Endpoints
-integrationsRouter.get('/github/oauth/url', (req: AuthRequest, res: Response) => {
-  const status = githubOAuthHandler.getOAuthStatus(req.user!.id);
-  res.json({ success: true, data: status });
+integrationsRouter.get('/github/oauth/url', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const status = await githubOAuthHandler.getOAuthStatus(req.user!.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
 });
 
-integrationsRouter.get('/github/oauth/authorize', (req: AuthRequest, res: Response) => {
-  const status = githubOAuthHandler.getOAuthStatus(req.user!.id);
-  res.json({ success: true, data: status });
+integrationsRouter.get('/github/oauth/authorize', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const status = await githubOAuthHandler.getOAuthStatus(req.user!.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
 });
 
 integrationsRouter.post('/github/oauth/callback', async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -38,11 +46,16 @@ integrationsRouter.post('/github/oauth/callback', async (req: AuthRequest, res: 
     if (!code) {
       throw new BadRequestError('Authorization code is required');
     }
-    if (!state || !githubOAuthHandler.validateAndConsumeState(state, req.user!.id)) {
+    const isValid = await githubOAuthHandler.validateAndConsumeState(state, req.user!.id);
+    if (!isValid) {
       throw new BadRequestError('Invalid, expired, or tampered OAuth state parameter');
     }
-    const token = await githubOAuthHandler.exchangeCode(code);
-    const result = await githubService.connectAccount(req.user!.id, token);
+    const tokenResult = await githubOAuthHandler.exchangeCode(code);
+    const result = await githubService.connectAccount(req.user!.id, tokenResult.accessToken, {
+      refreshToken: tokenResult.refreshToken,
+      expiresIn: tokenResult.expiresIn,
+      refreshTokenExpiresIn: tokenResult.refreshTokenExpiresIn,
+    });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

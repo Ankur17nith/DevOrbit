@@ -6,7 +6,7 @@ const IV_LENGTH = 12; // 96 bits for GCM
 const SALT = 'devorbit_local_integration_salt_2026';
 
 function getEncryptionKey(): Buffer {
-  const secret = process.env.DEVORBIT_ENCRYPTION_KEY || config.jwtSecret;
+  const secret = process.env.GITHUB_TOKEN_ENCRYPTION_KEY || process.env.DEVORBIT_ENCRYPTION_KEY || config.jwtSecret;
   return crypto.scryptSync(secret, SALT, 32);
 }
 

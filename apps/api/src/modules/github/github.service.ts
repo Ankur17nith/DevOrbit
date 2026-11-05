@@ -2,6 +2,7 @@ import { prisma } from '../../config/index.js';
 import { encryptSecret, decryptSecret, maskSecretToken } from '../../lib/encryption.js';
 import { githubClient, GitHubApiError } from './github.client.js';
 import { NotFoundError, BadRequestError } from '../../lib/errors.js';
+import { githubOAuthHandler } from '../integrations/github.oauth.js';
 
 export interface SkillEvidenceItem {
   repoName: string;
@@ -15,8 +16,17 @@ export interface SkillEvidenceItem {
 export class GitHubService {
   /**
    * Connects and securely stores a user's GitHub Personal Access Token or OAuth token.
+   * Supports expiring user-to-server tokens with automatic refresh token rotation.
    */
-  async connectAccount(userId: string, token: string) {
+  async connectAccount(
+    userId: string, 
+    token: string, 
+    options?: {
+      refreshToken?: string;
+      expiresIn?: number;
+      refreshTokenExpiresIn?: number;
+    }
+  ) {
     if (!token || token.trim().length === 0) {
       throw new BadRequestError('GitHub Personal Access Token is required');
     }
@@ -26,6 +36,9 @@ export class GitHubService {
 
     // Encrypt token at rest using AES-256-GCM
     const encryptedToken = encryptSecret(token.trim());
+    const encryptedRefreshToken = options?.refreshToken ? encryptSecret(options.refreshToken) : undefined;
+    const tokenExpiresAt = options?.expiresIn ? new Date(Date.now() + options.expiresIn * 1000) : undefined;
+    const refreshTokenExpiresAt = options?.refreshTokenExpiresIn ? new Date(Date.now() + options.refreshTokenExpiresIn * 1000) : undefined;
 
     // Save or update IntegrationCredential
     const credential = await prisma.integrationCredential.upsert({
@@ -39,6 +52,9 @@ export class GitHubService {
         userId,
         provider: 'GITHUB',
         encryptedToken,
+        encryptedRefreshToken,
+        tokenExpiresAt,
+        refreshTokenExpiresAt,
         username: validation.user.login,
         scopes: validation.scopes.join(','),
         rateLimitRemaining: validation.rateLimit.remaining,
@@ -48,6 +64,9 @@ export class GitHubService {
       },
       update: {
         encryptedToken,
+        ...(encryptedRefreshToken ? { encryptedRefreshToken } : {}),
+        ...(tokenExpiresAt ? { tokenExpiresAt } : {}),
+        ...(refreshTokenExpiresAt ? { refreshTokenExpiresAt } : {}),
         username: validation.user.login,
         scopes: validation.scopes.join(','),
         rateLimitRemaining: validation.rateLimit.remaining,
@@ -67,7 +86,59 @@ export class GitHubService {
       scopes: validation.scopes,
       rateLimit: validation.rateLimit,
       lastSyncedAt: credential.lastSyncedAt,
+      tokenExpiresAt: credential.tokenExpiresAt,
     };
+  }
+
+  /**
+   * Retrieves a valid decrypted access token for the user.
+   * If the token is near expiration and a refresh token is available, performs transparent token rotation.
+   */
+  async getValidAccessToken(userId: string): Promise<string> {
+    const cred = await prisma.integrationCredential.findUnique({
+      where: {
+        userId_provider: {
+          userId,
+          provider: 'GITHUB',
+        },
+      },
+    });
+
+    if (!cred || !cred.encryptedToken) {
+      throw new BadRequestError('GitHub account is not connected');
+    }
+
+    const now = Date.now();
+    const isExpiringSoon = cred.tokenExpiresAt && cred.tokenExpiresAt.getTime() <= now + 5 * 60 * 1000;
+
+    if (isExpiringSoon && cred.encryptedRefreshToken) {
+      try {
+        const rawRefreshToken = decryptSecret(cred.encryptedRefreshToken);
+        const refreshed = await githubOAuthHandler.refreshAccessToken(rawRefreshToken);
+
+        const encryptedToken = encryptSecret(refreshed.accessToken);
+        const encryptedRefreshToken = refreshed.refreshToken ? encryptSecret(refreshed.refreshToken) : cred.encryptedRefreshToken;
+        const tokenExpiresAt = refreshed.expiresIn ? new Date(Date.now() + refreshed.expiresIn * 1000) : null;
+        const refreshTokenExpiresAt = refreshed.refreshTokenExpiresIn ? new Date(Date.now() + refreshed.refreshTokenExpiresIn * 1000) : null;
+
+        await prisma.integrationCredential.update({
+          where: { id: cred.id },
+          data: {
+            encryptedToken,
+            encryptedRefreshToken,
+            tokenExpiresAt,
+            refreshTokenExpiresAt,
+          },
+        });
+
+        return refreshed.accessToken;
+      } catch (err) {
+        console.error('Failed to automatically refresh expiring GitHub token:', err);
+        return decryptSecret(cred.encryptedToken);
+      }
+    }
+
+    return decryptSecret(cred.encryptedToken);
   }
 
   /**
@@ -144,8 +215,8 @@ export class GitHubService {
       throw new BadRequestError('GitHub account is not connected');
     }
 
-    // Decrypt token locally
-    const rawToken = decryptSecret(cred.encryptedToken);
+    // Decrypt and ensure valid token (refreshing if expired)
+    const rawToken = await this.getValidAccessToken(userId);
 
     // Fetch existing repos to get last ETag if available
     const existingRepos = await prisma.userGithubRepo.findMany({

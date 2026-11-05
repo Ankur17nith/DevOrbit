@@ -51,6 +51,20 @@ export interface CodeforcesAggregatedStats {
 
 export class CodeforcesProvider {
   private baseUrl = 'https://codeforces.com/api';
+  private lastRequestTime = 0;
+  private minIntervalMs = process.env.NODE_ENV === 'test' ? 50 : 2000;
+
+  /**
+   * Throttles outgoing requests to Codeforces API to comply with the official 1 req / 2s policy
+   */
+  private async throttle(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.minIntervalMs) {
+      await new Promise(resolve => setTimeout(resolve, this.minIntervalMs - elapsed));
+    }
+    this.lastRequestTime = Date.now();
+  }
 
   /**
    * Verify whether a given Codeforces handle exists
@@ -60,6 +74,8 @@ export class CodeforcesProvider {
     if (!cleanHandle) {
       throw new Error('Codeforces handle cannot be empty');
     }
+
+    await this.throttle();
 
     try {
       const controller = new AbortController();
@@ -106,6 +122,7 @@ export class CodeforcesProvider {
     // Fetch rating history
     let ratingHistory: CodeforcesRatingChange[] = [];
     try {
+      await this.throttle();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`${this.baseUrl}/user.rating?handle=${encodeURIComponent(handle)}`, {
@@ -133,6 +150,7 @@ export class CodeforcesProvider {
     const tagCounts: { [tag: string]: number } = {};
 
     try {
+      await this.throttle();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(

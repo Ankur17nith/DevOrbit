@@ -442,31 +442,44 @@ export function IntegrationCenterPage() {
 
           <div className="pt-2 border-t border-[#1F2430] flex items-center justify-between gap-2">
             {github?.isConnected ? (
-              <>
+              <div className="flex items-center justify-between w-full gap-2">
                 <button
                   onClick={handleDisconnectGithub}
                   disabled={syncingMap.github}
-                  className="px-3 py-1.5 rounded-lg bg-[#EF4444]/15 hover:bg-[#EF4444]/25 text-[#EF4444] text-xs font-medium transition-colors flex items-center gap-1.5"
+                  className="px-2.5 py-1.5 rounded-lg bg-[#EF4444]/15 hover:bg-[#EF4444]/25 text-[#EF4444] text-xs font-medium transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 className="size-3" />
                   <span>Disconnect</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setSyncingMap(prev => ({ ...prev, github: true }));
-                    fetch('/api/v1/github/sync', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-                      .finally(() => {
-                        setSyncingMap(prev => ({ ...prev, github: false }));
-                        fetchIntegrations();
-                      });
-                  }}
-                  disabled={syncingMap.github}
-                  className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                >
-                  <RefreshCw className={`size-3 ${syncingMap.github ? 'animate-spin' : ''}`} />
-                  <span>Sync Now</span>
-                </button>
-              </>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveModal('github');
+                      setInputToken('');
+                      setModalError(null);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#1F2430] border border-[#1F2430] text-[#C5C8D0] hover:text-[#F8FAFC] text-xs font-medium transition-colors flex items-center gap-1.5"
+                  >
+                    <Plug className="size-3 text-[#8B5CF6]" />
+                    <span>Reauthorize</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSyncingMap(prev => ({ ...prev, github: true }));
+                      fetch('/api/v1/github/sync', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+                        .finally(() => {
+                          setSyncingMap(prev => ({ ...prev, github: false }));
+                          fetchIntegrations();
+                        });
+                    }}
+                    disabled={syncingMap.github}
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <RefreshCw className={`size-3 ${syncingMap.github ? 'animate-spin' : ''}`} />
+                    <span>Sync Now</span>
+                  </button>
+                </div>
+              </div>
             ) : (
               <button
                 onClick={() => {

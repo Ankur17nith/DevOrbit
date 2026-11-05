@@ -10,12 +10,12 @@ export interface LeetCodeStats {
   acceptanceRate?: number;
   contestRating?: number;
   globalRanking?: number;
+  streak?: number;
   recentSubmissions?: {
+    id?: string;
     title: string;
     titleSlug: string;
     timestamp: string;
-    statusDisplay: string;
-    lang: string;
   }[];
   source: 'graphql_sync' | 'manual_import' | 'browser_extension';
   lastSyncedAt: string;
@@ -42,7 +42,7 @@ export class LeetCodeProvider {
   private graphqlUrl = 'https://leetcode.com/graphql';
 
   /**
-   * Fetch public LeetCode stats via GraphQL endpoint
+   * Fetch live public LeetCode stats via GraphQL endpoint
    */
   async fetchUserProfile(username: string): Promise<LeetCodeStats> {
     const cleanUser = username.trim();
@@ -69,18 +69,35 @@ export class LeetCodeProvider {
               count
             }
           }
+          userCalendar {
+            streak
+            totalActiveDays
+          }
+        }
+        recentAcSubmissionList(username: $username, limit: 15) {
+          id
+          title
+          titleSlug
+          timestamp
+        }
+        userContestRanking(username: $username) {
+          attendedContestsCount
+          rating
+          globalRanking
+          topPercentage
         }
       }
     `;
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
       const res = await fetch(this.graphqlUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'DevOrbit-Intelligence/1.0',
+          'User-Agent': 'Mozilla/5.0 (DevOrbit Developer Intelligence Engine)',
+          'Referer': 'https://leetcode.com',
         },
         body: JSON.stringify({
           query,
@@ -93,7 +110,7 @@ export class LeetCodeProvider {
       const json = (await res.json()) as any;
 
       if (!json.data || !json.data.matchedUser) {
-        throw new Error(`LeetCode user "${cleanUser}" not found`);
+        throw new Error(`LeetCode user "${cleanUser}" could not be verified on leetcode.com`);
       }
 
       const mu = json.data.matchedUser;
@@ -111,6 +128,18 @@ export class LeetCodeProvider {
         if (item.difficulty === 'Hard') hard = item.count;
       }
 
+      const contestRanking = json.data.userContestRanking;
+      const contestRating = contestRanking?.rating ? Math.round(contestRanking.rating) : undefined;
+      const globalRanking = contestRanking?.globalRanking || undefined;
+      const streak = mu.userCalendar?.streak || undefined;
+
+      const recentSubmissions = (json.data.recentAcSubmissionList || []).map((sub: any) => ({
+        id: sub.id,
+        title: sub.title,
+        titleSlug: sub.titleSlug,
+        timestamp: sub.timestamp,
+      }));
+
       return {
         username: mu.username,
         realName: mu.profile?.realName || undefined,
@@ -120,19 +149,23 @@ export class LeetCodeProvider {
         easySolved: easy,
         mediumSolved: medium,
         hardSolved: hard,
+        contestRating,
+        globalRanking,
+        streak,
+        recentSubmissions,
         source: 'graphql_sync',
         lastSyncedAt: new Date().toISOString(),
       };
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new Error('LeetCode request timed out. Please try again or use JSON/CSV import.');
+        throw new Error('LeetCode GraphQL request timed out. Please retry or use manual import fallback.');
       }
       throw err;
     }
   }
 
   /**
-   * Process manual import or browser extension payload
+   * Process verified manual import or browser extension payload
    */
   processImport(payload: LeetCodeImportPayload, source: 'manual_import' | 'browser_extension' = 'manual_import'): LeetCodeStats {
     if (!payload.username) {
