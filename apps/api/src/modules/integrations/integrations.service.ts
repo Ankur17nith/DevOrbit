@@ -14,10 +14,11 @@ export class IntegrationsService {
    * Aggregate connection status across all supported developer platforms
    */
   async getAllStatus(userId: string) {
-    const [credentials, githubStatus, isOllamaOnline] = await Promise.all([
+    const [credentials, githubStatus, isOllamaOnline, oauthStatus] = await Promise.all([
       prisma.integrationCredential.findMany({ where: { userId } }),
       githubService.getIntegrationStatus(userId).catch(() => ({ isConnected: false })),
       this.ollama.isOllamaAvailable(),
+      githubOAuthHandler.getOAuthStatus(userId).catch(() => null),
     ]);
 
     const credMap = new Map(credentials.map(c => [c.provider, c]));
@@ -55,12 +56,16 @@ export class IntegrationsService {
     return {
       github: {
         isConnected: Boolean((githubStatus as any).connected),
+        isExpired: Boolean((githubStatus as any).isExpired),
+        needsReconnect: Boolean((githubStatus as any).needsReconnect),
         username: (githubStatus as any).username,
         scopes: (githubStatus as any).scopes || [],
         rateLimitRemaining: (githubStatus as any).rateLimitRemaining,
         lastSyncedAt: (githubStatus as any).lastSyncedAt,
+        tokenExpiresAt: (githubStatus as any).tokenExpiresAt,
+        tokenMasked: (githubStatus as any).tokenMasked,
         repoCount: (githubStatus as any).repoCount || 0,
-        oauth: githubOAuthHandler.getOAuthStatus(userId),
+        oauth: oauthStatus,
       },
       codeforces: {
         isConnected: Boolean(cfCred),

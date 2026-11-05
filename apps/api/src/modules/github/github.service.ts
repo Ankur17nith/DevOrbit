@@ -216,8 +216,15 @@ export class GitHubService {
       tokenMasked = '****';
     }
 
+    const isExpired = Boolean(
+      (cred.tokenExpiresAt && cred.tokenExpiresAt.getTime() < Date.now()) ||
+      (cred.metadataJson && cred.metadataJson.includes('"expired":true'))
+    );
+
     return {
-      connected: true,
+      connected: !isExpired,
+      isExpired,
+      needsReconnect: isExpired,
       username: cred.username,
       scopes: cred.scopes ? cred.scopes.split(',') : [],
       rateLimitRemaining: cred.rateLimitRemaining,
@@ -260,7 +267,21 @@ export class GitHubService {
     const lastEtag = existingRepos.length > 0 ? existingRepos[0].etag || undefined : undefined;
 
     // Fetch user repos from GitHub with conditional caching
-    const result = await githubClient.fetchUserRepos(rawToken, { etag: lastEtag });
+    let result;
+    try {
+      result = await githubClient.fetchUserRepos(rawToken, { etag: lastEtag });
+    } catch (err: any) {
+      if (err instanceof GitHubApiError && err.statusCode === 401) {
+        await prisma.integrationCredential.update({
+          where: { id: cred.id },
+          data: {
+            metadataJson: JSON.stringify({ expired: true, error: 'Token expired or revoked' }),
+          },
+        });
+        throw new BadRequestError('GitHub authorization has expired or was revoked. Please reconnect your account.');
+      }
+      throw err;
+    }
 
     if (!result.notModified && result.repos.length > 0) {
       for (const repo of result.repos) {

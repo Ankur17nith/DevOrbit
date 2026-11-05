@@ -307,10 +307,13 @@ export function IntegrationCenterPage() {
       category: 'OAuth',
       methodLabel: 'OAuth',
       description: 'Repository access and development activity',
-      detail: integrationsData?.github?.connected
-        ? `Connected as @${integrationsData.github.username || 'user'} • ${integrationsData.github.publicReposCount ?? 0} repos • Exp: ${integrationsData.github.tokenExpiresAt ? new Date(integrationsData.github.tokenExpiresAt).toLocaleDateString() : 'Active'}`
+      detail: integrationsData?.github?.needsReconnect
+        ? '⚠️ GitHub authorization has expired or was revoked. Reconnect to resume synchronization.'
+        : integrationsData?.github?.connected
+        ? `Connected as @${integrationsData.github.username || 'user'} • ${integrationsData.github.repoCount ?? 0} repos • Token: ${integrationsData.github.tokenMasked || 'Active'}`
         : 'Direct authorization requires a registered GitHub OAuth app.',
       isConnected: Boolean(integrationsData?.github?.connected),
+      needsReconnect: Boolean(integrationsData?.github?.needsReconnect || integrationsData?.github?.isExpired),
       icon: (
         <span className="flex size-10 items-center justify-center rounded-lg bg-[#F0EDFA] text-[#8B5CF6]">
           <GithubIcon className="size-5" />
@@ -517,14 +520,23 @@ export function IntegrationCenterPage() {
             {/* Col 3: Status Badge & Action Buttons */}
             <div className="flex items-center justify-between gap-2.5 md:justify-end">
               <span className={`inline-flex rounded-md px-2 py-1 text-[8px] font-bold uppercase tracking-[0.07em] ${
-                item.isConnected
-                  ? 'bg-[#F0EDFA] text-[#8B5CF6]'
-                  : 'bg-[#F0F1F3] text-[#686D79]'
+                item.needsReconnect
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : item.isConnected
+                    ? 'bg-[#F0EDFA] text-[#8B5CF6]'
+                    : 'bg-[#F0F1F3] text-[#686D79]'
               }`}>
-                {item.isConnected ? 'Connected' : 'Not connected'}
+                {item.needsReconnect ? 'Needs Reconnect' : item.isConnected ? 'Connected' : 'Not connected'}
               </span>
 
-              {item.isConnected ? (
+              {item.needsReconnect ? (
+                <button
+                  onClick={item.onConnect}
+                  className="rounded-md border border-amber-300 bg-amber-500 px-3 py-1.5 text-[9px] font-semibold text-white hover:bg-amber-600 transition-colors"
+                >
+                  Reconnect
+                </button>
+              ) : item.isConnected ? (
                 <div className="flex items-center gap-1.5">
                   {item.onSync && (
                     <button
