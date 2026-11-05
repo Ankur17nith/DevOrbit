@@ -313,6 +313,20 @@ export function DeveloperProfilePage() {
             README
           </span>
         );
+      case 'MANUAL':
+        return (
+          <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[8px] font-semibold text-amber-700">
+            <Sliders className="size-2.5" />
+            Configured
+          </span>
+        );
+      case 'MULTI_SOURCE':
+        return (
+          <span className="inline-flex items-center gap-1 rounded bg-purple-50 px-1.5 py-0.5 text-[8px] font-semibold text-purple-700">
+            <Sparkles className="size-2.5" />
+            Multi-Source
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded bg-zinc-100 px-1.5 py-0.5 text-[8px] font-semibold text-zinc-700">
