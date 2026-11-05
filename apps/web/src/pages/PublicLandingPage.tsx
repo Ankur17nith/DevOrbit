@@ -335,7 +335,7 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
                   <div className="text-[11px] font-mono uppercase font-bold text-[#8B5CF6] tracking-wider mb-1">
                     TUESDAY, 14 MAY
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-[#0E121B]">Good morning, Alex.</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#0E121B]">Good morning, Developer.</h2>
                   <p className="text-xs text-[#64748B]">Your developer workspace at a glance.</p>
                 </div>
 

@@ -81,7 +81,7 @@ function getUrlRoute(): string {
 }
 
 function AppContent() {
-  const { user, isLoading, demoLogin } = useAuth();
+  const { user, isLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>(() => {
     const route = getUrlRoute();
     if (route) return route;
@@ -191,9 +191,8 @@ function AppContent() {
       return (
         <DocumentationPage 
           onNavigate={handleSelectTab} 
-          onLaunchWorkspace={async () => {
-            await demoLogin();
-            handleSelectTab('dashboard');
+          onLaunchWorkspace={() => {
+            handleSelectTab('login');
           }} 
         />
       );
@@ -203,9 +202,8 @@ function AppContent() {
     return (
       <PublicLandingPage 
         onNavigate={handleSelectTab} 
-        onLaunchDemo={async () => {
-          await demoLogin();
-          handleSelectTab('dashboard');
+        onLaunchDemo={() => {
+          handleSelectTab('login');
         }} 
       />
     );
