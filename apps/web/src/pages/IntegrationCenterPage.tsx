@@ -26,6 +26,7 @@ import {
 import { GithubIcon } from '../components/icons/GithubIcon.js';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 export function IntegrationCenterPage() {
   const { user, token } = useAuth();
@@ -56,20 +57,23 @@ export function IntegrationCenterPage() {
   const [oauthFeedback, setOauthFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showPatInput, setShowPatInput] = useState<boolean>(false);
 
-  const fetchIntegrations = () => {
+  const fetchIntegrations = async () => {
     if (!token) return;
     setLoading(true);
-    fetch('/api/v1/integrations/status', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
-      .then(json => {
-        if (json.success) {
-          setIntegrationsData(json.data);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const json = await apiFetch('/api/v1/integrations/status', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (json.success && json.data) {
+        setIntegrationsData(json.data);
+      } else if (json.error) {
+        console.warn('Integration status warning:', json.error.message);
+      }
+    } catch (err) {
+      console.error('Failed to fetch integrations:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -85,7 +89,7 @@ export function IntegrationCenterPage() {
 
     if (code && state) {
       setModalLoading(true);
-      fetch('/api/v1/integrations/github/oauth/callback', {
+      apiFetch('/api/v1/integrations/github/oauth/callback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +97,6 @@ export function IntegrationCenterPage() {
         },
         body: JSON.stringify({ code, state }),
       })
-        .then(res => res.json())
         .then(json => {
           if (json.success) {
             setOauthFeedback({ type: 'success', message: 'GitHub account connected successfully via OAuth!' });
@@ -102,7 +105,7 @@ export function IntegrationCenterPage() {
             setOauthFeedback({ type: 'error', message: json.error?.message || 'Failed to complete OAuth callback' });
           }
         })
-        .catch(err => {
+        .catch(() => {
           setOauthFeedback({ type: 'error', message: 'Network error completing OAuth flow' });
         })
         .finally(() => {
@@ -116,11 +119,10 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setModalLoading(true);
     try {
-      const res = await fetch('/api/v1/integrations/github/oauth/start', {
+      const json = await apiFetch('/api/v1/integrations/github/oauth/start', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      if (json.success && json.data.authUrl) {
+      if (json.success && json.data?.authUrl) {
         window.location.href = json.data.authUrl;
       } else {
         setShowPatInput(true);
@@ -139,7 +141,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const res = await fetch('/api/v1/integrations/github', {
+      const json = await apiFetch('/api/v1/integrations/github', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +149,6 @@ export function IntegrationCenterPage() {
         },
         body: JSON.stringify({ token: inputToken }),
       });
-      const json = await res.json();
       if (json.success) {
         setActiveModal(null);
         setInputToken('');
@@ -167,7 +168,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const res = await fetch('/api/v1/integrations/codeforces', {
+      const json = await apiFetch('/api/v1/integrations/codeforces', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +176,6 @@ export function IntegrationCenterPage() {
         },
         body: JSON.stringify({ handle: inputHandle }),
       });
-      const json = await res.json();
       if (json.success) {
         setActiveModal(null);
         setInputHandle('');
@@ -195,7 +195,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const res = await fetch('/api/v1/integrations/leetcode', {
+      const json = await apiFetch('/api/v1/integrations/leetcode', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,6 @@ export function IntegrationCenterPage() {
         },
         body: JSON.stringify({ username: inputHandle }),
       });
-      const json = await res.json();
       if (json.success) {
         setActiveModal(null);
         setInputHandle('');
@@ -222,7 +221,7 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setModalLoading(true);
     try {
-      const res = await fetch('/api/v1/integrations/tuf', {
+      const json = await apiFetch('/api/v1/integrations/tuf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +229,6 @@ export function IntegrationCenterPage() {
         },
         body: JSON.stringify({ completedProblems: Number(tufCompleted), currentStep: tufStep }),
       });
-      const json = await res.json();
       if (json.success) {
         setActiveModal(null);
         fetchIntegrations();
@@ -246,11 +244,10 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setSyncingMap(prev => ({ ...prev, [serviceKey]: true }));
     try {
-      const res = await fetch(`/api/v1/integrations/${serviceKey}/sync`, {
+      const json = await apiFetch(`/api/v1/integrations/${serviceKey}/sync`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
       if (json.success) {
         fetchIntegrations();
       }
@@ -264,11 +261,10 @@ export function IntegrationCenterPage() {
   const handleDisconnectService = async (serviceKey: string) => {
     if (!token || !confirm(`Are you sure you want to disconnect ${serviceKey}?`)) return;
     try {
-      const res = await fetch(`/api/v1/integrations/${serviceKey}`, {
+      const json = await apiFetch(`/api/v1/integrations/${serviceKey}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
       if (json.success) {
         fetchIntegrations();
       }

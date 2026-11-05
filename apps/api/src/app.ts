@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { randomUUID } from 'crypto';
 import { config } from './config/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -19,8 +20,17 @@ import { navigatorRouter } from './modules/navigator/navigator.routes.js';
 import { fixRouter } from './modules/fix/fix.routes.js';
 import { safechangeRouter } from './modules/safechange/safechange.routes.js';
 import { integrationsRouter } from './modules/integrations/integrations.routes.js';
+import { systemRouter } from './modules/system/system.routes.js';
 
 export const app = express();
+
+// Request ID & Structured Logging Middleware
+app.use((req, res, next) => {
+  const reqId = (req.headers['x-request-id'] as string) || randomUUID();
+  (req as any).id = reqId;
+  res.setHeader('x-request-id', reqId);
+  next();
+});
 
 // Security & Parsing Middlewares
 app.use(helmet({
@@ -31,8 +41,6 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-
-import { systemRouter } from './modules/system/system.routes.js';
 
 // Public Health Checks
 app.get(['/api/health', '/api/v1/health'], (_req, res) => {
@@ -47,7 +55,6 @@ app.get(['/api/health', '/api/v1/health'], (_req, res) => {
 // Mount Versioned API Modules
 const v1Router = express.Router();
 v1Router.use('/system', systemRouter);
-
 v1Router.use('/auth', authRouter);
 v1Router.use('/dashboard', dashboardRouter);
 v1Router.use('/opensource', opensourceRouter);
@@ -63,7 +70,25 @@ v1Router.use('/fix', fixRouter);
 v1Router.use('/safechange', safechangeRouter);
 v1Router.use('/integrations', integrationsRouter);
 
+// Support both /api/v1/... and direct /api/... mounting for maximum compatibility
 app.use('/api/v1', v1Router);
+app.use('/api', v1Router);
+
+// Catch-all for undefined API routes - NEVER return HTML
+app.all(['/api', '/api/*'], (req, res) => {
+  const requestId = (req as any).id || null;
+  res.status(404).json({
+    success: false,
+    data: null,
+    error: {
+      message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+      statusCode: 404,
+      details: null,
+    },
+    message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+    requestId,
+  });
+});
 
 // Global Error Handler
 app.use(errorHandler);
