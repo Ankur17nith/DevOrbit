@@ -256,5 +256,92 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
     expect(oauthRes.status).toBe(200);
     expect(oauthRes.body.success).toBe(true);
   });
+
+  // 14. Provider Input Validation Failures
+  it('14. Validates provider inputs and rejects empty or invalid handles with 400', async () => {
+    // Empty Codeforces handle
+    const emptyCf = await request(app)
+      .post('/api/v1/integrations/codeforces')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ handle: '   ' });
+
+    expect(emptyCf.status).toBe(400);
+    expect(emptyCf.body.error.message).toMatch(/Codeforces handle cannot be empty|required/i);
+
+    // Empty LeetCode username
+    const emptyLc = await request(app)
+      .post('/api/v1/integrations/leetcode')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ username: '   ' });
+
+    expect(emptyLc.status).toBe(400);
+    expect(emptyLc.body.error.message).toMatch(/LeetCode username cannot be empty|required/i);
+
+    // Empty GitHub token
+    const emptyGh = await request(app)
+      .post('/api/v1/integrations/github')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ token: '' });
+
+    expect(emptyGh.status).toBe(400);
+    expect(emptyGh.body.error.message).toMatch(/Personal Access Token is required/i);
+  });
+
+  // 15. Disconnection across providers
+  it('15. Disconnects providers cleanly and cleans up credentials from database', async () => {
+    // Connect Codeforces with verified test handle
+    await request(app)
+      .post('/api/v1/integrations/codeforces')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ handle: 'test_cf_valid' });
+
+    // Disconnect Codeforces
+    const dcCf = await request(app)
+      .delete('/api/v1/integrations/codeforces')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(dcCf.status).toBe(200);
+    expect(dcCf.body.success).toBe(true);
+
+    const cfInDb = await prisma.integrationCredential.findUnique({
+      where: { userId_provider: { userId, provider: 'CODEFORCES' } },
+    });
+    expect(cfInDb).toBeNull();
+
+    // Disconnect LeetCode
+    const dcLc = await request(app)
+      .delete('/api/v1/integrations/leetcode')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(dcLc.status).toBe(200);
+    expect(dcLc.body.success).toBe(true);
+
+    const lcInDb = await prisma.integrationCredential.findUnique({
+      where: { userId_provider: { userId, provider: 'LEETCODE' } },
+    });
+    expect(lcInDb).toBeNull();
+  });
+
+  // 16. Reconnection and Status Restoration
+  it('16. Restores provider connection and synchronizes data upon reconnection', async () => {
+    // Reconnect LeetCode
+    const rcLc = await request(app)
+      .post('/api/v1/integrations/leetcode')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ username: 'test_lc_valid' });
+
+    expect(rcLc.status).toBe(200);
+    expect(rcLc.body.success).toBe(true);
+    expect(rcLc.body.data.totalSolved).toBe(142);
+
+    // Verify status endpoint reflects reconnection
+    const statusRes = await request(app)
+      .get('/api/v1/integrations/status')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.data.leetcode.isConnected).toBe(true);
+    expect(statusRes.body.data.leetcode.username).toBe('test_lc_valid');
+  });
 });
 
