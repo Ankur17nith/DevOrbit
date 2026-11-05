@@ -220,7 +220,7 @@ export function Sidebar({
               {/* Group Items */}
               {grp.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentTab === item.id;
+                const isActive = currentTab === item.id || (item.id === 'gsoc' && currentTab === 'organizations');
 
                 return (
                   <button

@@ -34,9 +34,15 @@ import { SettingsPage } from './pages/SettingsPage.js';
 
 function getUrlRoute(): string {
   const hash = window.location.hash.replace(/^#\/?/, '');
-  if (hash) return hash;
+  if (hash) {
+    if (hash === 'organizations') return 'gsoc';
+    return hash;
+  }
   const path = window.location.pathname.replace(/^\//, '');
-  if (path && path !== '') return path;
+  if (path && path !== '') {
+    if (path === 'organizations') return 'gsoc';
+    return path;
+  }
   return '';
 }
 
@@ -211,7 +217,7 @@ function AppContent() {
           {currentTab === 'catalog' && <OssCatalogPage />}
           {currentTab === 'trending' && <TrendingPage />}
           {currentTab === 'issues' && <IssuesPage />}
-          {currentTab === 'gsoc' && <GsocPage />}
+          {(currentTab === 'gsoc' || currentTab === 'organizations') && <GsocPage />}
           {currentTab === 'bounties' && <BountiesPage />}
           {currentTab === 'workspaces' && <WorkspacesPage />}
           {currentTab === 'forum' && <ForumPage />}

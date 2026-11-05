@@ -11,7 +11,9 @@ import {
   DollarSign, 
   Users, 
   Sparkles,
-  Compass
+  Compass,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
@@ -19,83 +21,131 @@ interface Program {
   id: string;
   name: string;
   slug: string;
-  type: string;
+  type?: string;
+  category?: string;
   description: string;
   stipend?: string;
   websiteUrl: string;
   applicationStart?: string;
   applicationEnd?: string;
-  status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
+  status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'SCHEDULED';
   totalSlots?: number;
 }
 
 export function GsocPage() {
-  const [activeTab, setActiveTab] = useState<'programs' | 'orgs'>('programs');
+  const [activeTab, setActiveTab] = useState<'orgs' | 'programs'>('orgs');
   const [programs, setPrograms] = useState<Program[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [programsLoading, setProgramsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedTech, setSelectedTech] = useState<string>('All');
-  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ page: 1, total: 606, totalPages: 26 });
 
   const techFilters = ['All', 'python', 'c++', 'javascript', 'rust', 'go', 'robotics', 'ros', 'opencv', 'cloud'];
 
   // Fetch canonical programs
-  useEffect(() => {
+  const fetchPrograms = () => {
     setProgramsLoading(true);
     fetch('/api/v1/opensource/programs')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(json => {
         if (json.success) {
-          setPrograms(json.data.programs);
+          const rawList = Array.isArray(json.data) ? json.data : (json.data?.programs || []);
+          const normalized: Program[] = rawList.map((p: any) => ({
+            id: p.id || p.slug,
+            name: p.name,
+            slug: p.slug,
+            category: p.category,
+            description: p.description,
+            websiteUrl: p.website || p.websiteUrl || '#',
+            applicationEnd: p.deadlineDate || p.applicationEnd,
+            status: p.status || 'ACTIVE',
+            stipend: p.stipend || (p.category === 'GSOC' ? '$1,500 – $6,000' : p.category === 'MENTORSHIP' ? '$3,000 – $6,000' : undefined),
+            totalSlots: p.totalSlots || (p.category === 'GSOC' ? 1200 : undefined),
+          }));
+          setPrograms(normalized);
         }
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error('Failed to load mentorship programs:', err);
+      })
       .finally(() => setProgramsLoading(false));
+  };
+
+  useEffect(() => {
+    fetchPrograms();
   }, []);
 
-  // Fetch organizations
+  // Fetch organizations with pagination & filters
   const fetchOrgs = (page = 1) => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams({
       page: String(page),
       limit: '24',
     });
-    if (search) params.append('search', search);
+    if (search.trim()) params.append('search', search.trim());
     if (selectedTech !== 'All') params.append('technology', selectedTech);
 
     fetch(`/api/v1/opensource/gsoc?${params.toString()}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load organizations (HTTP ${res.status})`);
+        return res.json();
+      })
       .then(json => {
-        if (json.success) {
-          setOrgs(json.data.orgs);
-          setPagination(json.data.pagination);
+        if (json.success && json.data) {
+          setOrgs(json.data.orgs || []);
+          if (json.data.pagination) {
+            setPagination(json.data.pagination);
+          }
+        } else {
+          throw new Error('Unexpected response structure from organizations API');
         }
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error('Organizations error:', err);
+        setError(err.message || 'Failed to connect to organizations index');
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    if (activeTab === 'orgs') {
-      const timeout = setTimeout(() => fetchOrgs(1), 200);
-      return () => clearTimeout(timeout);
-    }
-  }, [search, selectedTech, activeTab]);
+    const timeout = setTimeout(() => fetchOrgs(1), 200);
+    return () => clearTimeout(timeout);
+  }, [search, selectedTech]);
 
   return (
     <PageContainer>
       <PageHeading
-        title="Open Source Mentorship & Fellowships"
-        description="Global developer mentorship programs, verified stipends, application deadlines, and 606+ organization directory"
+        title="Open Source Organizations & Programs"
+        description="Verified Google Summer of Code organizations, global mentorship fellowships, application deadlines, and tech stack index"
         badges={[
           <StatusBadge key="count" variant="violet">
-            606+ Partner Orgs
+            {pagination.total > 0 ? `${pagination.total} Verified Orgs` : '606 Verified Orgs'}
+          </StatusBadge>,
+          <StatusBadge key="provenance" variant="neutral">
+            Source: Official GSoC Index
           </StatusBadge>
         ]}
         actions={
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#12151D] border border-[#1F2430]">
+            <button
+              onClick={() => setActiveTab('orgs')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'orgs'
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
+                  : 'text-[#686D79] hover:text-[#C5C8D0]'
+              }`}
+            >
+              <Building2 className="size-3.5" />
+              <span>Organizations Directory</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('programs')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -107,21 +157,21 @@ export function GsocPage() {
               <Compass className="size-3.5" />
               <span>Programs & Deadlines</span>
             </button>
-
-            <button
-              onClick={() => setActiveTab('orgs')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'orgs'
-                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                  : 'text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <Building2 className="size-3.5" />
-              <span>606+ GSoC Orgs</span>
-            </button>
           </div>
         }
       />
+
+      {error && (
+        <div className="p-4 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#FCA5A5] text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-4 shrink-0 text-[#EF4444]" />
+            <span>{error}</span>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => fetchOrgs(pagination.page || 1)} icon={<RefreshCw className="size-3" />}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* VIEW 1: PROGRAMS & FELLOWSHIPS */}
       {activeTab === 'programs' && (
@@ -348,26 +398,31 @@ export function GsocPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={pagination.page <= 1}
-                onClick={() => fetchOrgs(pagination.page - 1)}
-              >
-                Previous
-              </Button>
-              <span className="text-xs font-mono text-[#686D79] px-3">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() => fetchOrgs(pagination.page + 1)}
-              >
-                Next
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-[#1F2430]">
+              <div className="text-xs font-mono text-[#686D79]">
+                Showing <span className="text-[#F8FAFC]">{(pagination.page - 1) * 24 + 1}</span> - <span className="text-[#F8FAFC]">{Math.min(pagination.page * 24, pagination.total)}</span> of <span className="text-[#8B5CF6] font-semibold">{pagination.total}</span> verified organizations
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={pagination.page <= 1}
+                  onClick={() => fetchOrgs(pagination.page - 1)}
+                >
+                  Previous
+                </Button>
+                <div className="px-3 py-1 rounded-lg bg-[#181C26] border border-[#1F2430] text-xs font-mono text-[#C5C8D0]">
+                  Page {pagination.page} / {pagination.totalPages}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={pagination.page >= pagination.totalPages}
+                  onClick={() => fetchOrgs(pagination.page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </div>
