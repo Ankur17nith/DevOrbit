@@ -75,6 +75,17 @@ jobs:
           NODE_ENV: "test"
         run: npm run test:web
 
+      - name: Scan Repository for Secrets and Sensitive Artifacts
+        run: |
+          ! git ls-files | grep -E "(\.env$|\.db$|\.pem$|\.key$|id_rsa)" || {
+            echo "Security Alert: Sensitive file committed to git tracking!"
+            exit 1
+          }
+          echo "Secret check clean: no .env, .db, or key files tracked."
+
+      - name: Security Audit of Production Dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
       - name: Build Complete Monorepo (Web & API)
         run: npm run build
 
