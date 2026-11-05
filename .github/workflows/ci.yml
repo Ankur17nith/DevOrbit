@@ -76,3 +76,9 @@ jobs:
 
       - name: Build Complete Monorepo (Web & API)
         run: npm run build
+
+      - name: Verify Production Build Artifacts
+        run: |
+          test -f apps/web/dist/index.html || { echo "apps/web/dist/index.html is missing!"; exit 1; }
+          test -f apps/api/dist/server.js || { echo "apps/api/dist/server.js is missing!"; exit 1; }
+          echo "Production build verified: web index.html and api server.js exist."
