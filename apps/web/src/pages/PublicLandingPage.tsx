@@ -144,6 +144,15 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3">
+            {onLaunchDemo && (
+              <button
+                onClick={onLaunchDemo}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs font-semibold border border-[#8B5CF6]/30 transition-all shadow-xs"
+              >
+                <Sparkles className="size-3.5" />
+                <span>Local Demo</span>
+              </button>
+            )}
             <button
               onClick={() => onNavigate('login')}
               className="px-4 py-2 text-sm font-medium text-[#0E121B] hover:text-[#8B5CF6] transition-colors"

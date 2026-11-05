@@ -282,6 +282,14 @@ ollama pull qwen2.5-coder:7b
           </div>
 
           <div className="flex items-center gap-3">
+            {onLaunchWorkspace && (
+              <button
+                onClick={onLaunchWorkspace}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs font-semibold border border-[#8B5CF6]/30 transition-all shadow-xs"
+              >
+                <span>Launch Demo</span>
+              </button>
+            )}
             <button
               onClick={() => onNavigate('landing')}
               className="text-xs font-medium text-[#64748B] hover:text-[#0E121B] transition-colors"
