@@ -36,12 +36,15 @@ app.use((req, res, next) => {
 // Security & Parsing Middlewares
 app.use(helmet({
   contentSecurityPolicy: false, // Allow local development UI and Vite assets
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'no-referrer' },
 }));
 app.use(cors({
   origin: config.corsOrigin,
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Public Health Checks & Root Service Info
 app.get(['/', '/health', '/api/health', '/api/v1/health'], (_req, res) => {

@@ -71,4 +71,17 @@ describe('API Structured JSON Error Handling & HTML Prevention Contract', () => 
     expect(v1ReadyRes.status).toBe(200);
     expect(v1ReadyRes.body.status).toBe('ready');
   });
+
+  it('6. Rejects oversized payloads (>1MB) with HTTP 413 or 400 structured JSON', async () => {
+    // Generate a payload slightly larger than 1MB
+    const bigData = 'X'.repeat(1024 * 1024 + 50);
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .set('Content-Type', 'application/json')
+      .send(`{"username":"${bigData}"}`);
+
+    expect([413, 400]).toContain(res.status);
+    expect(res.headers['content-type']).toContain('application/json');
+    expect(res.body.success).toBe(false);
+  });
 });
