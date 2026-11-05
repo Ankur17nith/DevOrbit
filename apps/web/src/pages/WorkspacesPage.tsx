@@ -8,9 +8,11 @@ import {
   Layers, 
   Check, 
   Clock,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
 export function WorkspacesPage() {
   const { token, user } = useAuth();
@@ -96,25 +98,26 @@ export function WorkspacesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Workspaces & Collaboration</h1>
-          <p className="text-xs text-[#686D79] mt-1">
-            Collaborative environments with role-based access control (RBAC) and data isolation
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-[#8B5CF6]/20 active:scale-98"
-        >
-          <Plus className="size-4" />
-          <span>New Workspace</span>
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeading
+        title="Workspaces & Collaboration"
+        description="Collaborative developer environments with role-based access control (RBAC) and team isolation"
+        badges={[
+          <StatusBadge key="badge" variant="violet">
+            Team Workspaces
+          </StatusBadge>
+        ]}
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            icon={<Plus className="size-4" />}
+          >
+            New Workspace
+          </Button>
+        }
+      />
 
       {/* Workspaces List */}
       {loading ? (
@@ -123,6 +126,22 @@ export function WorkspacesPage() {
             <div key={i} className="h-44 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
+      ) : workspaces.length === 0 ? (
+        <EmptyState
+          title="No workspaces created yet"
+          description="Create your first collaborative workspace to share project resources, notes, and track progress with teammates."
+          icon={<Building className="size-8 text-[#686D79]" />}
+          action={
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              icon={<Plus className="size-4" />}
+            >
+              Create Workspace
+            </Button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {workspaces.map(ws => (
@@ -134,9 +153,14 @@ export function WorkspacesPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-bold text-[#F8FAFC] font-display">{ws.name}</h3>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] uppercase font-semibold">
+                    <StatusBadge
+                      variant={
+                        ws.role === 'OWNER' ? 'violet' :
+                        ws.role === 'ADMIN' ? 'warning' : 'default'
+                      }
+                    >
                       {ws.role}
-                    </span>
+                    </StatusBadge>
                   </div>
                   <p className="text-xs text-[#686D79] mt-1">{ws.description || 'No description provided.'}</p>
                 </div>
@@ -149,7 +173,7 @@ export function WorkspacesPage() {
               {/* Members Section */}
               <div className="pt-3 border-t border-[#1F2430] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#686D79] font-mono">Members ({ws.membersCount})</span>
+                  <span className="text-[#686D79] font-mono">Members ({ws.membersCount || ws.members?.length || 0})</span>
                   {['OWNER', 'ADMIN'].includes(ws.role) && (
                     <button
                       onClick={() => {
@@ -187,7 +211,15 @@ export function WorkspacesPage() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <h3 className="text-base font-bold text-[#F8FAFC] font-display">Create Collaborative Workspace</h3>
+            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
+              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Create Collaborative Workspace</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
             <form onSubmit={handleCreateWorkspace} className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Workspace Name</label>
@@ -200,7 +232,7 @@ export function WorkspacesPage() {
                     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
                   }}
                   placeholder="e.g. Distributed Systems Lab"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
@@ -212,7 +244,7 @@ export function WorkspacesPage() {
                   value={slug}
                   onChange={e => setSlug(e.target.value)}
                   placeholder="distributed-systems-lab"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
@@ -223,24 +255,26 @@ export function WorkspacesPage() {
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Workspace purpose and team goals..."
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 rounded-lg bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold"
+                  variant="primary"
+                  size="sm"
                 >
                   Create
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -251,7 +285,15 @@ export function WorkspacesPage() {
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <h3 className="text-base font-bold text-[#F8FAFC] font-display">Invite Team Member</h3>
+            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
+              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Invite Team Member</h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
             <form onSubmit={handleInviteMember} className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Target Username</label>
@@ -261,7 +303,7 @@ export function WorkspacesPage() {
                   value={targetUsername}
                   onChange={e => setTargetUsername(e.target.value)}
                   placeholder="e.g. sara_chen or alex_developer"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
@@ -270,7 +312,7 @@ export function WorkspacesPage() {
                 <select
                   value={role}
                   onChange={e => setRole(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 >
                   <option value="MEMBER">Member (Full collaboration)</option>
                   <option value="ADMIN">Admin (Manage members & settings)</option>
@@ -278,26 +320,27 @@ export function WorkspacesPage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowInviteModal(false)}
-                  className="px-3 py-1.5 rounded-lg bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold"
+                  variant="primary"
+                  size="sm"
                 >
                   Invite
-                </button>
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-    </div>
+    </PageContainer>
   );
 }

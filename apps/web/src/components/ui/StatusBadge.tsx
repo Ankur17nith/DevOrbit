@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BadgeVariant = 'violet' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+export type BadgeVariant = 'violet' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'default';
 
 interface StatusBadgeProps {
   children: React.ReactNode;
@@ -47,6 +47,12 @@ const variantStyles: Record<BadgeVariant, { bg: string; text: string; border: st
     border: 'border-[#1F2430]',
     dotColor: 'bg-[#686D79]',
   },
+  default: {
+    bg: 'bg-[#181C26]',
+    text: 'text-[#C5C8D0]',
+    border: 'border-[#1F2430]',
+    dotColor: 'bg-[#686D79]',
+  },
 };
 
 export function StatusBadge({
@@ -56,7 +62,7 @@ export function StatusBadge({
   dot = false,
   className = '',
 }: StatusBadgeProps) {
-  const styles = variantStyles[variant];
+  const styles = variantStyles[variant] || variantStyles.neutral;
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
 
   return (

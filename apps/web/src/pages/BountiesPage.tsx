@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ExternalLink, Bookmark, Filter, ShieldCheck, DollarSign } from 'lucide-react';
+import { Star, ExternalLink, Bookmark, Filter, ShieldCheck, DollarSign, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
 export function BountiesPage() {
   const { token } = useAuth();
@@ -18,18 +19,16 @@ export function BountiesPage() {
   }, []);
 
   return (
-    <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Open Source Bounties</h1>
-          <span className="px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] font-mono text-xs font-semibold">
+    <PageContainer>
+      <PageHeading
+        title="Open Source Bounties"
+        description="Verified open source bounties and paid developer issues with live reward tracking"
+        badges={[
+          <StatusBadge key="badge" variant="violet">
             Monetized Contributions
-          </span>
-        </div>
-        <p className="text-xs text-[#686D79] mt-1">
-          Verified open source bounties and paid developer issues with live reward tracking
-        </p>
-      </div>
+          </StatusBadge>
+        ]}
+      />
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -37,18 +36,24 @@ export function BountiesPage() {
             <div key={i} className="h-44 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
+      ) : bounties.length === 0 ? (
+        <EmptyState
+          title="No open bounties right now"
+          description="Check back soon for new funded issues and bug bounty challenges."
+          icon={<DollarSign className="size-8 text-[#686D79]" />}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {bounties.map(b => (
             <div
               key={b.id}
-              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col justify-between"
+              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col justify-between group"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-xs font-mono text-[#686D79]">{b.repository?.fullName || 'Open Source Repo'}</span>
-                    <h3 className="text-base font-semibold text-[#F8FAFC] mt-1 leading-snug">{b.title}</h3>
+                    <h3 className="text-base font-semibold text-[#F8FAFC] mt-1 leading-snug group-hover:text-[#A78BFA] transition-colors">{b.title}</h3>
                   </div>
 
                   <span className="px-3 py-1 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] font-mono text-xs font-bold shrink-0">
@@ -66,7 +71,7 @@ export function BountiesPage() {
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#C5C8D0] border border-[#1F2430]">
                     {b.difficulty || 'intermediate'}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#F59E0B]/15 text-[#FBBF24] border border-[#F59E0B]/30">
                     Verified Reward
                   </span>
                 </div>
@@ -75,16 +80,16 @@ export function BountiesPage() {
                   href={b.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[#A78BFA] hover:text-[#F8FAFC] font-medium transition-colors"
                 >
-                  <span>Solve on GitHub</span>
-                  <ExternalLink className="size-3" />
+                  <Button variant="secondary" size="sm" icon={<ExternalLink className="size-3" />}>
+                    Solve on GitHub
+                  </Button>
                 </a>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

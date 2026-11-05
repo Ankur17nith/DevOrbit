@@ -6,9 +6,11 @@ import {
   Plus, 
   Tag, 
   Search,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
 export function ForumPage() {
   const { token, user } = useAuth();
@@ -73,25 +75,26 @@ export function ForumPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1200px] mx-auto space-y-6 animate-in fade-in duration-200">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Community Forum & Discussions</h1>
-          <p className="text-xs text-[#686D79] mt-1">
-            Exchange contribution advice, GSoC proposal feedback, and technical architecture questions
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-[#8B5CF6]/20 active:scale-98"
-        >
-          <Plus className="size-4" />
-          <span>New Discussion</span>
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeading
+        title="Community Forum & Discussions"
+        description="Exchange contribution advice, GSoC proposal feedback, and technical architecture questions"
+        badges={[
+          <StatusBadge key="badge" variant="violet">
+            Developer Discussions
+          </StatusBadge>
+        ]}
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            icon={<Plus className="size-4" />}
+          >
+            New Discussion
+          </Button>
+        }
+      />
 
       {/* Posts List */}
       {loading ? (
@@ -100,12 +103,28 @@ export function ForumPage() {
             <div key={i} className="h-32 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
           ))}
         </div>
+      ) : posts.length === 0 ? (
+        <EmptyState
+          title="No discussions started yet"
+          description="Start a new discussion thread to ask questions, share insights, or get feedback on your open source proposals."
+          icon={<MessageSquare className="size-8 text-[#686D79]" />}
+          action={
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              icon={<Plus className="size-4" />}
+            >
+              Start First Discussion
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {posts.map(p => (
             <div
               key={p.id}
-              className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-3"
+              className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-3 group"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5">
@@ -122,10 +141,9 @@ export function ForumPage() {
 
                 <div className="flex items-center gap-2">
                   {p.isSolved && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] flex items-center gap-1">
-                      <CheckCircle className="size-3" />
-                      <span>Solved</span>
-                    </span>
+                    <StatusBadge variant="success">
+                      Solved
+                    </StatusBadge>
                   )}
                   <span className="text-xs font-mono text-[#686D79]">
                     {new Date(p.createdAt).toLocaleDateString()}
@@ -134,7 +152,7 @@ export function ForumPage() {
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-[#F8FAFC] leading-snug">{p.title}</h3>
+                <h3 className="text-base font-semibold text-[#F8FAFC] leading-snug group-hover:text-[#A78BFA] transition-colors">{p.title}</h3>
                 <p className="mt-1.5 text-xs text-[#C5C8D0] leading-relaxed">{p.content}</p>
               </div>
 
@@ -167,7 +185,15 @@ export function ForumPage() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-lg bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <h3 className="text-base font-bold text-[#F8FAFC] font-display">Start a New Discussion</h3>
+            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
+              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Start a New Discussion</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
             <form onSubmit={handleCreatePost} className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Title</label>
@@ -177,7 +203,7 @@ export function ForumPage() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="What is your question or topic?"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
@@ -188,7 +214,7 @@ export function ForumPage() {
                   value={tags}
                   onChange={e => setTags(e.target.value)}
                   placeholder="gsoc, mentorship, rust"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
@@ -200,30 +226,31 @@ export function ForumPage() {
                   onChange={e => setContent(e.target.value)}
                   placeholder="Elaborate on your question or proposal..."
                   rows={5}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 rounded-lg bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold"
+                  variant="primary"
+                  size="sm"
                 >
                   Post Discussion
-                </button>
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-    </div>
+    </PageContainer>
   );
 }

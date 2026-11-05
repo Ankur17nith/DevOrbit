@@ -12,6 +12,7 @@ import {
   BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
 export function OssCatalogPage() {
   const { token } = useAuth();
@@ -94,42 +95,41 @@ export function OssCatalogPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
-      
-      {/* Header & Tagline */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">Curated Open Source Catalog</h1>
-          <p className="text-xs text-[#686D79] mt-1">
-            Handpicked, active repositories with beginner-friendly contribution avenues
-          </p>
-        </div>
+    <PageContainer>
+      <PageHeading
+        title="Curated Open Source Catalog"
+        description="Handpicked, active repositories with verified beginner-friendly contribution avenues"
+        badges={[
+          <StatusBadge key="count" variant="violet">
+            {repos.length} Repositories
+          </StatusBadge>
+        ]}
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="relative w-56 sm:w-72">
+              <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search projects, topics..."
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
+              />
+            </div>
 
-        {/* Search & Sort Bar */}
-        <div className="flex items-center gap-3">
-          <div className="relative w-64 md:w-80">
-            <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search projects, topics..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
-            />
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="px-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            >
+              <option value="stars">Most Stars</option>
+              <option value="forks">Most Forks</option>
+              <option value="issues">Open Issues</option>
+              <option value="recent">Recently Active</option>
+            </select>
           </div>
-
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
-          >
-            <option value="stars">Most Stars</option>
-            <option value="forks">Most Forks</option>
-            <option value="issues">Open Issues</option>
-            <option value="recent">Recently Active</option>
-          </select>
-        </div>
-      </div>
+        }
+      />
 
       {/* Language Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -139,7 +139,7 @@ export function OssCatalogPage() {
             onClick={() => setSelectedLanguage(lang)}
             className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
               selectedLanguage === lang
-                ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold'
+                ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold shadow-sm'
                 : 'text-[#686D79] hover:text-[#F8FAFC] bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A]'
             }`}
           >
@@ -156,11 +156,23 @@ export function OssCatalogPage() {
           ))}
         </div>
       ) : repos.length === 0 ? (
-        <div className="text-center py-16 p-6 rounded-2xl bg-[#12151D] border border-[#1F2430]">
-          <BookOpen className="size-8 text-[#686D79] mx-auto" />
-          <h3 className="mt-3 text-sm font-semibold text-[#F8FAFC]">No repositories match your query</h3>
-          <p className="mt-1 text-xs text-[#686D79]">Try adjusting your filters or search terms.</p>
-        </div>
+        <EmptyState
+          title="No repositories match your query"
+          description="Try adjusting your search terms or selecting a different programming language filter."
+          icon={<BookOpen className="size-8 text-[#686D79]" />}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setSearch('');
+                setSelectedLanguage('All');
+              }}
+            >
+              Clear Filters
+            </Button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {repos.map(repo => {
@@ -357,28 +369,28 @@ export function OssCatalogPage() {
 
             {/* Drawer Actions */}
             <div className="pt-6 border-t border-[#1F2430] flex items-center justify-between">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={e => handleToggleBookmark(selectedRepo.id, e)}
-                className="px-4 py-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
+                icon={<Bookmark className="size-3.5" fill={bookmarkedIds.has(selectedRepo.id) ? 'currentColor' : 'none'} />}
               >
-                <Bookmark className="size-3.5" fill={bookmarkedIds.has(selectedRepo.id) ? 'currentColor' : 'none'} />
-                <span>{bookmarkedIds.has(selectedRepo.id) ? 'Saved' : 'Bookmark'}</span>
-              </button>
+                {bookmarkedIds.has(selectedRepo.id) ? 'Saved' : 'Bookmark'}
+              </Button>
 
               <a
                 href={`https://github.com/${selectedRepo.fullName}`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-[#8B5CF6]/20 active:scale-98"
               >
-                <span>Open on GitHub</span>
-                <ExternalLink className="size-3.5" />
+                <Button variant="primary" size="sm" icon={<ExternalLink className="size-3.5" />}>
+                  Open on GitHub
+                </Button>
               </a>
             </div>
           </div>
         </div>
       )}
-
-    </div>
+    </PageContainer>
   );
 }

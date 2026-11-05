@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Save, ShieldAlert, CheckCircle2, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 export function SelfbotPage() {
   const { token } = useAuth();
@@ -63,18 +64,16 @@ export function SelfbotPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-200">
-      
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <Bot className="size-6 text-[#8B5CF6]" />
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">GitHub Selfbot Automator</h1>
-        </div>
-        <p className="text-xs text-[#686D79] mt-1">
-          Zero-action GitHub maintainer automation: auto-respond to first-time contributors and manage slash commands
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeading
+        title="GitHub Selfbot Automator"
+        description="Zero-action GitHub maintainer automation: auto-respond to first-time contributors and manage slash commands"
+        badges={[
+          <StatusBadge key="badge" variant="violet">
+            Maintainer Automation
+          </StatusBadge>
+        ]}
+      />
 
       {/* Safety Notice */}
       <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-start gap-3">
@@ -130,31 +129,32 @@ export function SelfbotPage() {
             <h3 className="text-sm font-semibold text-[#F8FAFC]">Slash Command Rules</h3>
           </div>
           <div className="p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-xs font-mono space-y-1.5">
-            <div className="text-[#C5C8D0]">/guide &rarr; "Replies with CONTRIBUTING.md link and deletes command"</div>
-            <div className="text-[#C5C8D0]">/reproduce &rarr; "Requests step-by-step reproduction instructions"</div>
+            <div className="text-[#C5C8D0]">/guide &rarr; &quot;Replies with CONTRIBUTING.md link and deletes command&quot;</div>
+            <div className="text-[#C5C8D0]">/reproduce &rarr; &quot;Requests step-by-step reproduction instructions&quot;</div>
           </div>
         </div>
 
         {/* Save Bar */}
         <div className="flex items-center justify-between pt-2">
           {saved && (
-            <span className="text-xs font-mono text-[#22C55E] flex items-center gap-1.5">
+            <span className="text-xs font-mono text-[#4ADE80] flex items-center gap-1.5">
               <CheckCircle2 className="size-4" />
               <span>Selfbot configuration deployed!</span>
             </span>
           )}
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
             disabled={saving}
-            className="ml-auto px-6 py-2.5 rounded-xl bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-50 active:scale-98"
+            icon={<Save className="size-4" />}
+            className="ml-auto"
           >
-            <Save className="size-4" />
-            <span>{saving ? 'Deploying...' : 'Deploy Configuration'}</span>
-          </button>
+            {saving ? 'Deploying...' : 'Deploy Configuration'}
+          </Button>
         </div>
 
       </form>
-
-    </div>
+    </PageContainer>
   );
 }

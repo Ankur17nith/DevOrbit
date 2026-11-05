@@ -8,7 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
-  icon?: React.ElementType;
+  icon?: React.ElementType | React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -30,23 +30,27 @@ export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
-  icon: Icon,
+  icon,
   disabled,
   children,
   className = '',
   ...props
 }: ButtonProps) {
+  const renderIcon = () => {
+    if (loading) return <Loader2 className="size-3.5 animate-spin shrink-0" />;
+    if (!icon) return null;
+    if (React.isValidElement(icon)) return icon;
+    const IconComponent = icon as React.ElementType;
+    return <IconComponent className="size-3.5 shrink-0" />;
+  };
+
   return (
     <button
       disabled={disabled || loading}
       className={`inline-flex items-center justify-center font-sans transition-all active:scale-[0.98] disabled:opacity-45 disabled:pointer-events-none select-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
-      {loading ? (
-        <Loader2 className="size-3.5 animate-spin shrink-0" />
-      ) : Icon ? (
-        <Icon className="size-3.5 shrink-0" />
-      ) : null}
+      {renderIcon()}
       <span>{children}</span>
     </button>
   );
