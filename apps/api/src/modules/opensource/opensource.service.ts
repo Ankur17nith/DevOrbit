@@ -1,6 +1,7 @@
 import { prisma } from '../../config/index.js';
 import { NotFoundError, BadRequestError } from '../../lib/errors.js';
 import { normalizeRepository, isValidRepository } from './repository.normalizer.js';
+import { recommendationEngine } from '../recommendations/recommendation.engine.js';
 
 export class OpenSourceService {
   async getCatalog(query: {
@@ -625,73 +626,17 @@ export class OpenSourceService {
    * Matches open issues against user's verified GitHub skills, languages and topic interests
    */
   async getRecommendedOpportunities(userId: string, limit = 10) {
-    const [userSkills, userRepos, issues] = await Promise.all([
-      prisma.userSkillProfile.findMany({ where: { userId } }),
-      prisma.userGithubRepo.findMany({ where: { userId } }),
-      prisma.ossIssue.findMany({
-        where: { state: 'open' },
-        include: { repository: true },
-        take: 50,
-      }),
-    ]);
-
-    // Aggregate user known languages and topics
-    const userLanguages = new Set<string>();
-    const userTopics = new Set<string>();
-
-    for (const skill of userSkills) {
-      userLanguages.add(skill.skillName.toLowerCase());
-    }
-    for (const repo of userRepos) {
-      if (repo.language) userLanguages.add(repo.language.toLowerCase());
-      if (repo.topicsJson) {
-        try {
-          const topics = JSON.parse(repo.topicsJson);
-          if (Array.isArray(topics)) {
-            topics.forEach((t: string) => userTopics.add(t.toLowerCase()));
-          }
-        } catch {}
-      }
-    }
-
-    const scoredOpportunities = issues.map(issue => {
-      const repoLang = issue.repository.language?.toLowerCase();
-      const repoTopics: string[] = issue.repository.topicsJson ? JSON.parse(issue.repository.topicsJson) : [];
-      const labels: string[] = issue.labelsJson ? JSON.parse(issue.labelsJson) : [];
-
-      let score = 20; // baseline
-      const reasons: string[] = [];
-
-      if (repoLang && userLanguages.has(repoLang)) {
-        score += 40;
-        reasons.push(`repository uses ${issue.repository.language} from your verified skillset`);
-      }
-
-      const matchingTopics = repoTopics.filter(t => userTopics.has(t.toLowerCase()));
-      if (matchingTopics.length > 0) {
-        score += 25;
-        reasons.push(`matches topics you develop in (${matchingTopics.slice(0, 2).join(', ')})`);
-      }
-
-      if (labels.some((l: any) => String(l).toLowerCase().includes('good first issue'))) {
-        score += 15;
-        reasons.push('tagged as a starter friendly good-first-issue');
-      }
-
-      const explanation = reasons.length > 0
-        ? `Recommended because ${reasons.join(' and ')}.`
-        : `Recommended open opportunity in ${issue.repository.fullName}.`;
-
-      return {
-        ...issue,
-        labels,
-        matchScore: Math.min(99, score),
-        explanation,
-      };
-    });
-
-    scoredOpportunities.sort((a, b) => b.matchScore - a.matchScore);
-    return scoredOpportunities.slice(0, limit);
+    const scoredList = await recommendationEngine.getRecommendations(userId, { limit });
+    return scoredList.map(item => ({
+      ...item.issue,
+      matchScore: item.score,
+      score: item.score,
+      category: item.category,
+      factors: item.factors,
+      explanation: item.explanation,
+      matchedEvidence: item.matchedEvidence,
+      recommendationId: item.id,
+    }));
   }
 
   // -----------------------------------------------------------

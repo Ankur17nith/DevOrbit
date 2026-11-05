@@ -1,11 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { prisma } from '../../config/index.js';
 import { normalizeRepository } from './repository.normalizer.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export async function repairStoredRepositories(): Promise<{
   repairedRepos: number;

@@ -148,7 +148,7 @@ export function GsocPage() {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    apiFetch<{ success: boolean; data: { orgs: any[]; total: number; pagination: any } }>(
+    apiFetch<{ orgs: any[]; total: number; pagination: any }>(
       `/api/v1/opensource/organizations?${params.toString()}`,
       { headers }
     )
@@ -171,12 +171,12 @@ export function GsocPage() {
   const fetchSavedOrganizations = useCallback(() => {
     if (!token) return;
     setSavedLoading(true);
-    apiFetch<{ success: boolean; data: any[] }>('/api/v1/opensource/organizations/saved/list', {
+    apiFetch<any[]>('/api/v1/opensource/organizations/saved/list', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
-        if (res.success && res.data) {
-          setSavedOrgs(res.data.map(item => item.organization || item));
+        if (res.success && res.data && Array.isArray(res.data)) {
+          setSavedOrgs(res.data.map((item: any) => item.organization || item));
         }
       })
       .catch(console.error)
@@ -186,7 +186,7 @@ export function GsocPage() {
   // Fetch mentorship programs
   const fetchPrograms = useCallback(() => {
     setProgramsLoading(true);
-    apiFetch<{ success: boolean; data: any }>('/api/v1/opensource/programs')
+    apiFetch<any>('/api/v1/opensource/programs')
       .then(res => {
         if (res.success && res.data) {
           const rawList = Array.isArray(res.data) ? res.data : (res.data?.programs || []);
@@ -248,14 +248,14 @@ export function GsocPage() {
     e.stopPropagation();
     if (!token) return;
     try {
-      const res = await apiFetch<{ success: boolean; data: { saved: boolean } }>(
+      const res = await apiFetch<{ saved: boolean }>(
         `/api/v1/opensource/organizations/${org.id || org.slug}/save`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      if (res.success) {
+      if (res.success && res.data) {
         handleBookmarkToggled(org.id, res.data.saved);
       }
     } catch (err) {
@@ -336,7 +336,9 @@ export function GsocPage() {
                       <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">
                         {prog.category || 'MENTORSHIP'}
                       </span>
-                      <StatusBadge status={prog.status === 'ACTIVE' ? 'connected' : 'idle'} label={prog.status} />
+                      <StatusBadge variant={prog.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                        {prog.status}
+                      </StatusBadge>
                     </div>
 
                     <h3 className="text-base font-bold text-[#11141B]">{prog.name}</h3>

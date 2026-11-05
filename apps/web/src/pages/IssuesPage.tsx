@@ -15,7 +15,9 @@ import {
   X,
   Info,
   Clock,
-  Award
+  Award,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
@@ -146,6 +148,51 @@ export function IssuesPage() {
       })
       .catch(console.error)
       .finally(() => setRecommendationsLoading(false));
+  };
+
+  const [savedRecommendations, setSavedRecommendations] = useState<Set<string>>(new Set());
+
+  const handleRecommendationFeedback = async (recId: string, action: 'SAVED' | 'DISMISSED', reason?: string) => {
+    if (!token) return;
+    try {
+      await fetch('/api/v1/profile/recommendations/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recommendationId: recId,
+          action,
+          reason,
+        }),
+      });
+
+      if (action === 'DISMISSED') {
+        setRecommendations(prev => prev.filter(r => (r.recommendationId || r.id) !== recId));
+      } else if (action === 'SAVED') {
+        setSavedRecommendations(prev => new Set(prev).add(recId));
+      }
+    } catch (err) {
+      console.error('Failed to record recommendation feedback', err);
+    }
+  };
+
+  const getCategoryBadge = (category?: string) => {
+    switch (category) {
+      case 'BEST_SKILL_FIT':
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">Best Skill Fit</span>;
+      case 'GOOD_FIRST_ISSUE':
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">Good First Issue</span>;
+      case 'DOMAIN_EXPANSION':
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">Domain Expansion</span>;
+      case 'TRENDING_HOT':
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">Trending Hot</span>;
+      case 'SPONSORED_BOUNTY':
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">Sponsored Bounty</span>;
+      default:
+        return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">Skill Alignment</span>;
+    }
   };
 
   // Fetch user pipeline
@@ -541,46 +588,101 @@ export function IssuesPage() {
                 </div>
               ) : (
                 <div className="space-y-3.5">
-                  {recommendations.map(rec => (
-                    <div
-                      key={rec.id}
-                      className="rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">
-                              {Math.round(rec.matchScore || 85)}% Match
-                            </span>
-                            <span className="text-xs font-mono text-[#686D79]">
-                              {getCleanRepoName(rec.issue?.repository, rec.issue?.url)}
-                            </span>
-                          </div>
-                          <h4 className="mt-1.5 text-sm font-semibold text-[#11141B]">{rec.issue?.title}</h4>
-                          <p className="mt-1 text-xs text-[#686D79]">{rec.explanation || 'Strong overlap with your demonstrated skill profile.'}</p>
-                        </div>
+                  {recommendations.map(rec => {
+                    const repo = rec.repository || rec.issue?.repository;
+                    const title = rec.title || rec.issue?.title || 'Open Source Opportunity';
+                    const url = rec.url || rec.issue?.url;
+                    const issueId = rec.issue?.id || rec.id;
+                    const recId = rec.recommendationId || rec.id;
+                    const isSaved = savedRecommendations.has(recId);
+                    const score = rec.score || rec.matchScore || 85;
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => handleAddToPipeline(rec.issue?.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
-                          >
-                            <Plus className="size-3" />
-                            <span>Track</span>
-                          </button>
-                          <a
-                            href={rec.issue?.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
-                          >
-                            <span>Solve</span>
-                            <ExternalLink className="size-3" />
-                          </a>
+                    return (
+                      <div
+                        key={recId}
+                        className="rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">
+                                {Math.round(score)}% Match
+                              </span>
+                              {getCategoryBadge(rec.category)}
+                              <span className="text-xs font-mono text-[#686D79]">
+                                {getCleanRepoName(repo, url)}
+                              </span>
+                            </div>
+
+                            <h4 className="mt-1.5 text-sm font-semibold text-[#11141B]">{title}</h4>
+                            <p className="mt-1 text-xs text-[#686D79]">{rec.explanation || 'Strong overlap with your demonstrated skill profile.'}</p>
+
+                            {/* 7-Factor Evidence Breakdown */}
+                            {rec.factors && (
+                              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[9px] font-mono text-[#858993]">
+                                <span className="rounded bg-[#F9FAFB] border border-black/5 px-2 py-0.5">
+                                  Tech Match: <strong className="text-[#0B0D12]">{rec.factors.technologyMatchScore}%</strong>
+                                </span>
+                                <span className="rounded bg-[#F9FAFB] border border-black/5 px-2 py-0.5">
+                                  Domain: <strong className="text-[#0B0D12]">{rec.factors.domainMatchScore}%</strong>
+                                </span>
+                                <span className="rounded bg-[#F9FAFB] border border-black/5 px-2 py-0.5">
+                                  Freshness: <strong className="text-[#0B0D12]">{rec.factors.freshnessScore}%</strong>
+                                </span>
+                                <span className="rounded bg-[#F9FAFB] border border-black/5 px-2 py-0.5">
+                                  Health: <strong className="text-[#0B0D12]">{rec.factors.projectHealthScore}%</strong>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleRecommendationFeedback(recId, 'SAVED')}
+                              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                isSaved 
+                                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700' 
+                                  : 'border-black/9 bg-white text-[#11141B] hover:bg-zinc-50'
+                              }`}
+                              title={isSaved ? 'Saved to profile' : 'Save opportunity'}
+                            >
+                              {isSaved ? <BookmarkCheck className="size-3 text-emerald-600" /> : <Bookmark className="size-3" />}
+                              <span>{isSaved ? 'Saved' : 'Save'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleAddToPipeline(issueId)}
+                              className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
+                              title="Track in contribution pipeline"
+                            >
+                              <Plus className="size-3" />
+                              <span>Track</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleRecommendationFeedback(recId, 'DISMISSED', 'Not interested in this technology')}
+                              className="inline-flex items-center justify-center rounded-md border border-black/9 bg-white p-1 text-[#858993] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              title="Dismiss recommendation and tune preferences"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+
+                            {url && (
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
+                              >
+                                <span>Solve</span>
+                                <ExternalLink className="size-3" />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -48,7 +48,7 @@ export function OrganizationDetailModal({
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    apiFetch<{ success: boolean; data: any }>(`/api/v1/opensource/organizations/${encodeURIComponent(organizationIdOrSlug)}`, {
+    apiFetch<any>(`/api/v1/opensource/organizations/${encodeURIComponent(organizationIdOrSlug)}`, {
       headers,
     })
       .then(res => {
@@ -69,14 +69,14 @@ export function OrganizationDetailModal({
     if (!data || saving) return;
     setSaving(true);
     try {
-      const res = await apiFetch<{ success: boolean; data: { saved: boolean } }>(
+      const res = await apiFetch<{ saved: boolean }>(
         `/api/v1/opensource/organizations/${data.id || data.slug}/save`,
         {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      if (res.success) {
+      if (res.success && res.data) {
         setIsSaved(res.data.saved);
         if (onBookmarkToggled) onBookmarkToggled(data.id, res.data.saved);
       }

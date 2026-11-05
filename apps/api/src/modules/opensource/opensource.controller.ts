@@ -191,7 +191,7 @@ export class OpenSourceController {
         technologies: parsedTechs,
         techLogic: techLogic === 'AND' ? 'AND' : 'OR',
         search: typeof search === 'string' ? search : undefined,
-        hasBeginnerIssues: hasBeginnerIssues === 'true' || hasBeginnerIssues === true,
+        hasBeginnerIssues: String(hasBeginnerIssues) === 'true',
         year: year ? Number(year) : undefined,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
@@ -205,7 +205,7 @@ export class OpenSourceController {
 
   async getOrganizationDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const data = await organizationService.getOrganizationDetail(id);
       res.json({ success: true, data });
     } catch (err) {
@@ -216,7 +216,7 @@ export class OpenSourceController {
   async toggleSaveOrganization(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { notes } = req.body;
       const result = await organizationService.toggleSaveOrganization(userId, id, notes);
       res.json({ success: true, data: result });

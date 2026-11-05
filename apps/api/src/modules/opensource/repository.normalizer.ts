@@ -105,7 +105,7 @@ export function normalizeRepository(raw: any): CanonicalRepository {
   // Parse topics
   let topics: string[] = [];
   if (Array.isArray(raw.topics)) {
-    topics = raw.topics.map(t => (typeof t === 'string' ? t : t.name || String(t)));
+    topics = raw.topics.map((t: any) => (typeof t === 'string' ? t : t.name || String(t)));
   } else if (typeof raw.topicsJson === 'string') {
     try {
       const parsed = JSON.parse(raw.topicsJson);
