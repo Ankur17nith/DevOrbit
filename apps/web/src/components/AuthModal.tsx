@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Lock, Mail, User, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { DevOrbitLogo } from './DevOrbitLogo.js';
+import { Button, StatusBadge } from './ui/index.js';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -80,9 +81,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] font-semibold">
               Local Demo Session
             </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#8B5CF6]/20 text-[#A78BFA] font-mono">
+            <StatusBadge variant="violet" size="sm">
               Dev Only
-            </span>
+            </StatusBadge>
           </div>
           <button
             type="button"
@@ -174,14 +175,16 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full mt-2 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white font-semibold text-sm transition-all shadow-sm shadow-[#8B5CF6]/20 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-1.5"
+            variant="primary"
+            size="md"
+            loading={loading}
+            className="w-full mt-2"
+            icon={<ArrowRight className="size-4" />}
           >
-            <span>{loading ? 'Authenticating...' : isRegisterMode ? 'Create Identity' : 'Sign In'}</span>
-            <ArrowRight className="size-4" />
-          </button>
+            {isRegisterMode ? 'Create Identity' : 'Sign In'}
+          </Button>
         </form>
 
         <div className="mt-4 text-center">

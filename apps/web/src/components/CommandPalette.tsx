@@ -12,7 +12,15 @@ import {
   Compass, 
   Settings, 
   ArrowRight,
-  X
+  X,
+  User,
+  Flame,
+  CircleAlert,
+  Award,
+  DollarSign,
+  Bot,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -26,14 +34,22 @@ export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPalettePr
 
   const commands = [
     { id: 'dashboard', title: 'Command Center', category: 'Overview', icon: LayoutDashboard },
-    { id: 'integrations', title: 'Integration Center (GitHub, Codeforces, LeetCode, TUF)', category: 'Integrations', icon: Plug },
-    { id: 'ai', title: 'Orbit AI (Local LLM & Coding Assistant)', category: 'Development', icon: Sparkles },
-    { id: 'dsa', title: 'DSA Intelligence (SM-2 Spaced Repetition)', category: 'Learning', icon: Brain },
     { id: 'navigator', title: 'Codebase Navigator (AST & Dependency Graph)', category: 'Development', icon: Code2 },
     { id: 'fix', title: 'Orbit Fix (Root Cause Debugger & Diff Studio)', category: 'Development', icon: Wrench },
     { id: 'safechange', title: 'Orbit SafeChange (Blast Radius & Migration Safety)', category: 'Development', icon: ShieldAlert },
     { id: 'recon', title: 'Orbit Recon (UI Token Extraction & Code Gen)', category: 'Development', icon: Scan },
-    { id: 'catalog', title: 'Open Source Discover (606+ GSoC Orgs & Repos)', category: 'Open Source', icon: Compass },
+    { id: 'ai', title: 'Orbit AI (Local LLM & Autonomous Pairing)', category: 'Development', icon: Sparkles },
+    { id: 'dsa', title: 'DSA Intelligence (SM-2 Spaced Repetition)', category: 'Learning', icon: Brain },
+    { id: 'profile', title: 'Developer Profile & Contribution Heatmap', category: 'Learning', icon: User },
+    { id: 'catalog', title: 'Curated Open Source Catalog', category: 'Open Source', icon: Compass },
+    { id: 'trending', title: 'Trending Repositories & Star Velocity', category: 'Open Source', icon: Flame },
+    { id: 'issues', title: 'Orbit OSS Intelligence & Pipeline', category: 'Open Source', icon: CircleAlert },
+    { id: 'gsoc', title: 'GSoC Directory & Mentorship Fellowships', category: 'Open Source', icon: Award },
+    { id: 'bounties', title: 'Open Source Monetized Bounties', category: 'Open Source', icon: DollarSign },
+    { id: 'selfbot', title: 'GitHub Selfbot Maintainer Automation', category: 'Open Source', icon: Bot },
+    { id: 'workspaces', title: 'Team Workspaces & RBAC Collaboration', category: 'Collaboration', icon: Users },
+    { id: 'forum', title: 'Community Discussions & Architecture Forum', category: 'Collaboration', icon: MessageSquare },
+    { id: 'integrations', title: 'Integration Center (GitHub, Codeforces, LeetCode, TUF, Ollama)', category: 'Integrations', icon: Plug },
     { id: 'settings', title: 'Settings & Database Backup / Restore', category: 'Account', icon: Settings },
   ];
 
@@ -67,7 +83,7 @@ export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPalettePr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
       <div 
         className="w-full max-w-xl rounded-2xl bg-[#12151D] border border-[#1F2430] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
