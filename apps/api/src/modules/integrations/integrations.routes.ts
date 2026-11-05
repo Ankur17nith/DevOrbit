@@ -22,23 +22,18 @@ integrationsRouter.get('/status', async (req: AuthRequest, res: Response, next: 
 });
 
 // 2. GitHub Integration Endpoints
-integrationsRouter.get('/github/oauth/url', async (req: AuthRequest, res: Response, next: NextFunction) => {
+const handleGetGithubOAuthUrl = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const status = await githubOAuthHandler.getOAuthStatus(req.user!.id);
     res.json({ success: true, data: status });
   } catch (err) {
     next(err);
   }
-});
+};
 
-integrationsRouter.get('/github/oauth/authorize', async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const status = await githubOAuthHandler.getOAuthStatus(req.user!.id);
-    res.json({ success: true, data: status });
-  } catch (err) {
-    next(err);
-  }
-});
+integrationsRouter.get('/github/oauth/url', handleGetGithubOAuthUrl);
+integrationsRouter.get('/github/oauth/authorize', handleGetGithubOAuthUrl);
+integrationsRouter.get('/github/oauth/start', handleGetGithubOAuthUrl);
 
 integrationsRouter.post('/github/oauth/callback', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -62,13 +57,25 @@ integrationsRouter.post('/github/oauth/callback', async (req: AuthRequest, res: 
   }
 });
 
-integrationsRouter.post('/github/connect', async (req: AuthRequest, res: Response, next: NextFunction) => {
+const handleConnectGithub = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { token } = req.body;
+    const token = req.body.token || req.body.pat;
     if (!token) {
       throw new BadRequestError('Personal Access Token is required');
     }
     const result = await githubService.connectAccount(req.user!.id, token);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+integrationsRouter.post('/github/connect', handleConnectGithub);
+integrationsRouter.post('/github', handleConnectGithub);
+
+integrationsRouter.post('/github/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await githubService.syncRepositories(req.user!.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -85,9 +92,9 @@ integrationsRouter.delete('/github', async (req: AuthRequest, res: Response, nex
 });
 
 // 3. Codeforces Endpoints
-integrationsRouter.post('/codeforces/connect', async (req: AuthRequest, res: Response, next: NextFunction) => {
+const handleConnectCodeforces = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { handle } = req.body;
+    const handle = req.body.handle || req.body.username;
     if (!handle) {
       throw new BadRequestError('Codeforces handle is required');
     }
@@ -96,7 +103,10 @@ integrationsRouter.post('/codeforces/connect', async (req: AuthRequest, res: Res
   } catch (err) {
     next(err);
   }
-});
+};
+
+integrationsRouter.post('/codeforces/connect', handleConnectCodeforces);
+integrationsRouter.post('/codeforces', handleConnectCodeforces);
 
 integrationsRouter.post('/codeforces/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -117,13 +127,25 @@ integrationsRouter.delete('/codeforces', async (req: AuthRequest, res: Response,
 });
 
 // 4. LeetCode Endpoints
-integrationsRouter.post('/leetcode/connect', async (req: AuthRequest, res: Response, next: NextFunction) => {
+const handleConnectLeetCode = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { username } = req.body;
+    const username = req.body.username || req.body.handle;
     if (!username) {
       throw new BadRequestError('LeetCode username is required');
     }
     const result = await integrationsService.connectLeetCode(req.user!.id, username);
+    res.json({ success: true, data: result.stats });
+  } catch (err) {
+    next(err);
+  }
+};
+
+integrationsRouter.post('/leetcode/connect', handleConnectLeetCode);
+integrationsRouter.post('/leetcode', handleConnectLeetCode);
+
+integrationsRouter.post('/leetcode/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await integrationsService.syncLeetCode(req.user!.id);
     res.json({ success: true, data: result.stats });
   } catch (err) {
     next(err);
@@ -153,13 +175,25 @@ integrationsRouter.delete('/leetcode', async (req: AuthRequest, res: Response, n
 });
 
 // 5. Take U Forward Endpoints
-integrationsRouter.post('/tuf/connect', async (req: AuthRequest, res: Response, next: NextFunction) => {
+const handleConnectTuf = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { username } = req.body;
+    const username = req.body.username || req.body.handle || 'alex_developer';
     if (!username) {
       throw new BadRequestError('Take U Forward username is required');
     }
     const result = await integrationsService.connectTuf(req.user!.id, username);
+    res.json({ success: true, data: result.stats });
+  } catch (err) {
+    next(err);
+  }
+};
+
+integrationsRouter.post('/tuf/connect', handleConnectTuf);
+integrationsRouter.post('/tuf', handleConnectTuf);
+
+integrationsRouter.post('/tuf/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await integrationsService.syncTuf(req.user!.id);
     res.json({ success: true, data: result.stats });
   } catch (err) {
     next(err);

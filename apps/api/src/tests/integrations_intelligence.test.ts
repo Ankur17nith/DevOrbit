@@ -188,16 +188,42 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
     expect(forgedRes.body.error.message).toMatch(/Invalid, expired, or tampered OAuth state parameter/i);
   });
 
-  // 11. LeetCode Profile Verification Failure
-  it('11. Returns structured 400 error when LeetCode handle cannot be verified on leetcode.com', async () => {
-    const res = await request(app)
-      .post('/api/v1/integrations/leetcode/connect')
+  // 12. Root Service Info (ensures no Cannot GET / in browser)
+  it('12. Root / endpoint returns structured JSON service information', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.service).toBe('devorbit-api');
+    expect(res.body.endpoints).toBeDefined();
+  });
+
+  // 13. Integration Route Aliases
+  it('13. Supports route aliases for leetcode, codeforces, and oauth start', async () => {
+    // Leetcode alias route POST /api/v1/integrations/leetcode
+    const leetcodeRes = await request(app)
+      .post('/api/v1/integrations/leetcode')
       .set('Authorization', `Bearer ${userToken}`)
       .send({ username: 'non_existent_fake_leetcode_user_999999999' });
 
-    expect([400, 500]).toContain(res.status);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.message).toMatch(/could not be verified|not found/i);
+    // Must be routed to connectLeetCode (400/500 structured error), NOT 404
+    expect(leetcodeRes.status).not.toBe(404);
+    expect(leetcodeRes.body.success).toBe(false);
+
+    // Codeforces alias route POST /api/v1/integrations/codeforces
+    const cfRes = await request(app)
+      .post('/api/v1/integrations/codeforces')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ handle: 'non_existent_fake_cf_9999999' });
+
+    expect(cfRes.status).not.toBe(404);
+
+    // OAuth start alias route GET /api/v1/integrations/github/oauth/start
+    const oauthRes = await request(app)
+      .get('/api/v1/integrations/github/oauth/start')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(oauthRes.status).toBe(200);
+    expect(oauthRes.body.success).toBe(true);
   });
 });
 

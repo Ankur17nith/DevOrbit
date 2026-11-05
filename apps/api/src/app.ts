@@ -43,13 +43,20 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Public Health Checks
-app.get(['/api/health', '/api/v1/health'], (_req, res) => {
+// Public Health Checks & Root Service Info
+app.get(['/', '/health', '/api/health', '/api/v1/health'], (_req, res) => {
   res.json({
     status: 'ok',
     service: 'devorbit-api',
     version: '0.1.0',
     time: new Date().toISOString(),
+    endpoints: {
+      health: '/api/v1/health',
+      auth: '/api/v1/auth',
+      integrations: '/api/v1/integrations',
+      opensource: '/api/v1/opensource',
+      profile: '/api/v1/profile',
+    },
   });
 });
 

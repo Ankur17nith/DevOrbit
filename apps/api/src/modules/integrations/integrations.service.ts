@@ -190,6 +190,16 @@ export class IntegrationsService {
     return { credential, stats };
   }
 
+  async syncLeetCode(userId: string) {
+    const cred = await prisma.integrationCredential.findUnique({
+      where: { userId_provider: { userId, provider: 'LEETCODE' } },
+    });
+    if (!cred || !cred.username) {
+      throw new BadRequestError('LeetCode is not connected');
+    }
+    return this.connectLeetCode(userId, cred.username);
+  }
+
   async disconnectLeetCode(userId: string) {
     await prisma.integrationCredential.deleteMany({
       where: { userId, provider: 'LEETCODE' },
@@ -217,6 +227,16 @@ export class IntegrationsService {
     });
 
     return { credential, stats };
+  }
+
+  async syncTuf(userId: string) {
+    const cred = await prisma.integrationCredential.findUnique({
+      where: { userId_provider: { userId, provider: 'TUF' } },
+    });
+    if (!cred || !cred.username) {
+      throw new BadRequestError('Take U Forward is not connected');
+    }
+    return this.connectTuf(userId, cred.username);
   }
 
   async importTufData(userId: string, payload: TufImportPayload) {

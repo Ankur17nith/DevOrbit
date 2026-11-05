@@ -16,6 +16,14 @@ describe('Orbit Recon, Local AI & Pulse Intelligence Tests (Milestone M8)', () =
     userToken = res.body.data.token;
     userId = res.body.data.user.id;
 
+    // Clean up any existing test urgent fellowship notification for this user
+    await prisma.notification.deleteMany({
+      where: {
+        userId,
+        title: { contains: 'Urgent Test Fellowship' },
+      },
+    });
+
     // Seed an OSS program with deadline within 48 hours for pulse test
     await prisma.ossProgram.upsert({
       where: { slug: 'test-urgent-fellowship' },
