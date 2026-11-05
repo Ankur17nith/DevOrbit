@@ -24,7 +24,7 @@ export interface TufImportPayload {
 
 export class TufProvider {
   /**
-   * Verify and normalize Take U Forward profile data
+   * Initializes genuine Take U Forward profile tracking without fabricated statistics
    */
   async verifyProfile(username: string): Promise<TufStats> {
     const cleanUser = username.trim();
@@ -32,25 +32,22 @@ export class TufProvider {
       throw new Error('Take U Forward username cannot be empty');
     }
 
-    // Default Striver A2Z sheet tracking
+    // Honest baseline initialization: zero progress until real problems are tracked or imported
     return {
       username: cleanUser,
-      totalCompleted: 64,
+      totalCompleted: 0,
       totalProblems: 455,
-      completionPercentage: Math.round((64 / 455) * 100),
+      completionPercentage: 0,
       activeSheet: 'Striver A2Z DSA Sheet',
-      currentStep: 'Step 4: Binary Search [1D, 2D Arrays, Search Space]',
-      recentActivity: [
-        { problemName: 'Find Minimum in Rotated Sorted Array', topic: 'Binary Search', completedAt: new Date(Date.now() - 86400000).toISOString() },
-        { problemName: 'Single Element in a Sorted Array', topic: 'Binary Search', completedAt: new Date(Date.now() - 172800000).toISOString() },
-      ],
+      currentStep: 'Step 1: Learn the basics',
+      recentActivity: [],
       source: 'provider_sync',
       lastSyncedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * Process manual progress update or sheet import
+   * Process genuine manual progress update or sheet import
    */
   processImport(payload: TufImportPayload): TufStats {
     if (!payload.username) {

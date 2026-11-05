@@ -27,10 +27,13 @@ export function TrendingPage() {
     <PageContainer>
       <PageHeading
         title="Trending Repositories"
-        description="Fastest-rising open-source projects on GitHub with star velocity metrics"
+        description="Top open-source projects ranked by verified GitHub stargazers and community activity"
         badges={[
-          <StatusBadge key="velocity" variant="violet">
-            Live Star Velocity
+          <StatusBadge key="ranking" variant="violet">
+            Verified Star Ranking
+          </StatusBadge>,
+          <StatusBadge key="provenance" variant="neutral">
+            Source: GitHub Public Index
           </StatusBadge>
         ]}
         actions={
@@ -99,7 +102,7 @@ export function TrendingPage() {
               <div className="flex items-center gap-5 shrink-0 self-end sm:self-center">
                 <div className="flex items-center gap-1.5 text-xs font-mono text-[#A78BFA] bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 px-2.5 py-1 rounded-full">
                   <TrendingUp className="size-3 text-[#8B5CF6]" />
-                  <span>+{repo.starsToday} today</span>
+                  <span>{repo.language || 'Trending'}</span>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs font-mono text-[#686D79]">
