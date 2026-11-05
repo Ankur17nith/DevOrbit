@@ -5,6 +5,7 @@ export interface GitHubOAuthStatus {
   isConfigured: boolean;
   clientId?: string;
   authorizationUrl?: string;
+  authUrl?: string;
   state?: string;
   setupInstructions?: string;
 }
@@ -110,11 +111,13 @@ export class GitHubOAuthHandler {
       allow_signup: 'true',
     });
 
+    const authorizationUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
     return {
       isConfigured: true,
       clientId: this.clientId,
       state,
-      authorizationUrl: `https://github.com/login/oauth/authorize?${params.toString()}`,
+      authorizationUrl,
+      authUrl: authorizationUrl,
     };
   }
 

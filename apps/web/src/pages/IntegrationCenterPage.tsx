@@ -84,8 +84,22 @@ export function IntegrationCenterPage() {
   useEffect(() => {
     if (!token) return;
     const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
+    let code = searchParams.get('code');
+    let state = searchParams.get('state');
+    let error = searchParams.get('error');
+
+    if (!code && window.location.hash.includes('?')) {
+      const hashParams = new URLSearchParams(window.location.hash.split('?')[1]);
+      code = hashParams.get('code');
+      state = hashParams.get('state');
+      error = hashParams.get('error');
+    }
+
+    if (error) {
+      setOauthFeedback({ type: 'error', message: `GitHub authorization error: ${error}` });
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
 
     if (code && state) {
       setModalLoading(true);
@@ -118,19 +132,25 @@ export function IntegrationCenterPage() {
   const handleStartGithubOAuth = async () => {
     if (!token) return;
     setModalLoading(true);
+    setOauthFeedback(null);
     try {
       const json = await apiFetch('/api/v1/integrations/github/oauth/start', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (json.success && json.data?.authUrl) {
-        window.location.href = json.data.authUrl;
+      const authUrl = json.data?.authorizationUrl || json.data?.authUrl;
+      if (json.success && authUrl) {
+        window.location.href = authUrl;
       } else {
-        setShowPatInput(true);
-        setActiveModal('github-pat');
+        setOauthFeedback({
+          type: 'error',
+          message: json.error?.message || json.data?.setupInstructions || 'GitHub OAuth is not configured or failed to generate authorization URL.',
+        });
       }
-    } catch {
-      setShowPatInput(true);
-      setActiveModal('github-pat');
+    } catch (err: any) {
+      setOauthFeedback({
+        type: 'error',
+        message: err.message || 'Network error initiating GitHub OAuth.',
+      });
     } finally {
       setModalLoading(false);
     }
