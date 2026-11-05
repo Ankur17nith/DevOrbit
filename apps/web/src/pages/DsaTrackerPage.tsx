@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
 
 interface Problem {
   id: string;
@@ -112,9 +113,8 @@ export function DsaTrackerPage() {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-      const res = await fetch(`/api/v1/dsa/problems?${params.toString()}`, { headers });
-      const json = await res.json();
-      if (json.success) {
+      const json = await apiFetch(`/api/v1/dsa/problems?${params.toString()}`, { headers });
+      if (json.success && json.data) {
         setProblems(json.data.problems);
       }
     } catch (err) {
@@ -127,11 +127,10 @@ export function DsaTrackerPage() {
   const fetchAnalytics = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/v1/dsa/analytics', {
+      const json = await apiFetch('/api/v1/dsa/analytics', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setAnalytics(json.data);
       }
     } catch (err) {
@@ -142,11 +141,10 @@ export function DsaTrackerPage() {
   const fetchRevisionQueue = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/v1/dsa/revision-queue', {
+      const json = await apiFetch('/api/v1/dsa/revision-queue', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setRevisionQueue(json.data.dueItems || []);
       }
     } catch (err) {
@@ -178,7 +176,7 @@ export function DsaTrackerPage() {
   const handleSaveProgress = async (status: 'SOLVED' | 'ATTEMPTED' | 'REVISE') => {
     if (!solveModalProblem || !token) return;
     try {
-      const res = await fetch(`/api/v1/dsa/problems/${solveModalProblem.id}/progress`, {
+      const json = await apiFetch(`/api/v1/dsa/problems/${solveModalProblem.id}/progress`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +192,7 @@ export function DsaTrackerPage() {
         }),
       });
 
-      if (res.ok) {
+      if (json.success) {
         setSolveModalProblem(null);
         await Promise.all([fetchData(), fetchAnalytics(), fetchRevisionQueue()]);
       }
@@ -208,7 +206,7 @@ export function DsaTrackerPage() {
     if (!importContent.trim() || !token) return;
     try {
       const content = importType === 'JSON' ? JSON.parse(importContent) : importContent;
-      const res = await fetch('/api/v1/dsa/import', {
+      const json = await apiFetch('/api/v1/dsa/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +218,6 @@ export function DsaTrackerPage() {
           defaultCategory: 'CUSTOM',
         }),
       });
-      const json = await res.json();
       if (json.success) {
         setImportModalOpen(false);
         setImportContent('');
