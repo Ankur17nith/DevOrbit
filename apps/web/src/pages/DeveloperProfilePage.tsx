@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 interface GitHubStatus {
   connected: boolean;
@@ -226,33 +227,28 @@ export function DeveloperProfilePage() {
   };
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 space-y-8 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* 1. Header & Integration Banner */}
-      <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-xl shadow-black/40">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-xs font-mono text-[#A78BFA]">
-            <ShieldCheck className="size-3.5 text-[#8B5CF6]" />
+      <PageHeading
+        title="Developer Profile & Skill Intelligence"
+        description="Evidence-grounded skill profiling, repository AST analysis, verified velocity metrics, and automated portfolio synchronization"
+        icon={ShieldCheck}
+        badge={
+          <>
+            <ShieldCheck className="size-3" />
             <span>Developer Skill & Activity Intelligence</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F8FAFC]">
-            Developer Profile & GitHub Intelligence
-          </h1>
-          <p className="text-sm text-[#686D79] max-w-2xl">
-            Evidence-grounded skill profiling, repository AST analysis, verified velocity metrics, and automated portfolio synchronization.
-          </p>
-        </div>
-
-        {/* GitHub Integration Controls */}
-        <div className="flex flex-wrap items-center gap-3">
-          {status?.connected ? (
-            <div className="flex items-center gap-3 bg-[#181C26] border border-[#1F2430] p-2 rounded-xl">
+          </>
+        }
+        actions={
+          status?.connected ? (
+            <div className="flex items-center gap-3 bg-[#12151D] border border-[#1F2430] p-2 rounded-2xl shadow-sm">
               <div className="flex items-center gap-2.5 px-2">
                 <div className="relative">
-                  <div className="size-8 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center font-bold text-xs text-[#A78BFA]">
+                  <div className="size-8 rounded-full bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center font-bold font-mono text-xs shadow-sm">
                     {status.username?.slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-[#22C55E] ring-2 ring-[#181C26]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-[#22C55E] ring-2 ring-[#12151D]" />
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-[#F8FAFC]">@{status.username}</div>
@@ -264,40 +260,39 @@ export function DeveloperProfilePage() {
 
               <div className="h-6 w-px bg-[#1F2430]" />
 
-              <button
+              <Button
                 onClick={handleSyncNow}
-                disabled={syncing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-medium transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-50"
-                title="Incremental GitHub repository and metrics sync"
+                loading={syncing}
+                icon={RefreshCw}
+                size="sm"
               >
-                <RefreshCw className={`size-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
-              </button>
+                {syncing ? 'Syncing...' : 'Sync Now'}
+              </Button>
 
-              <button
+              <Button
                 onClick={handleDisconnect}
-                className="px-2.5 py-1.5 rounded-lg text-xs text-[#686D79] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
-                title="Disconnect GitHub PAT"
+                variant="ghost"
+                size="sm"
               >
                 Disconnect
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
               onClick={() => setConnectModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold tracking-wide transition-all shadow-lg shadow-[#8B5CF6]/25 active:scale-95"
+              icon={FolderGit2}
+              size="md"
             >
-              <FolderGit2 className="size-4" />
-              <span>Connect GitHub Account</span>
-            </button>
-          )}
-        </div>
-      </div>
+              Connect GitHub Account
+            </Button>
+          )
+        }
+      />
 
       {/* 2. Key Developer Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Commits */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Verified Commits</span>
             <GitCommit className="size-4 text-[#8B5CF6]" />
@@ -311,7 +306,7 @@ export function DeveloperProfilePage() {
         </div>
 
         {/* Pull Requests */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Pull Requests</span>
             <GitPullRequest className="size-4 text-[#60A5FA]" />
@@ -325,7 +320,7 @@ export function DeveloperProfilePage() {
         </div>
 
         {/* PR Merge Rate */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>PR Merge Velocity</span>
             <GitBranch className="size-4 text-[#22C55E]" />
@@ -339,7 +334,7 @@ export function DeveloperProfilePage() {
         </div>
 
         {/* Continuous Active Streak */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Continuous Streak</span>
             <Flame className="size-4 text-[#F76C39]" />
@@ -407,12 +402,12 @@ export function DeveloperProfilePage() {
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex flex-wrap items-center gap-1 bg-[#181C26] p-1 rounded-lg border border-[#1F2430]">
+            <div className="flex flex-wrap items-center gap-1 bg-[#181C26] p-1 rounded-2xl border border-[#1F2430]">
               {['ALL', 'LANGUAGE', 'FRAMEWORK', 'TOOLING', 'CLOUD'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setSkillCategoryFilter(cat)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors ${
+                  className={`px-3 py-1 rounded-xl text-[11px] font-mono transition-all ${
                     skillCategoryFilter === cat
                       ? 'bg-[#8B5CF6] text-white font-semibold shadow-sm'
                       : 'text-[#686D79] hover:text-[#F8FAFC]'
@@ -425,7 +420,7 @@ export function DeveloperProfilePage() {
           </div>
 
           {filteredSkills.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-[#1F2430] rounded-xl space-y-2">
+            <div className="text-center py-12 border border-dashed border-[#1F2430] rounded-2xl space-y-2">
               <Info className="size-8 text-[#686D79] mx-auto opacity-50" />
               <div className="text-xs text-[#C5C8D0]">No verified skills extracted yet.</div>
               <div className="text-[11px] text-[#686D79]">Connect your GitHub account to analyze repositories.</div>
@@ -435,7 +430,7 @@ export function DeveloperProfilePage() {
               {filteredSkills.map(skill => (
                 <div
                   key={skill.id}
-                  className="bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/50 rounded-xl p-4 space-y-3 transition-colors flex flex-col justify-between"
+                  className="bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/50 rounded-2xl p-4 space-y-3 transition-colors flex flex-col justify-between"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -443,9 +438,9 @@ export function DeveloperProfilePage() {
                         <span className="text-sm font-bold text-[#F8FAFC]">{skill.skillName}</span>
                         <CheckCircle2 className="size-3.5 text-[#8B5CF6]" />
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8B5CF6]/10 text-[#A78BFA] border border-[#8B5CF6]/20">
+                      <StatusBadge variant="violet" size="sm">
                         {skill.category}
-                      </span>
+                      </StatusBadge>
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-mono font-bold text-[#8B5CF6]">
@@ -466,13 +461,15 @@ export function DeveloperProfilePage() {
                   </div>
 
                   {/* Evidence Drawer Button */}
-                  <button
+                  <Button
                     onClick={() => setSelectedSkillEvidence(skill)}
-                    className="w-full text-center py-1.5 px-2 rounded-lg bg-[#12151D] hover:bg-[#1F2430] text-[11px] font-mono text-[#C5C8D0] hover:text-white transition-colors flex items-center justify-center gap-1 border border-[#1F2430]"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    icon={ExternalLink}
                   >
-                    <span>Inspect Evidence ({skill.evidence.length} Repos)</span>
-                    <ExternalLink className="size-3 text-[#8B5CF6]" />
-                  </button>
+                    Inspect Evidence ({skill.evidence.length} Repos)
+                  </Button>
                 </div>
               ))}
             </div>
@@ -516,7 +513,7 @@ export function DeveloperProfilePage() {
               languages.map((l, i) => {
                 const dotColors = ['bg-[#8B5CF6]', 'bg-[#60A5FA]', 'bg-[#F76C39]', 'bg-[#22C55E]', 'bg-[#F59E0B]', 'bg-[#EC4899]'];
                 return (
-                  <div key={l.name} className="flex items-center justify-between text-xs p-2 rounded-lg hover:bg-[#181C26] transition-colors">
+                  <div key={l.name} className="flex items-center justify-between text-xs p-2.5 rounded-xl hover:bg-[#181C26] transition-colors">
                     <div className="flex items-center gap-2">
                       <span className={`size-2.5 rounded-full ${dotColors[i % dotColors.length]}`} />
                       <span className="font-semibold text-[#F8FAFC]">{l.name}</span>
@@ -555,14 +552,14 @@ export function DeveloperProfilePage() {
                 placeholder="Search repos..."
                 value={repoSearch}
                 onChange={e => setRepoSearch(e.target.value)}
-                className="pl-9 pr-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+                className="pl-9 pr-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
 
             <select
               value={repoLangFilter}
               onChange={e => setRepoLangFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
+              className="px-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
             >
               <option value="ALL">All Languages</option>
               {distinctLanguages.map(lang => (
@@ -577,21 +574,21 @@ export function DeveloperProfilePage() {
           {filteredRepos.map(repo => (
             <div
               key={repo.id}
-              className="bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 rounded-xl p-5 space-y-3 transition-colors flex flex-col justify-between"
+              className="bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 rounded-2xl p-5 space-y-3 transition-colors flex flex-col justify-between"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-[#F8FAFC] truncate">{repo.name}</span>
                   <div className="flex items-center gap-1.5">
                     {repo.isPrivate ? (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#1F2430] text-[#686D79] flex items-center gap-0.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#1F2430] text-[#686D79] flex items-center gap-1">
                         <Lock className="size-2.5" />
                         Private
                       </span>
                     ) : (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#8B5CF6]/10 text-[#A78BFA]">
+                      <StatusBadge variant="violet" size="sm">
                         Public
-                      </span>
+                      </StatusBadge>
                     )}
                   </div>
                 </div>
@@ -613,17 +610,17 @@ export function DeveloperProfilePage() {
               </div>
 
               {/* Footer Meta */}
-              <div className="pt-2 border-t border-[#1F2430] flex items-center justify-between text-[11px] text-[#686D79] font-mono">
-                <div className="flex items-center gap-1 text-[#F8FAFC]">
+              <div className="pt-2.5 border-t border-[#1F2430] flex items-center justify-between text-[11px] text-[#686D79] font-mono">
+                <div className="flex items-center gap-1.5 text-[#F8FAFC]">
                   <span className="size-2 rounded-full bg-[#8B5CF6]" />
                   <span>{repo.language || 'Plain'}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-0.5">
+                  <span className="flex items-center gap-1">
                     <Star className="size-3 text-[#F59E0B]" />
                     {repo.stargazersCount}
                   </span>
-                  <span className="flex items-center gap-0.5">
+                  <span className="flex items-center gap-1">
                     <GitBranch className="size-3 text-[#60A5FA]" />
                     {repo.forksCount}
                   </span>
@@ -640,16 +637,15 @@ export function DeveloperProfilePage() {
           <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl shadow-black relative">
             <button
               onClick={() => setConnectModalOpen(false)}
-              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-lg hover:bg-[#181C26] transition-colors"
+              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-xl hover:bg-[#181C26] transition-colors"
             >
               <X className="size-4" />
             </button>
 
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/10 text-xs font-mono text-[#A78BFA] border border-[#8B5CF6]/30">
-                <Lock className="size-3" />
-                <span>AES-256-GCM Encrypted at Rest</span>
-              </div>
+              <StatusBadge variant="violet" size="sm">
+                AES-256-GCM Encrypted at Rest
+              </StatusBadge>
               <h3 className="text-lg font-bold text-[#F8FAFC]">Connect GitHub Account</h3>
               <p className="text-xs text-[#686D79]">
                 DevOrbit uses read-only API access to analyze your repositories, commits, and demonstrated skills.
@@ -657,7 +653,7 @@ export function DeveloperProfilePage() {
             </div>
 
             {/* Scope guidance checklist */}
-            <div className="bg-[#181C26] border border-[#1F2430] rounded-xl p-3 space-y-2 text-xs">
+            <div className="bg-[#181C26] border border-[#1F2430] rounded-xl p-3.5 space-y-2 text-xs">
               <div className="font-semibold text-[#F8FAFC] flex items-center gap-1.5">
                 <CheckCircle2 className="size-3.5 text-[#22C55E]" />
                 Recommended Token Scopes:
@@ -677,33 +673,36 @@ export function DeveloperProfilePage() {
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or mock_token_alex_dev"
                   value={patInput}
                   onChange={e => setPatInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-2 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
                   required
                 />
               </div>
 
               {connectError && (
-                <div className="p-3 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 text-xs text-[#EF4444] flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-xs text-[#EF4444] flex items-center gap-2">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{connectError}</span>
                 </div>
               )}
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setConnectModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-[#C5C8D0] hover:bg-[#181C26] transition-colors"
+                  variant="ghost"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={connectLoading || !patInput.trim()}
-                  className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold transition-all shadow-md shadow-[#8B5CF6]/20 disabled:opacity-50"
+                  disabled={!patInput.trim()}
+                  loading={connectLoading}
+                  variant="primary"
+                  size="sm"
                 >
-                  {connectLoading ? 'Validating Token...' : 'Authenticate & Sync'}
-                </button>
+                  Authenticate & Sync
+                </Button>
               </div>
             </form>
           </div>
@@ -716,7 +715,7 @@ export function DeveloperProfilePage() {
           <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl shadow-black relative max-h-[85vh] flex flex-col">
             <button
               onClick={() => setSelectedSkillEvidence(null)}
-              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-lg hover:bg-[#181C26] transition-colors"
+              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-xl hover:bg-[#181C26] transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -724,23 +723,23 @@ export function DeveloperProfilePage() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-[#F8FAFC]">{selectedSkillEvidence.skillName}</h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8B5CF6]/10 text-[#A78BFA] border border-[#8B5CF6]/20">
+                <StatusBadge variant="violet" size="sm">
                   {selectedSkillEvidence.category}
-                </span>
+                </StatusBadge>
               </div>
-              <p className="text-xs text-[#686D79]">
+              <p className="text-xs text-[#686D79] mt-0.5">
                 Verified with {selectedSkillEvidence.confidenceScore}% confidence based on concrete repository artifacts.
               </p>
             </div>
 
             <div className="overflow-y-auto space-y-3 flex-1 pr-1">
               {selectedSkillEvidence.evidence.map((ev, i) => (
-                <div key={i} className="bg-[#181C26] border border-[#1F2430] rounded-xl p-3.5 space-y-2 text-xs">
+                <div key={i} className="bg-[#181C26] border border-[#1F2430] rounded-2xl p-4 space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-[#F8FAFC]">{ev.repoFullName}</span>
-                    <span className="text-[10px] font-mono text-[#22C55E]">
+                    <StatusBadge variant="success" size="sm">
                       {ev.isOwner ? 'Author / Owner' : 'Contributor'}
-                    </span>
+                    </StatusBadge>
                   </div>
 
                   {ev.languageBytes && (
@@ -750,10 +749,10 @@ export function DeveloperProfilePage() {
                   )}
 
                   {ev.topicsMatched && ev.topicsMatched.length > 0 && (
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] text-[#686D79]">Architecture Topics:</span>
                       {ev.topicsMatched.map(t => (
-                        <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#12151D] text-[#A78BFA]">
+                        <span key={t} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#12151D] text-[#A78BFA] border border-[#1F2430]">
                           #{t}
                         </span>
                       ))}
@@ -768,17 +767,18 @@ export function DeveloperProfilePage() {
             </div>
 
             <div className="pt-2 border-t border-[#1F2430] flex justify-end">
-              <button
+              <Button
                 onClick={() => setSelectedSkillEvidence(null)}
-                className="px-4 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#1F2430] text-xs font-medium text-[#F8FAFC] transition-colors"
+                variant="secondary"
+                size="sm"
               >
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-    </div>
+    </PageContainer>
   );
 }

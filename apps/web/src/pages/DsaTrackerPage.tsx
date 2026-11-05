@@ -26,6 +26,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 interface Problem {
   id: string;
@@ -97,46 +98,93 @@ export function DsaTrackerPage() {
     if (selectedSheet !== 'ALL') params.append('sheetCategory', selectedSheet);
     if (search) params.append('search', search);
 
-    const headers: any = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-      const [probRes, anaRes, revRes, recRes] = await Promise.all([
-        fetch(`/api/v1/dsa/problems?${params.toString()}`, { headers }).then(r => r.json()),
-        token ? fetch('/api/v1/dsa/analytics', { headers }).then(r => r.json()) : Promise.resolve(null),
-        token ? fetch('/api/v1/dsa/revision-queue', { headers }).then(r => r.json()) : Promise.resolve(null),
-        token ? fetch('/api/v1/dsa/recommendations', { headers }).then(r => r.json()) : Promise.resolve(null),
-      ]);
-
-      if (probRes?.success) setProblems(probRes.data.problems);
-      if (anaRes?.success) setAnalytics(anaRes.data);
-      if (revRes?.success) setRevisionQueue(revRes.data.items || []);
-      if (recRes?.success) setRecommendations(recRes.data);
+      const res = await fetch(`/api/v1/dsa/problems?${params.toString()}`, { headers });
+      const json = await res.json();
+      if (json.success) {
+        setProblems(json.data.problems);
+      }
     } catch (err) {
-      console.error('Failed to fetch DSA data', err);
+      console.error('Failed to load problems', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAnalytics = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/v1/dsa/analytics', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAnalytics(json.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch analytics', err);
+    }
+  };
+
+  const fetchRevisionQueue = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/v1/dsa/revision-queue', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setRevisionQueue(json.data.dueItems || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch revision queue', err);
+    }
+  };
+
+  const fetchRecommendations = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/v1/dsa/recommendations', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setRecommendations(json.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch recommendations', err);
+    }
+  };
+
   useEffect(() => {
-    const timeout = setTimeout(fetchData, 200);
-    return () => clearTimeout(timeout);
-  }, [selectedDifficulty, selectedTopic, selectedSheet, search, token]);
+    fetchData();
+    fetchAnalytics();
+    fetchRevisionQueue();
+    fetchRecommendations();
+  }, [selectedSheet, selectedDifficulty, selectedTopic, search, token]);
 
   const openSolveModal = (prob: Problem) => {
     setSolveModalProblem(prob);
-    setSolutionMode(prob.userProgress?.solutionMode === 'INDEPENDENT' ? 'INDEPENDENT' : 'WITH_HINTS');
-    setConfidenceRating(prob.userProgress?.confidenceRating || 4);
-    setSolveNotes(prob.userProgress?.notes || '');
-    setSolveCode(prob.userProgress?.codeSnippet || '');
-    setSelectedMistakes(prob.userProgress?.repeatedMistakes || []);
-    setTimeSpentMins(15);
+    if (prob.userProgress) {
+      setSolutionMode((prob.userProgress.solutionMode as any) || 'INDEPENDENT');
+      setConfidenceRating(prob.userProgress.confidenceRating || 4);
+      setSolveNotes(prob.userProgress.notes || '');
+      setSolveCode(prob.userProgress.codeSnippet || '');
+      setSelectedMistakes(prob.userProgress.repeatedMistakes || []);
+    } else {
+      setSolutionMode('INDEPENDENT');
+      setConfidenceRating(4);
+      setSolveNotes('');
+      setSolveCode('');
+      setSelectedMistakes([]);
+    }
   };
 
   const handleSaveProgress = async (status: 'SOLVED' | 'ATTEMPTED' | 'REVISE') => {
-    if (!token || !solveModalProblem) return;
-
+    if (!solveModalProblem || !token) return;
     try {
       const res = await fetch(`/api/v1/dsa/problems/${solveModalProblem.id}/progress`, {
         method: 'POST',
@@ -148,26 +196,26 @@ export function DsaTrackerPage() {
           status,
           solutionMode,
           confidenceRating,
-          timeSpentSeconds: timeSpentMins * 60,
           notes: solveNotes,
           codeSnippet: solveCode,
+          timeSpentMins,
           repeatedMistakes: selectedMistakes,
         }),
       });
 
       if (res.ok) {
         setSolveModalProblem(null);
-        await fetchData();
+        await Promise.all([fetchData(), fetchAnalytics(), fetchRevisionQueue(), fetchRecommendations()]);
       }
     } catch (err) {
-      console.error('Failed to update problem progress', err);
+      console.error('Failed to update progress', err);
     }
   };
 
   const handleReviewRating = async (problemId: string, rating: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`/api/v1/dsa/review/${problemId}`, {
+      const res = await fetch(`/api/v1/dsa/problems/${problemId}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +224,7 @@ export function DsaTrackerPage() {
         body: JSON.stringify({ rating }),
       });
       if (res.ok) {
-        await fetchData();
+        await Promise.all([fetchRevisionQueue(), fetchAnalytics()]);
       }
     } catch (err) {
       console.error('Failed to submit recall review', err);
@@ -213,49 +261,36 @@ export function DsaTrackerPage() {
     }
   };
 
-  const getDifficultyColor = (diff: string) => {
-    switch (diff) {
-      case 'EASY': return 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20';
-      case 'MEDIUM': return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20';
-      case 'HARD': return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20';
-      default: return 'bg-[#686D79]/10 text-[#686D79] border-[#686D79]/20';
-    }
-  };
-
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 space-y-8 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* 1. Header & Sheet Switcher */}
-      <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-xl shadow-black/40">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-xs font-mono text-[#A78BFA]">
-            <BrainCircuit className="size-3.5 text-[#8B5CF6]" />
+      <PageHeading
+        title="DSA Intelligence Command Center"
+        description="Unified multi-platform problem catalog, SuperMemo SM-2 transparent spaced review queue, independent vs assisted mastery tracking, and weakness detection"
+        icon={BrainCircuit}
+        badge={
+          <>
+            <BrainCircuit className="size-3" />
             <span>Problem-Solving Mastery & Spaced Repetition Engine</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F8FAFC]">
-            DSA Intelligence Command Center
-          </h1>
-          <p className="text-sm text-[#686D79] max-w-2xl">
-            Unified multi-platform problem catalog, SuperMemo SM-2 transparent spaced review queue, independent vs assisted mastery tracking, and weakness detection.
-          </p>
-        </div>
-
-        {/* Global Sheet Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
+          </>
+        }
+        actions={
+          <Button
             onClick={() => setImportModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#181C26] hover:bg-[#1F2430] text-xs font-semibold text-[#F8FAFC] border border-[#1F2430] transition-colors"
+            variant="secondary"
+            size="sm"
+            icon={Upload}
           >
-            <Upload className="size-3.5 text-[#8B5CF6]" />
-            <span>Import Sheet</span>
-          </button>
-        </div>
-      </div>
+            Import Sheet
+          </Button>
+        }
+      />
 
       {/* 2. Top Analytics Metrics & Mastery Radar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Solved & Mastery Index */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Solved Problems</span>
             <CheckCircle2 className="size-4 text-[#8B5CF6]" />
@@ -270,7 +305,7 @@ export function DsaTrackerPage() {
         </div>
 
         {/* Independent vs Assisted Breakdown */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Solution Modes</span>
             <Award className="size-4 text-[#22C55E]" />
@@ -285,7 +320,7 @@ export function DsaTrackerPage() {
         </div>
 
         {/* Spaced Review Queue */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Due for SM-2 Review</span>
             <Calendar className="size-4 text-[#60A5FA]" />
@@ -300,7 +335,7 @@ export function DsaTrackerPage() {
         </div>
 
         {/* Identified Weak Topics */}
-        <div className="bg-[#12151D] border border-[#1F2430] rounded-xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
+        <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl p-5 space-y-2 hover:border-[#8B5CF6]/40 transition-colors">
           <div className="flex items-center justify-between text-xs font-mono text-[#686D79]">
             <span>Identified Weakness</span>
             <AlertCircle className="size-4 text-[#F76C39]" />
@@ -318,7 +353,7 @@ export function DsaTrackerPage() {
 
       {/* 3. Spaced Repetition Due Queue (Interactive SM-2 Review Drawer) */}
       {revisionQueue.length > 0 && (
-        <div className="bg-[#12151D] border border-[#8B5CF6]/30 rounded-2xl p-6 space-y-4">
+        <div className="bg-[#12151D] border border-[#8B5CF6]/30 rounded-2xl p-6 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
@@ -335,14 +370,20 @@ export function DsaTrackerPage() {
             {revisionQueue.slice(0, 6).map((item: any) => (
               <div
                 key={item.id}
-                className="bg-[#181C26] border border-[#1F2430] rounded-xl p-4 space-y-3 flex flex-col justify-between"
+                className="bg-[#181C26] border border-[#1F2430] rounded-2xl p-4 space-y-3 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-[#F8FAFC] truncate">{item.problem.title}</span>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${getDifficultyColor(item.problem.difficulty)}`}>
+                    <StatusBadge
+                      variant={
+                        item.problem.difficulty === 'EASY' ? 'success' :
+                        item.problem.difficulty === 'MEDIUM' ? 'warning' : 'danger'
+                      }
+                      size="sm"
+                    >
                       {item.problem.difficulty}
-                    </span>
+                    </StatusBadge>
                   </div>
                   <div className="text-[11px] text-[#686D79] mt-1 font-mono">
                     Topic: {item.problem.topic} • Interval: {item.reviewIntervalDays}d • Reps: {item.repetitionCount}
@@ -355,28 +396,28 @@ export function DsaTrackerPage() {
                   <div className="grid grid-cols-4 gap-1 text-[10px] font-mono">
                     <button
                       onClick={() => handleReviewRating(item.problem.id, 1)}
-                      className="py-1 rounded bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-center border border-[#EF4444]/30"
+                      className="py-1 rounded-lg bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-center border border-[#EF4444]/30"
                       title="1 - Complete blackout / forgot"
                     >
                       Forgot
                     </button>
                     <button
                       onClick={() => handleReviewRating(item.problem.id, 3)}
-                      className="py-1 rounded bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] text-center border border-[#F59E0B]/30"
+                      className="py-1 rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] text-center border border-[#F59E0B]/30"
                       title="3 - Hard recall after struggle"
                     >
                       Hard
                     </button>
                     <button
                       onClick={() => handleReviewRating(item.problem.id, 4)}
-                      className="py-1 rounded bg-[#60A5FA]/10 hover:bg-[#60A5FA]/20 text-[#60A5FA] text-center border border-[#60A5FA]/30"
+                      className="py-1 rounded-lg bg-[#60A5FA]/10 hover:bg-[#60A5FA]/20 text-[#60A5FA] text-center border border-[#60A5FA]/30"
                       title="4 - Good recall with hesitation"
                     >
                       Good
                     </button>
                     <button
                       onClick={() => handleReviewRating(item.problem.id, 5)}
-                      className="py-1 rounded bg-[#22C55E]/10 hover:bg-[#22C55E]/20 text-[#22C55E] text-center border border-[#22C55E]/30"
+                      className="py-1 rounded-lg bg-[#22C55E]/10 hover:bg-[#22C55E]/20 text-[#22C55E] text-center border border-[#22C55E]/30"
                       title="5 - Effortless perfect recall"
                     >
                       Easy
@@ -410,7 +451,7 @@ export function DsaTrackerPage() {
               <button
                 key={p.id}
                 onClick={() => openSolveModal(p)}
-                className="px-3 py-1.5 rounded-lg bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/50 text-xs font-semibold text-[#F8FAFC] transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/50 text-xs font-semibold text-[#F8FAFC] transition-colors flex items-center gap-1.5"
               >
                 <span>{p.title}</span>
                 <ChevronRight className="size-3 text-[#8B5CF6]" />
@@ -427,7 +468,7 @@ export function DsaTrackerPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#1F2430]">
           
           {/* Sheet Categories */}
-          <div className="flex flex-wrap items-center gap-1 bg-[#181C26] p-1 rounded-xl border border-[#1F2430]">
+          <div className="flex flex-wrap items-center gap-1 bg-[#181C26] p-1 rounded-2xl border border-[#1F2430]">
             {[
               { id: 'ALL', label: 'All Catalog' },
               { id: 'STRIVER_A2Z', label: 'Striver A2Z' },
@@ -439,7 +480,7 @@ export function DsaTrackerPage() {
               <button
                 key={sheet.id}
                 onClick={() => setSelectedSheet(sheet.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                   selectedSheet === sheet.id
                     ? 'bg-[#8B5CF6] text-white font-semibold shadow-sm'
                     : 'text-[#686D79] hover:text-[#F8FAFC]'
@@ -459,14 +500,14 @@ export function DsaTrackerPage() {
                 placeholder="Search problems..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 pr-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+                className="pl-9 pr-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
 
             <select
               value={selectedDifficulty}
               onChange={e => setSelectedDifficulty(e.target.value)}
-              className="px-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
+              className="px-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
             >
               <option value="All">All Difficulties</option>
               <option value="EASY">Easy</option>
@@ -477,7 +518,7 @@ export function DsaTrackerPage() {
             <select
               value={selectedTopic}
               onChange={e => setSelectedTopic(e.target.value)}
-              className="px-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
+              className="px-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
             >
               {topics.map(t => (
                 <option key={t} value={t}>{t}</option>
@@ -508,18 +549,20 @@ export function DsaTrackerPage() {
 
                 return (
                   <tr key={prob.id} className="hover:bg-[#181C26]/50 transition-colors group">
-                    <td className="py-3 pr-2">
-                      <span className={`inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-full ${
-                        status === 'SOLVED' ? 'bg-[#22C55E]/10 text-[#22C55E]' :
-                        status === 'ATTEMPTED' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' :
-                        status === 'REVISE' ? 'bg-[#60A5FA]/10 text-[#60A5FA]' :
-                        'bg-[#1F2430] text-[#686D79]'
-                      }`}>
-                        {status === 'SOLVED' && <CheckCircle2 className="size-3" />}
+                    <td className="py-3.5 pr-2">
+                      <StatusBadge
+                        variant={
+                          status === 'SOLVED' ? 'success' :
+                          status === 'ATTEMPTED' ? 'warning' :
+                          status === 'REVISE' ? 'info' : 'neutral'
+                        }
+                        size="sm"
+                        dot={status === 'SOLVED'}
+                      >
                         {status}
-                      </span>
+                      </StatusBadge>
                     </td>
-                    <td className="py-3 pr-4 font-semibold text-[#F8FAFC]">
+                    <td className="py-3.5 pr-4 font-semibold text-[#F8FAFC]">
                       <div className="flex items-center gap-1.5">
                         <a 
                           href={prob.url} 
@@ -535,37 +578,46 @@ export function DsaTrackerPage() {
                         {prob.platform} {prob.subtopic ? `• ${prob.subtopic}` : ''}
                       </div>
                     </td>
-                    <td className="py-3 pr-4 text-[#C5C8D0] font-mono">
+                    <td className="py-3.5 pr-4 text-[#C5C8D0] font-mono">
                       {prob.topic}
                     </td>
-                    <td className="py-3 pr-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${getDifficultyColor(prob.difficulty)}`}>
+                    <td className="py-3.5 pr-4">
+                      <StatusBadge
+                        variant={
+                          prob.difficulty === 'EASY' ? 'success' :
+                          prob.difficulty === 'MEDIUM' ? 'warning' : 'danger'
+                        }
+                        size="sm"
+                      >
                         {prob.difficulty}
-                      </span>
+                      </StatusBadge>
                     </td>
-                    <td className="py-3 pr-4 text-[#686D79] font-mono">
+                    <td className="py-3.5 pr-4 text-[#686D79] font-mono">
                       {mode ? (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          mode === 'INDEPENDENT' ? 'text-[#22C55E] bg-[#22C55E]/10' :
-                          mode === 'WITH_HINTS' ? 'text-[#F59E0B] bg-[#F59E0B]/10' :
-                          'text-[#A78BFA] bg-[#8B5CF6]/10'
-                        }`}>
+                        <StatusBadge
+                          variant={
+                            mode === 'INDEPENDENT' ? 'success' :
+                            mode === 'WITH_HINTS' ? 'warning' : 'violet'
+                          }
+                          size="sm"
+                        >
                           {mode}
-                        </span>
+                        </StatusBadge>
                       ) : '—'}
                     </td>
-                    <td className="py-3 pr-4 font-mono">
+                    <td className="py-3.5 pr-4 font-mono">
                       {status === 'SOLVED' ? (
                         <span className="text-[#8B5CF6] font-bold">{mastery}%</span>
                       ) : '—'}
                     </td>
-                    <td className="py-3 text-right">
-                      <button
+                    <td className="py-3.5 text-right">
+                      <Button
                         onClick={() => openSolveModal(prob)}
-                        className="px-2.5 py-1 rounded bg-[#181C26] hover:bg-[#8B5CF6] text-white hover:text-white text-xs font-medium border border-[#1F2430] hover:border-[#8B5CF6] transition-colors"
+                        variant="secondary"
+                        size="sm"
                       >
                         {status === 'TODO' ? 'Log Solve' : 'Update'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -581,16 +633,22 @@ export function DsaTrackerPage() {
           <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl shadow-black relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSolveModalProblem(null)}
-              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-lg hover:bg-[#181C26] transition-colors"
+              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-xl hover:bg-[#181C26] transition-colors"
             >
               <X className="size-4" />
             </button>
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${getDifficultyColor(solveModalProblem.difficulty)}`}>
+                <StatusBadge
+                  variant={
+                    solveModalProblem.difficulty === 'EASY' ? 'success' :
+                    solveModalProblem.difficulty === 'MEDIUM' ? 'warning' : 'danger'
+                  }
+                  size="sm"
+                >
                   {solveModalProblem.difficulty}
-                </span>
+                </StatusBadge>
                 <span className="text-xs font-mono text-[#686D79]">{solveModalProblem.topic}</span>
               </div>
               <h3 className="text-lg font-bold text-[#F8FAFC]">{solveModalProblem.title}</h3>
@@ -610,7 +668,7 @@ export function DsaTrackerPage() {
                     key={opt.mode}
                     type="button"
                     onClick={() => setSolutionMode(opt.mode as any)}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                    className={`p-3 rounded-2xl border text-left transition-all ${
                       solutionMode === opt.mode
                         ? 'bg-[#8B5CF6]/15 border-[#8B5CF6] text-white shadow-sm'
                         : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#F8FAFC]'
@@ -633,7 +691,7 @@ export function DsaTrackerPage() {
                   max="300"
                   value={timeSpentMins}
                   onChange={e => setTimeSpentMins(parseInt(e.target.value) || 15)}
-                  className="w-full px-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
@@ -642,7 +700,7 @@ export function DsaTrackerPage() {
                 <select
                   value={confidenceRating}
                   onChange={e => setConfidenceRating(parseInt(e.target.value))}
-                  className="w-full px-3 py-1.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
+                  className="w-full px-3 py-1.5 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#8B5CF6]"
                 >
                   <option value={5}>5 - Effortless Master</option>
                   <option value={4}>4 - Good Recall</option>
@@ -668,7 +726,7 @@ export function DsaTrackerPage() {
                           active ? prev.filter(x => x !== m) : [...prev, m]
                         );
                       }}
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border transition-colors ${
+                      className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition-colors ${
                         active
                           ? 'bg-[#EF4444]/20 border-[#EF4444] text-[#EF4444]'
                           : 'bg-[#181C26] border-[#1F2430] text-[#686D79] hover:text-[#C5C8D0]'
@@ -689,35 +747,38 @@ export function DsaTrackerPage() {
                 placeholder="Key realization, time complexity, or edge case trick..."
                 value={solveNotes}
                 onChange={e => setSolveNotes(e.target.value)}
-                className="w-full p-2.5 bg-[#181C26] border border-[#1F2430] rounded-lg text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+                className="w-full p-3 bg-[#0B0D12] border border-[#1F2430] rounded-xl text-xs text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-2 border-t border-[#1F2430]">
-              <button
+            <div className="flex items-center justify-between pt-3 border-t border-[#1F2430]">
+              <Button
                 type="button"
                 onClick={() => handleSaveProgress('REVISE')}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#60A5FA] bg-[#60A5FA]/10 hover:bg-[#60A5FA]/20 border border-[#60A5FA]/30"
+                variant="outline"
+                size="sm"
               >
-                Mark Needs Revision
-              </button>
+                Needs Revision
+              </Button>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => handleSaveProgress('ATTEMPTED')}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#C5C8D0] hover:bg-[#181C26]"
+                  variant="secondary"
+                  size="sm"
                 >
                   Save Attempt
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => handleSaveProgress('SOLVED')}
-                  className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold transition-all shadow-md shadow-[#8B5CF6]/20"
+                  variant="primary"
+                  size="sm"
                 >
                   Mark Solved
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -730,7 +791,7 @@ export function DsaTrackerPage() {
           <div className="bg-[#12151D] border border-[#1F2430] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl shadow-black relative">
             <button
               onClick={() => setImportModalOpen(false)}
-              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-lg hover:bg-[#181C26] transition-colors"
+              className="absolute top-4 right-4 text-[#686D79] hover:text-[#F8FAFC] p-1 rounded-xl hover:bg-[#181C26] transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -746,7 +807,7 @@ export function DsaTrackerPage() {
               <button
                 type="button"
                 onClick={() => setImportType('CSV')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold ${
+                className={`px-3 py-1 rounded-xl text-xs font-mono font-semibold ${
                   importType === 'CSV' ? 'bg-[#8B5CF6] text-white' : 'bg-[#181C26] text-[#686D79]'
                 }`}
               >
@@ -755,7 +816,7 @@ export function DsaTrackerPage() {
               <button
                 type="button"
                 onClick={() => setImportType('JSON')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold ${
+                className={`px-3 py-1 rounded-xl text-xs font-mono font-semibold ${
                   importType === 'JSON' ? 'bg-[#8B5CF6] text-white' : 'bg-[#181C26] text-[#686D79]'
                 }`}
               >
@@ -773,36 +834,38 @@ export function DsaTrackerPage() {
                 }
                 value={importContent}
                 onChange={e => setImportContent(e.target.value)}
-                className="w-full p-3 font-mono text-xs bg-[#181C26] border border-[#1F2430] rounded-lg text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+                className="w-full p-3 font-mono text-xs bg-[#0B0D12] border border-[#1F2430] rounded-xl text-[#F8FAFC] placeholder-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
                 required
               />
 
               {importStatus && (
-                <div className="text-xs font-mono text-[#A78BFA] bg-[#8B5CF6]/10 p-2.5 rounded-lg border border-[#8B5CF6]/30">
+                <div className="text-xs font-mono text-[#A78BFA] bg-[#8B5CF6]/10 p-2.5 rounded-xl border border-[#8B5CF6]/30">
                   {importStatus}
                 </div>
               )}
 
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setImportModalOpen(false)}
-                  className="px-4 py-1.5 text-xs text-[#C5C8D0] hover:bg-[#181C26] rounded-lg"
+                  variant="ghost"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold rounded-lg shadow-sm"
+                  variant="primary"
+                  size="sm"
                 >
                   Import Problems
-                </button>
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-    </div>
+    </PageContainer>
   );
 }
