@@ -300,10 +300,10 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
                 <div className="pt-4 border-t border-[#1F2430]">
                   <div className="flex items-center gap-2">
                     <div className="size-7 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center font-bold text-xs text-[#A78BFA]">
-                      AR
+                      DO
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-[#F8FAFC]">Alex Rivera</div>
+                      <div className="text-xs font-semibold text-[#F8FAFC]">Your Workspace</div>
                       <div className="text-[10px] text-[#22C55E]">● Verified Local</div>
                     </div>
                   </div>
@@ -325,7 +325,7 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
                       <span>Search workspace...</span>
                     </div>
                     <div className="size-6 rounded-full bg-[#EDE9FE] text-[#8B5CF6] font-bold text-[10px] flex items-center justify-center border border-[#8B5CF6]/30">
-                      AR
+                      DO
                     </div>
                   </div>
                 </div>

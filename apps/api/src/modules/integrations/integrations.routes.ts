@@ -177,11 +177,11 @@ integrationsRouter.delete('/leetcode', async (req: AuthRequest, res: Response, n
 // 5. Take U Forward Endpoints
 const handleConnectTuf = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const username = req.body.username || req.body.handle || 'alex_developer';
-    if (!username) {
+    const username = req.body.username || req.body.handle;
+    if (!username || !username.trim()) {
       throw new BadRequestError('Take U Forward username is required');
     }
-    const result = await integrationsService.connectTuf(req.user!.id, username);
+    const result = await integrationsService.connectTuf(req.user!.id, username.trim());
     res.json({ success: true, data: result.stats });
   } catch (err) {
     next(err);

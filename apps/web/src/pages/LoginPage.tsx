@@ -190,7 +190,7 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
             className="w-full py-2.5 px-3 rounded-xl bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] text-xs font-semibold transition-all flex items-center justify-center gap-2"
           >
             <Sparkles className="size-3.5 text-[#8B5CF6]" />
-            <span>Launch Local Demo Session (Alex Rivera)</span>
+            <span>Launch Sandbox Session (Test Fixture)</span>
           </button>
 
           <div className="text-center pt-2">

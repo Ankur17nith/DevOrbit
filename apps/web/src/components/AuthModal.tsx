@@ -98,7 +98,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 AL
               </div>
               <div>
-                <div className="text-xs font-semibold text-[#F8FAFC]">Alex Rivera (Demo Account)</div>
+                <div className="text-xs font-semibold text-[#F8FAFC]">Sandbox Environment (Test Fixture)</div>
                 <div className="text-[10px] text-[#686D79]">Populates sample local projects & DSA</div>
               </div>
             </div>
