@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { OpenSourceController } from './opensource.controller.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 
 export const opensourceRouter = Router();
 const controller = new OpenSourceController();
@@ -12,7 +12,7 @@ opensourceRouter.get('/issues', controller.getIssues);
 opensourceRouter.get('/gsoc', controller.getGsocOrgs);
 opensourceRouter.get('/organizations', controller.getOrganizations);
 opensourceRouter.get('/organizations/saved/list', authenticate, controller.getUserSavedOrganizations);
-opensourceRouter.get('/organizations/:id', controller.getOrganizationDetail);
+opensourceRouter.get('/organizations/:id', optionalAuthenticate, controller.getOrganizationDetail);
 opensourceRouter.post('/organizations/:id/save', authenticate, controller.toggleSaveOrganization);
 opensourceRouter.get('/bounties', controller.getBounties);
 opensourceRouter.get('/programs', controller.getPrograms);

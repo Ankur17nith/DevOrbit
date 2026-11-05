@@ -206,7 +206,8 @@ export class OpenSourceController {
   async getOrganizationDetail(req: Request, res: Response, next: NextFunction) {
     try {
       const id = String(req.params.id);
-      const data = await organizationService.getOrganizationDetail(id);
+      const userId = (req as AuthRequest).user?.id;
+      const data = await organizationService.getOrganizationDetail(id, userId);
       res.json({ success: true, data });
     } catch (err) {
       next(err);
