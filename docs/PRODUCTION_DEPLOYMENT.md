@@ -114,33 +114,67 @@ server {
 
 ---
 
-## 5. Production Health & Telemetry Verification
+## 5. Production Health & Liveness Probes
 
-Verify service readiness:
+DevOrbit exposes dedicated Kubernetes-compatible liveness and readiness probe endpoints:
+
+### Liveness Probe (`/live` / `/api/v1/live`)
+Confirms Node.js event loop and HTTP server responsiveness:
 ```bash
-curl -I http://localhost:3001/api/health
-# HTTP/1.1 200 OK
-# Content-Type: application/json
+curl -f http://localhost:3001/live
+# {"status":"ok","uptime":128.45,"timestamp":"2026-11-05T13:45:00.000Z"}
 ```
-And inspect system status:
+
+### Readiness Probe (`/ready` / `/api/v1/ready`)
+Verifies deep database connectivity (`SELECT 1` via Prisma):
 ```bash
-curl -s http://localhost:3001/api/v1/system/status | jq .
+curl -f http://localhost:3001/ready
+# {"status":"ready","database":"connected","uptime":128.45,"timestamp":"2026-11-05T13:45:00.000Z"}
 ```
-Expected output:
-```json
-{
-  "status": "healthy",
-  "version": "0.1.0",
-  "uptimeSeconds": 1284,
-  "database": {
-    "engine": "SQLite",
-    "connected": true,
-    "userCount": 2,
-    "problemCount": 16
-  },
-  "ollama": {
-    "connected": false,
-    "activeEngine": "devorbit-deterministic-fallback"
-  }
-}
+Returns HTTP 503 if the SQLite database is locked or unreachable.
+
+---
+
+## 6. Disaster Recovery & Backup Runbook
+
+### Hot SQLite Database Backup
+Because SQLite operates in WAL (Write-Ahead Logging) mode, create safe hot backups using the SQLite CLI without stopping the server:
+```bash
+# 1. Atomic hot backup
+sqlite3 /var/lib/devorbit/devorbit.db ".backup /var/backups/devorbit_$(date +%Y%m%d_%H%M%S).db"
+
+# 2. Compress backup
+gzip /var/backups/devorbit_*.db
 ```
+
+### In-App Disaster Recovery Export & Restore
+DevOrbit provides full cryptographic workspace export via API:
+- **Export Backup**:
+  ```bash
+  curl -H "Authorization: Bearer <ADMIN_TOKEN>" http://localhost:3001/api/v1/system/export > devorbit_backup.json
+  ```
+- **Restore from Backup**:
+  ```bash
+  curl -X POST -H "Authorization: Bearer <ADMIN_TOKEN>" -H "Content-Type: application/json" -d @devorbit_backup.json http://localhost:3001/api/v1/system/import
+  ```
+
+### Database Restoration Procedure
+In case of catastrophic corruption or hardware migration:
+1. Stop the application daemon:
+   ```bash
+   sudo systemctl stop devorbit-api
+   ```
+2. Restore the database file:
+   ```bash
+   cp /var/backups/devorbit_latest.db /var/lib/devorbit/devorbit.db
+   rm -f /var/lib/devorbit/devorbit.db-wal /var/lib/devorbit/devorbit.db-shm
+   chmod 600 /var/lib/devorbit/devorbit.db
+   ```
+3. Restart the daemon:
+   ```bash
+   sudo systemctl start devorbit-api
+   ```
+4. Verify readiness:
+   ```bash
+   curl -f http://localhost:3001/ready
+   ```
