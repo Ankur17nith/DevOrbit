@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+export type ButtonVariant = 'primary' | 'secondary' | 'dark' | 'ghost' | 'danger' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,17 +13,18 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-sm shadow-[#8B5CF6]/25 border border-[#8B5CF6]',
-  secondary: 'bg-[#181C26] hover:bg-[#202431] text-[#F8FAFC] border border-[#1F2430] hover:border-[#8B5CF6]/40 shadow-sm',
-  ghost: 'bg-transparent hover:bg-[#181C26] text-[#C5C8D0] hover:text-[#F8FAFC] border border-transparent',
-  danger: 'bg-[#EF4444]/15 hover:bg-[#EF4444]/25 text-[#EF4444] border border-[#EF4444]/30',
-  outline: 'bg-transparent hover:bg-[#181C26] text-[#F8FAFC] border border-[#1F2430] hover:border-[#2E364A]',
+  primary: 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-sm border border-[#8B5CF6] font-semibold',
+  dark: 'bg-[#0B0D12] hover:bg-black text-white shadow-sm border border-black/10 font-medium',
+  secondary: 'bg-white hover:bg-gray-50 text-[#0B0D12] border border-black/8 shadow-none font-medium',
+  outline: 'bg-white hover:bg-gray-50 text-[#0B0D12] border border-black/9 shadow-none font-medium',
+  ghost: 'bg-transparent hover:bg-black/5 text-[#686D79] hover:text-[#0B0D12] border border-transparent',
+  danger: 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'px-2.5 py-1 text-xs rounded-lg gap-1.5',
-  md: 'px-4 py-2 text-xs font-semibold rounded-xl gap-2',
-  lg: 'px-5 py-2.5 text-sm font-semibold rounded-xl gap-2.5',
+  sm: 'px-2.5 py-1 text-[10px] rounded-md gap-1.5',
+  md: 'px-3 py-1.5 text-xs rounded-md gap-2',
+  lg: 'px-4 py-2 text-xs font-semibold rounded-lg gap-2',
 };
 
 export function Button({

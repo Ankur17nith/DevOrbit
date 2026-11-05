@@ -15,11 +15,11 @@ export function PageContainer({
     maxWidth === 'full' 
       ? 'max-w-none' 
       : maxWidth === 'narrow' 
-        ? 'max-w-5xl' 
-        : 'max-w-[1440px]';
+        ? 'max-w-4xl' 
+        : 'max-w-[1280px]';
 
   return (
-    <div className={`w-full ${maxClass} mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-in fade-in duration-200 ${className}`}>
+    <div className={`w-full ${maxClass} mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in duration-150 ${className}`}>
       {children}
     </div>
   );

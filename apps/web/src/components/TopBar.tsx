@@ -3,16 +3,12 @@ import {
   Menu, 
   Search, 
   Bell, 
-  ChevronRight, 
-  Sparkles, 
   LogOut, 
-  UserCheck, 
-  Users, 
-  ChevronDown,
+  User as UserIcon,
+  Settings,
+  X,
   ExternalLink,
-  ShieldCheck,
-  Check,
-  Settings
+  Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -43,58 +39,58 @@ export function TopBar({
   // Tab Breadcrumb labels mapping
   const breadcrumbMap: Record<string, { section: string; title: string }> = {
     dashboard: { section: 'Overview', title: 'Command Center' },
+    app: { section: 'Overview', title: 'Command Center' },
     navigator: { section: 'Development', title: 'Codebase Navigator' },
+    codebase: { section: 'Development', title: 'Codebase Navigator' },
     fix: { section: 'Development', title: 'Orbit Fix' },
-    safechange: { section: 'Development', title: 'Orbit SafeChange' },
+    safechange: { section: 'Development', title: 'SafeChange' },
+    'safe-change': { section: 'Development', title: 'SafeChange' },
     recon: { section: 'Development', title: 'Orbit Recon' },
-    ai: { section: 'Development', title: 'Orbit AI Studio' },
-    dsa: { section: 'Learning', title: 'DSA Intelligence' },
-    profile: { section: 'Learning', title: 'Skill Intelligence' },
+    ai: { section: 'Development', title: 'Orbit AI' },
+    dsa: { section: 'Learning', title: 'DSA Dashboard' },
+    problems: { section: 'Learning', title: 'Problem Tracker' },
+    revisions: { section: 'Learning', title: 'Revision Schedule' },
+    skills: { section: 'Learning', title: 'Orbit Skills' },
+    learning: { section: 'Learning', title: 'Learning Progress' },
     catalog: { section: 'Open Source', title: 'Discover' },
-    trending: { section: 'Open Source', title: 'Trending Repositories' },
+    oss: { section: 'Open Source', title: 'Discover' },
+    trending: { section: 'Open Source', title: 'Trending' },
     gsoc: { section: 'Open Source', title: 'Organizations' },
-    issues: { section: 'Open Source', title: 'Issues & Pipeline' },
-    bounties: { section: 'Open Source', title: 'Bounties & Grants' },
-    integrations: { section: 'Integrations', title: 'Integration Center' },
+    organizations: { section: 'Open Source', title: 'Organizations' },
+    issues: { section: 'Open Source', title: 'Issues' },
+    bounties: { section: 'Open Source', title: 'Bounties' },
+    contributions: { section: 'Open Source', title: 'Contributions' },
     workspaces: { section: 'Collaboration', title: 'Workspaces' },
     forum: { section: 'Collaboration', title: 'Community' },
-    selfbot: { section: 'Collaboration', title: 'Selfbot Terminal' },
-    settings: { section: 'Account', title: 'Settings & Backups' },
-    documentation: { section: 'Resources', title: 'Documentation' },
+    community: { section: 'Collaboration', title: 'Community' },
+    integrations: { section: 'System', title: 'Integrations' },
+    pulse: { section: 'System', title: 'Orbit Pulse' },
+    profile: { section: 'Account', title: 'Profile' },
+    settings: { section: 'Account', title: 'Settings' },
   };
 
-  const currentCrumb = breadcrumbMap[currentTab] || { section: 'Workspace', title: currentTab };
+  const currentInfo = breadcrumbMap[currentTab] || {
+    section: 'Overview',
+    title: 'Command Center'
+  };
 
-  // Fetch unread notifications
+  const getInitials = (name?: string): string => {
+    if (!name) return 'DU';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'DU';
+  };
+
+  // Close dropdowns on outside click
   useEffect(() => {
-    if (!token) return;
-
-    const fetchNotifications = () => {
-      fetch('/api/v1/notifications', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(res => res.json())
-        .then(json => {
-          if (json.success && Array.isArray(json.data)) {
-            setNotifications(json.data);
-            setUnreadCount(json.data.filter((n: any) => !n.isRead).length);
-          }
-        })
-        .catch(() => {});
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // 30s poll
-    return () => clearInterval(interval);
-  }, [token]);
-
-  // Click outside listener for dropdowns
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setNotifDropdownOpen(false);
       }
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
     };
@@ -102,129 +98,129 @@ export function TopBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const markAllAsRead = async () => {
+  // Fetch real unread notifications
+  useEffect(() => {
     if (!token) return;
-    for (const n of notifications.filter(n => !n.isRead)) {
-      await fetch(`/api/v1/notifications/${n.id}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
-    setUnreadCount(0);
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    fetch('/api/v1/notifications', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setNotifications(data.data);
+          setUnreadCount(data.data.filter((n: any) => !n.read).length);
+        }
+      })
+      .catch(() => {});
+  }, [token, currentTab]);
+
+  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!token) return;
+    try {
+      await fetch(`/api/v1/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch {}
   };
 
   return (
-    <header className="h-14 bg-[#0B0D12]/95 backdrop-blur-md border-b border-[#1F2430] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30 select-none">
-      
-      {/* Left: Hamburger (mobile) + Breadcrumbs */}
+    <header className="h-14 bg-white border-b border-black/8 px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 select-none z-30 sticky top-0">
+      {/* Left: Mobile hamburger + Breadcrumbs + Page title */}
       <div className="flex items-center gap-3">
-        <button
+        <button 
           onClick={onOpenMobileSidebar}
-          className="lg:hidden p-1.5 rounded-xl text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] transition-colors"
-          title="Open Navigation"
+          className="lg:hidden p-1.5 rounded-md border border-black/8 text-[#686D79] hover:bg-gray-50 transition"
+          aria-label="Open navigation menu"
         >
-          <Menu className="size-5" />
+          <Menu className="size-4" />
         </button>
 
-        {/* Clean Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#686D79] font-mono font-medium hidden sm:inline">DevOrbit</span>
-          <ChevronRight className="size-3 text-[#2E364A] hidden sm:inline" />
-          <span className="text-[#686D79]">{currentCrumb.section}</span>
-          <ChevronRight className="size-3 text-[#2E364A]" />
-          <span className="font-semibold text-[#F8FAFC] tracking-tight">{currentCrumb.title}</span>
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8B8F98] leading-none">
+            DEVORBIT / {currentInfo.section}
+          </div>
+          <h1 className="text-xs sm:text-sm font-semibold tracking-[-0.02em] text-[#0B0D12] mt-0.5 leading-tight">
+            {currentInfo.title}
+          </h1>
         </div>
       </div>
 
-      {/* Center/Right Global Actions */}
+      {/* Right: Workspace Search + Notifications + User Avatar */}
       <div className="flex items-center gap-2 sm:gap-3">
-        
-        {/* Global Search / Command Palette Trigger (Figma Matched) */}
+        {/* Search button with ⌘K */}
         <button
           onClick={onOpenCommandPalette}
-          className="h-9 px-3 rounded-xl bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-xs text-[#686D79] hover:text-[#C5C8D0] flex items-center gap-2.5 transition-all shadow-sm"
-          title="Search your workspace (⌘K)"
+          className="hidden sm:flex h-8 w-48 lg:w-56 items-center justify-between rounded-md border border-black/8 bg-[#F6F7F8] px-3 text-[10px] text-[#8B8F98] hover:border-black/15 transition"
         >
-          <Search className="size-3.5 text-[#8B5CF6]" />
-          <span className="hidden sm:inline">Search your workspace...</span>
-          <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#181C26] border border-[#1F2430] text-[10px] font-mono text-[#8B5CF6]">
-            <span>⌘</span>K
+          <span className="flex items-center gap-2">
+            <Search className="size-3 text-[#999CA3]" />
+            <span>Search workspace</span>
+          </span>
+          <kbd className="font-mono text-[9px] px-1 py-0.2 bg-white rounded border border-black/8 text-[#686D79]">
+            ⌘K
           </kbd>
         </button>
 
-        {/* Integration Hub Shortcut */}
+        {/* Mobile Search Icon Button */}
         <button
-          onClick={() => onSelectTab('integrations')}
-          className="hidden sm:flex h-9 px-3 rounded-xl bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-xs text-[#C5C8D0] hover:text-white items-center gap-1.5 transition-all"
-          title="Open Integration Center"
+          onClick={onOpenCommandPalette}
+          className="sm:hidden size-8 flex items-center justify-center rounded-md border border-black/8 bg-white text-[#686D79] hover:bg-gray-50"
+          title="Search (⌘K)"
         >
-          <Sparkles className="size-3.5 text-[#8B5CF6]" />
-          <span>Integrations</span>
+          <Search className="size-3.5" />
         </button>
 
-        {/* Notification Bell with Dropdown */}
+        {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-            className="size-9 rounded-xl bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#2E364A] flex items-center justify-center text-[#686D79] hover:text-[#F8FAFC] transition-colors relative"
+            onClick={() => setNotifDropdownOpen(prev => !prev)}
+            className="size-8 flex items-center justify-center rounded-md border border-black/8 bg-white text-[#686D79] hover:bg-gray-50 transition relative"
             title="Notifications"
           >
-            <Bell className="size-4" />
+            <Bell className="size-3.5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 size-4 rounded-full bg-[#8B5CF6] text-white text-[9px] font-mono font-bold flex items-center justify-center shadow-sm">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-[#8B5CF6] ring-2 ring-white" />
             )}
           </button>
 
-          {/* Notifications Dropdown */}
           {notifDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[#12151D] border border-[#1F2430] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-3 border-b border-[#1F2430]">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#F8FAFC]">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/20 text-[#A78BFA] text-[10px] font-mono font-semibold">
-                      {unreadCount} unread
-                    </span>
-                  )}
-                </div>
+            <div className="absolute right-0 mt-2 w-80 rounded-xl bg-white border border-black/8 shadow-xl py-2 z-50 text-left animate-in fade-in duration-150">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-black/8">
+                <span className="text-xs font-semibold text-[#0B0D12]">Notifications</span>
                 {unreadCount > 0 && (
-                  <button 
-                    onClick={markAllAsRead}
-                    className="text-[11px] font-medium text-[#8B5CF6] hover:text-[#A78BFA] transition-colors"
-                  >
-                    Mark all read
-                  </button>
+                  <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#F0EDFA] text-[#8B5CF6]">
+                    {unreadCount} new
+                  </span>
                 )}
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-[#1F2430]/60 mt-2">
+              <div className="max-h-72 overflow-y-auto divide-y divide-black/5 [scrollbar-width:none]">
                 {notifications.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#686D79]">
-                    No notifications yet.
+                  <div className="p-6 text-center text-xs text-[#858993]">
+                    No notifications yet
                   </div>
                 ) : (
-                  notifications.map((n) => (
-                    <div key={n.id} className={`py-2.5 px-2 rounded-xl ${!n.isRead ? 'bg-[#181C26]/60' : ''}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-medium text-[#F8FAFC] leading-snug">{n.title}</span>
-                        <span className="text-[10px] text-[#686D79] shrink-0 font-mono">
-                          {new Date(n.createdAt).toLocaleDateString()}
-                        </span>
+                  notifications.map(n => (
+                    <div 
+                      key={n.id}
+                      className={`p-3 hover:bg-gray-50 transition flex items-start gap-2.5 ${!n.read ? 'bg-[#F9F8FE]' : ''}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-[#0B0D12]">{n.title}</p>
+                        <p className="text-[10px] text-[#686D79] line-clamp-2 mt-0.5">{n.message}</p>
                       </div>
-                      <p className="text-[11px] text-[#686D79] mt-1 leading-relaxed">{n.message}</p>
-                      {n.linkUrl && (
-                        <a 
-                          href={n.linkUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="mt-1.5 text-[11px] text-[#8B5CF6] hover:underline inline-flex items-center gap-1 font-medium"
+                      {!n.read && (
+                        <button
+                          onClick={(e) => handleMarkAsRead(n.id, e)}
+                          title="Mark as read"
+                          className="size-5 rounded flex items-center justify-center text-[#8B5CF6] hover:bg-[#EEEAFB]"
                         >
-                          <span>Open link</span>
-                          <ExternalLink className="size-2.5" />
-                        </a>
+                          <Check className="size-3" />
+                        </button>
                       )}
                     </div>
                   ))
@@ -234,77 +230,70 @@ export function TopBar({
           )}
         </div>
 
-        {/* User Pill / Switcher */}
+        {/* User Avatar Menu */}
         <div className="relative" ref={userMenuRef}>
-          {user ? (
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-xl bg-[#12151D] hover:bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
-            >
-              <div className="size-7 rounded-full bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center font-bold font-mono text-xs">
-                {user.username ? user.username.slice(0, 2).toUpperCase() : 'DO'}
-              </div>
-              <span className="text-xs font-semibold text-[#F8FAFC] hidden sm:inline">
-                {user.username}
-              </span>
-              <ChevronDown className="size-3 text-[#686D79]" />
-            </button>
-          ) : (
-            <button
-              onClick={onOpenAuthModal}
-              className="px-3 py-1.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold transition-all shadow-sm shadow-[#8B5CF6]/20"
-            >
-              Sign In
-            </button>
-          )}
+          <button
+            onClick={() => setUserMenuOpen(prev => !prev)}
+            className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center hover:opacity-90 transition select-none"
+            title={user ? `${user.name || user.username}` : 'Sign in'}
+          >
+            {getInitials(user?.name || user?.username)}
+          </button>
 
-          {/* User Menu Dropdown */}
-          {userMenuOpen && user && (
-            <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#12151D] border border-[#1F2430] shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-2.5 border-b border-[#1F2430]">
-                <div className="text-xs font-semibold text-[#F8FAFC] truncate">
-                  {user.name || user.username}
-                </div>
-                <div className="text-[11px] text-[#686D79] truncate">{user.email}</div>
-                <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[#A78BFA] font-mono uppercase tracking-wider">
-                  <ShieldCheck className="size-3 text-[#8B5CF6]" />
-                  <span>{user.role} Session</span>
-                </div>
+          {userMenuOpen && (
+            <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-black/8 shadow-xl py-1.5 z-50 text-left animate-in fade-in duration-150">
+              <div className="px-3.5 py-2 border-b border-black/8">
+                <p className="text-xs font-semibold text-[#0B0D12] truncate">
+                  {user?.name || user?.username || 'Dev User'}
+                </p>
+                <p className="text-[10px] text-[#858993] truncate">
+                  {user?.email || 'developer@devorbit.local'}
+                </p>
               </div>
 
-              <div className="py-1.5 space-y-0.5">
+              <div className="py-1">
                 <button
-                  onClick={() => { onSelectTab('profile'); setUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#181C26] transition-colors"
+                  onClick={() => {
+                    onSelectTab('profile');
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs text-[#0B0D12] hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <UserCheck className="size-3.5 text-[#8B5CF6]" />
-                  <span>Skill Intelligence</span>
+                  <UserIcon className="size-3.5 text-[#858993]" />
+                  <span>Profile details</span>
                 </button>
-
                 <button
-                  onClick={() => { onSelectTab('settings'); setUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#181C26] transition-colors"
+                  onClick={() => {
+                    onSelectTab('settings');
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs text-[#0B0D12] hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <Settings className="size-3.5 text-[#8B5CF6]" />
-                  <span>Settings & Backups</span>
+                  <Settings className="size-3.5 text-[#858993]" />
+                  <span>Account & settings</span>
                 </button>
-
                 <button
-                  onClick={() => { onOpenAuthModal(); setUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#181C26] transition-colors"
+                  onClick={() => {
+                    onSelectTab('documentation');
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs text-[#0B0D12] hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <Users className="size-3.5 text-[#686D79]" />
-                  <span>Switch / Add Account</span>
+                  <ExternalLink className="size-3.5 text-[#858993]" />
+                  <span>Documentation</span>
                 </button>
+              </div>
 
-                <div className="my-1 border-t border-[#1F2430]" />
-
+              <div className="pt-1 border-t border-black/8">
                 <button
-                  onClick={() => { logout(); setUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#EF4444] hover:bg-[#EF4444]/15 transition-colors"
+                  onClick={() => {
+                    logout();
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
                 >
                   <LogOut className="size-3.5" />
-                  <span>Sign Out</span>
+                  <span>Sign out</span>
                 </button>
               </div>
             </div>

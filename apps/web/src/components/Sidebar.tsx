@@ -7,23 +7,27 @@ import {
   Scan, 
   Sparkles, 
   Brain, 
+  CheckSquare,
+  Calendar,
+  Award,
+  TrendingUp,
   Compass, 
   Flame, 
   Building2, 
   GitPullRequest, 
   Coins, 
-  Plug, 
+  GitMerge,
   Users, 
   MessageSquare, 
+  Plug,
+  Activity,
+  BookOpen,
   Settings, 
   ChevronLeft, 
   ChevronRight,
-  Database,
-  Zap,
-  Terminal,
-  Activity,
+  User,
+  Bot,
   LogOut,
-  BookOpen,
   X
 } from 'lucide-react';
 import { DevOrbitLogo, DevOrbitMark } from './DevOrbitLogo.js';
@@ -39,18 +43,69 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-interface NavItem {
+export interface NavItem {
   id: string;
   label: string;
   icon: React.ElementType;
+  path: string;
   badge?: string | number;
-  badgeVariant?: 'violet' | 'amber' | 'green' | 'neutral';
 }
 
-interface NavGroup {
+export interface NavGroup {
   group: string;
   items: NavItem[];
 }
+
+export const figmaNavGroups: NavGroup[] = [
+  {
+    group: 'OVERVIEW',
+    items: [
+      { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard, path: '/app' },
+    ],
+  },
+  {
+    group: 'DEVELOPMENT',
+    items: [
+      { id: 'navigator', label: 'Codebase Navigator', icon: Code2, path: '/app/codebase' },
+      { id: 'fix', label: 'Orbit Fix', icon: Wrench, path: '/app/fix' },
+      { id: 'safechange', label: 'SafeChange', icon: ShieldAlert, path: '/app/safe-change' },
+      { id: 'recon', label: 'Orbit Recon', icon: Scan, path: '/app/recon' },
+      { id: 'ai', label: 'Orbit AI', icon: Sparkles, path: '/app/ai' },
+    ],
+  },
+  {
+    group: 'LEARNING',
+    items: [
+      { id: 'dsa', label: 'DSA Dashboard', icon: Brain, path: '/app/dsa' },
+      { id: 'profile', label: 'Skill Intelligence', icon: Activity, path: '/app/skills' },
+    ],
+  },
+  {
+    group: 'OPEN SOURCE',
+    items: [
+      { id: 'catalog', label: 'Discover', icon: Compass, path: '/app/oss' },
+      { id: 'trending', label: 'Trending', icon: Flame, path: '/app/trending' },
+      { id: 'gsoc', label: 'Organizations', icon: Building2, path: '/app/organizations' },
+      { id: 'issues', label: 'Issues', icon: GitPullRequest, path: '/app/issues' },
+      { id: 'bounties', label: 'Bounties', icon: Coins, path: '/app/bounties' },
+    ],
+  },
+  {
+    group: 'COLLABORATION',
+    items: [
+      { id: 'workspaces', label: 'Workspaces', icon: Users, path: '/app/workspaces' },
+      { id: 'forum', label: 'Community', icon: MessageSquare, path: '/app/community' },
+      { id: 'selfbot', label: 'Maintainer Bot', icon: Bot, path: '/app/selfbot' },
+    ],
+  },
+  {
+    group: 'SYSTEM',
+    items: [
+      { id: 'integrations', label: 'Integrations', icon: Plug, path: '/app/integrations' },
+      { id: 'settings', label: 'Settings', icon: Settings, path: '/app/settings' },
+    ],
+  },
+];
 
 export function Sidebar({ 
   currentTab, 
@@ -63,86 +118,25 @@ export function Sidebar({
 }: SidebarProps) {
   const { user, logout } = useAuth();
 
-  const navGroups: NavGroup[] = [
-    {
-      group: 'Overview',
-      items: [
-        { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard },
-      ],
-    },
-    {
-      group: 'Development',
-      items: [
-        { id: 'navigator', label: 'Codebase Navigator', icon: Code2 },
-        { id: 'fix', label: 'Orbit Fix', icon: Wrench },
-        { id: 'safechange', label: 'Orbit SafeChange', icon: ShieldAlert },
-        { id: 'recon', label: 'Orbit Recon', icon: Scan },
-        { id: 'ai', label: 'Orbit AI', icon: Sparkles, badge: 'Local', badgeVariant: 'violet' },
-      ],
-    },
-    {
-      group: 'Learning',
-      items: [
-        { id: 'dsa', label: 'DSA Intelligence', icon: Brain, badge: 'SM-2', badgeVariant: 'amber' },
-        { id: 'profile', label: 'Skill Intelligence', icon: Activity },
-      ],
-    },
-    {
-      group: 'Open Source',
-      items: [
-        { id: 'catalog', label: 'Discover', icon: Compass },
-        { id: 'trending', label: 'Trending', icon: Flame },
-        { id: 'gsoc', label: 'Organizations', icon: Building2 },
-        { id: 'issues', label: 'Issues & Pipeline', icon: GitPullRequest },
-        { id: 'bounties', label: 'Bounties', icon: Coins },
-      ],
-    },
-    {
-      group: 'Integrations',
-      items: [
-        { id: 'integrations', label: 'Integration Center', icon: Plug, badge: 'Hub', badgeVariant: 'green' },
-      ],
-    },
-    {
-      group: 'Collaboration',
-      items: [
-        { id: 'workspaces', label: 'Workspaces', icon: Users },
-        { id: 'forum', label: 'Community', icon: MessageSquare },
-        { id: 'selfbot', label: 'Selfbot Terminal', icon: Terminal },
-      ],
-    },
-    {
-      group: 'Account',
-      items: [
-        { id: 'settings', label: 'Settings & Backups', icon: Settings },
-      ],
-    },
-    {
-      group: 'Resources',
-      items: [
-        { id: 'documentation', label: 'Documentation', icon: BookOpen, badge: 'Docs', badgeVariant: 'violet' },
-      ],
-    },
-  ];
-
-  const handleSelect = (id: string) => {
-    onSelectTab(id);
-    if (mobileOpen) {
-      onCloseMobile();
-    }
+  const isItemActive = (item: NavItem): boolean => {
+    if (currentTab === item.id) return true;
+    if (item.id === 'gsoc' && currentTab === 'organizations') return true;
+    if (item.id === 'dashboard' && currentTab === 'app') return true;
+    if (item.id === 'navigator' && currentTab === 'codebase') return true;
+    if (item.id === 'catalog' && currentTab === 'oss') return true;
+    if (item.id === 'forum' && currentTab === 'community') return true;
+    if (item.id === 'safechange' && (currentTab === 'safe-change' || currentTab === 'safechange')) return true;
+    return false;
   };
 
-  const getBadgeClasses = (variant?: 'violet' | 'amber' | 'green' | 'neutral') => {
-    switch (variant) {
-      case 'violet':
-        return 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30';
-      case 'amber':
-        return 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30';
-      case 'green':
-        return 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30';
-      default:
-        return 'bg-[#181C26] text-[#C5C8D0] border-[#1F2430]';
-    }
+  const getInitials = (name?: string): string => {
+    if (!name) return 'DU';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'DU';
   };
 
   return (
@@ -151,196 +145,156 @@ export function Sidebar({
       {mobileOpen && (
         <div 
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Main Sidebar Shell */}
       <aside 
-        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col justify-between bg-[#0B0D12] border-r border-[#1F2430] transition-all duration-200 ease-in-out select-none
-          ${mobileOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
-          ${isCollapsed ? 'lg:w-[68px]' : 'lg:w-60'}
-        `}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/8 bg-[#0B0D12] text-white transition-all duration-200 ${
+          isCollapsed ? 'w-[68px]' : 'w-[244px]'
+        } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Sidebar Header */}
-        <div className="h-14 border-b border-[#1F2430] flex items-center justify-between px-3.5 shrink-0 bg-[#0B0D12]">
-          {isCollapsed ? (
-            <div className="w-full flex items-center justify-center">
-              <button 
-                onClick={() => handleSelect('dashboard')}
-                title="DevOrbit Command Center"
-                className="hover:scale-105 transition-transform"
-              >
-                <DevOrbitMark className="size-7" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between w-full">
-              <button 
-                onClick={() => handleSelect('dashboard')}
-                className="flex items-center gap-2 hover:opacity-90 transition-opacity"
-              >
-                <DevOrbitLogo size="sm" showBadge={true} />
-              </button>
-              
-              {/* Desktop Collapse Toggle */}
-              {onToggleCollapse && (
-                <button
-                  onClick={onToggleCollapse}
-                  title="Collapse sidebar"
-                  className="hidden lg:flex size-7 rounded-lg hover:bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] items-center justify-center transition-colors"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-              )}
+        {/* Brand Header */}
+        <div className="h-14 flex items-center justify-between px-4 border-b border-white/8 shrink-0">
+          <div 
+            onClick={() => {
+              onSelectTab('dashboard');
+              onCloseMobile();
+            }}
+            className="flex items-center gap-2.5 cursor-pointer select-none"
+          >
+            <DevOrbitMark className="size-6 text-[#8B5CF6] shrink-0" />
+            {!isCollapsed && (
+              <span className="font-bold text-sm tracking-tight text-white">DevOrbit</span>
+            )}
+          </div>
 
-              {/* Mobile Close Button */}
-              <button
-                onClick={onCloseMobile}
-                className="lg:hidden size-8 rounded-lg text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] flex items-center justify-center"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
+          {/* Mobile close button */}
+          <button 
+            onClick={onCloseMobile}
+            className="lg:hidden p-1 text-white/50 hover:text-white rounded-md transition"
+            aria-label="Close menu"
+          >
+            <X className="size-5" />
+          </button>
+
+          {/* Desktop collapse button */}
+          {onToggleCollapse && !isCollapsed && (
+            <button
+              onClick={onToggleCollapse}
+              className="hidden lg:flex size-6 items-center justify-center rounded text-white/30 hover:text-white hover:bg-white/5 transition"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="size-3.5" />
+            </button>
           )}
         </div>
 
-        {/* Navigation Groups List */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3 space-y-4">
-          {navGroups.map((grp) => (
-            <div key={grp.group} className="space-y-1">
-              {/* Group Header (hidden when collapsed) */}
-              {!isCollapsed && (
-                <div className="px-2 pb-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#686D79]">
-                  {grp.group}
-                </div>
+        {/* Scrollable Navigation Groups */}
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 [scrollbar-width:none]">
+          {figmaNavGroups.map((group) => (
+            <div key={group.group} className="space-y-0.5">
+              {!isCollapsed ? (
+                <p className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">
+                  {group.group}
+                </p>
+              ) : (
+                <div className="h-2" />
               )}
 
-              {/* Group Items */}
-              {grp.items.map((item) => {
+              {group.items.map((item) => {
+                const active = isItemActive(item);
                 const Icon = item.icon;
-                const isActive = currentTab === item.id || (item.id === 'gsoc' && currentTab === 'organizations');
-
                 return (
                   <button
                     key={item.id}
-                    onClick={() => handleSelect(item.id)}
+                    onClick={() => {
+                      onSelectTab(item.id);
+                      onCloseMobile();
+                    }}
                     title={isCollapsed ? item.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all group relative
-                      ${isActive 
-                        ? 'bg-[#1A1E29] text-[#F8FAFC] border-l-2 border-[#8B5CF6] font-semibold shadow-sm' 
-                        : 'text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#151923] border-l-2 border-transparent'
-                      }
-                      ${isCollapsed ? 'justify-center px-0 h-10 border-l-0' : ''}
-                    `}
+                    className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+                      active 
+                        ? 'bg-[#181C26] text-white font-semibold shadow-sm border border-white/5' 
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   >
-                    <Icon 
-                      className={`size-4 shrink-0 transition-colors
-                        ${isActive ? 'text-[#8B5CF6]' : 'text-[#686D79] group-hover:text-[#F8FAFC]'}
-                      `} 
-                    />
-
+                    <Icon className={`size-3.5 shrink-0 ${active ? 'text-[#8B5CF6]' : 'text-white/50'}`} />
                     {!isCollapsed && (
-                      <span className="truncate flex-1 text-left">
-                        {item.label}
-                      </span>
+                      <span className="truncate">{item.label}</span>
                     )}
-
                     {!isCollapsed && item.badge && (
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${getBadgeClasses(item.badgeVariant)}`}>
+                      <span className="ml-auto text-[8px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white/70">
                         {item.badge}
                       </span>
-                    )}
-
-                    {/* Floating Tooltip when collapsed */}
-                    {isCollapsed && (
-                      <div className="hidden group-hover:flex absolute left-full ml-3 px-2.5 py-1 bg-[#181C26] text-[#F8FAFC] text-xs rounded-lg shadow-xl border border-[#1F2430] whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 font-medium animate-in fade-in duration-150">
-                        <span>{item.label}</span>
-                        {item.badge && (
-                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full border ${getBadgeClasses(item.badgeVariant)}`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
                     )}
                   </button>
                 );
               })}
             </div>
           ))}
-        </div>
+        </nav>
 
-        {/* Sidebar Footer: User Card & Local Telemetry */}
-        <div className="border-t border-[#1F2430] p-2.5 space-y-2 bg-[#0B0D12]">
-          
-          {/* User Profile Area */}
-          <div 
-            onClick={onOpenAuthModal}
-            className={`flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#12151D] cursor-pointer transition-colors border border-transparent hover:border-[#1F2430]
-              ${isCollapsed ? 'justify-center' : ''}
-            `}
-            title="Switch User / Account Settings"
-          >
-            <div className="size-8 rounded-full bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center font-bold font-mono text-xs shrink-0 shadow-sm">
-              {user?.username ? user.username.slice(0, 2).toUpperCase() : 'DO'}
-            </div>
-            
-            {!isCollapsed && (
-              <>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-xs font-semibold text-[#F8FAFC] truncate">
-                    {user?.name || user?.username || 'Local Developer'}
-                  </div>
-                  <div className="text-[10px] text-[#686D79] truncate flex items-center gap-1">
-                    <span className="size-1.5 rounded-full bg-[#22C55E]" />
-                    <span>Active Session</span>
-                  </div>
-                </div>
-                {user && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      logout();
-                    }}
-                    title="Sign Out"
-                    className="p-1 rounded-lg text-[#686D79] hover:text-[#EF4444] hover:bg-[#181C26] transition-colors"
-                  >
-                    <LogOut className="size-3.5" />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Quick System Telemetry */}
-          {!isCollapsed ? (
-            <div className="px-2 pt-1 flex items-center justify-between text-[10px] font-mono text-[#686D79]">
-              <div className="flex items-center gap-1 text-[#22C55E]">
-                <Database className="size-3" />
-                <span>SQLite Active</span>
-              </div>
-              <div className="flex items-center gap-1 text-[#C5C8D0]">
-                <Zap className="size-3 text-[#8B5CF6]" />
-                <span>Eco Mode</span>
-              </div>
+        {/* User Profile Card & Footer Actions */}
+        <div className="p-2.5 border-t border-white/8 shrink-0 bg-[#0B0D12]">
+          {isCollapsed ? (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => onSelectTab('settings')}
+                title="Settings"
+                className="size-8 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[10px] font-bold flex items-center justify-center hover:opacity-90"
+              >
+                {getInitials(user?.name || user?.username)}
+              </button>
+              {onToggleCollapse && (
+                <button
+                  onClick={onToggleCollapse}
+                  className="size-6 flex items-center justify-center text-white/30 hover:text-white rounded"
+                  title="Expand sidebar"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+              )}
             </div>
           ) : (
-            <div className="flex items-center justify-center pt-1" title="SQLite Database Active">
-              <span className="size-2 rounded-full bg-[#22C55E] animate-pulse" />
-            </div>
-          )}
+            <div className="space-y-1">
+              <button
+                onClick={() => onSelectTab('profile')}
+                className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/5 text-left transition group"
+              >
+                <div className="size-7 rounded-lg bg-[#EEEAFB] text-[#6D3FE0] text-[9px] font-bold flex items-center justify-center shrink-0">
+                  {getInitials(user?.name || user?.username)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-white truncate leading-snug">
+                    {user?.name || user?.username || 'Dev User'}
+                  </p>
+                  <p className="text-[9px] text-white/40 truncate">
+                    @{user?.username || 'developer'}
+                  </p>
+                </div>
+              </button>
 
-          {/* Collapsed expand toggle button */}
-          {isCollapsed && onToggleCollapse && (
-            <button
-              onClick={onToggleCollapse}
-              title="Expand Sidebar"
-              className="hidden lg:flex w-full py-1 text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] rounded-lg items-center justify-center"
-            >
-              <ChevronRight className="size-4" />
-            </button>
+              <div className="flex items-center justify-between px-1.5 pt-1 text-[10px] text-white/40">
+                <button
+                  onClick={() => onSelectTab('settings')}
+                  className="hover:text-white flex items-center gap-1 transition"
+                >
+                  <Settings className="size-3" />
+                  <span>Settings</span>
+                </button>
+                <button
+                  onClick={() => logout()}
+                  className="hover:text-red-400 flex items-center gap-1 transition"
+                  title="Sign out"
+                >
+                  <LogOut className="size-3" />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </aside>
