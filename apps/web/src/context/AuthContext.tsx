@@ -37,10 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearAuthError = () => setAuthError(null);
 
-  const fetchCurrentUser = async (authToken: string) => {
+  const fetchCurrentUser = async (authToken?: string | null) => {
     try {
+      const headers: Record<string, string> = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
       const res = await fetch('/api/v1/auth/me', {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers,
+        credentials: 'same-origin',
       });
       if (res.ok) {
         const json = await res.json();
@@ -60,11 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchCurrentUser(token);
-    } else {
-      setIsLoading(false);
-    }
+    fetchCurrentUser(token);
   }, []);
 
   const login = async (loginId: string, pass: string): Promise<boolean> => {
@@ -116,12 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    if (token) {
-      fetch('/api/v1/auth/logout', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
+    fetch('/api/v1/auth/logout', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'same-origin',
+    }).catch(() => {});
     localStorage.removeItem('devorbit_token');
     setToken(null);
     setUser(null);

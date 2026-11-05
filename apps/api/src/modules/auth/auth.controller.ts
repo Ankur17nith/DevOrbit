@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service.js';
-import { AuthRequest } from '../../middleware/auth.js';
+import { AuthRequest, extractToken } from '../../middleware/auth.js';
 
 const authService = new AuthService();
 
@@ -8,6 +8,13 @@ export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.register(req.body);
+      res.cookie('devorbit_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
       res.status(201).json({
         success: true,
         data: result,
@@ -20,6 +27,13 @@ export class AuthController {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.login(req.body);
+      res.cookie('devorbit_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
       res.json({
         success: true,
         data: result,
@@ -31,8 +45,15 @@ export class AuthController {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.headers.authorization?.split(' ')[1] || '';
-      await authService.logout(token);
+      const token = extractToken(req) || '';
+      if (token) {
+        await authService.logout(token);
+      }
+      res.clearCookie('devorbit_token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      });
       res.json({
         success: true,
         message: 'Logged out successfully',

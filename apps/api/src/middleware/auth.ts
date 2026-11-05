@@ -12,13 +12,27 @@ export interface AuthRequest extends Request {
   };
 }
 
-export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+export function extractToken(req: Request): string | null {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const match = cookieHeader.match(/(?:^|;\s*)devorbit_token=([^;]+)/);
+    if (match) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+  return null;
+}
+
+export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  const token = extractToken(req);
+  if (!token) {
     return next(new UnauthorizedError('Authentication token missing or invalid'));
   }
 
-  const token = authHeader.split(' ')[1];
   try {
     const payload = verifyToken(token);
     const session = await prisma.session.findUnique({
@@ -57,12 +71,11 @@ export function requireRole(...roles: string[]) {
 }
 
 export function optionalAuthenticate(req: AuthRequest, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractToken(req);
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.split(' ')[1];
   try {
     const payload = verifyToken(token);
     prisma.session.findUnique({
