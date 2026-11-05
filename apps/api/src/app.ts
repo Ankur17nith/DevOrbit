@@ -21,6 +21,7 @@ import { fixRouter } from './modules/fix/fix.routes.js';
 import { safechangeRouter } from './modules/safechange/safechange.routes.js';
 import { integrationsRouter } from './modules/integrations/integrations.routes.js';
 import { systemRouter } from './modules/system/system.routes.js';
+import { profileRouter } from './modules/profile/profile.routes.js';
 
 export const app = express();
 
@@ -69,6 +70,7 @@ v1Router.use('/navigator', navigatorRouter);
 v1Router.use('/fix', fixRouter);
 v1Router.use('/safechange', safechangeRouter);
 v1Router.use('/integrations', integrationsRouter);
+v1Router.use('/profile', profileRouter);
 
 // Support both /api/v1/... and direct /api/... mounting for maximum compatibility
 app.use('/api/v1', v1Router);
