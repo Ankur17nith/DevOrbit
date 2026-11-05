@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { randomUUID } from 'crypto';
-import { config } from './config/index.js';
+import { config, prisma } from './config/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Route imports
@@ -52,12 +52,43 @@ app.get(['/', '/health', '/api/health', '/api/v1/health'], (_req, res) => {
     time: new Date().toISOString(),
     endpoints: {
       health: '/api/v1/health',
+      live: '/api/v1/live',
+      ready: '/api/v1/ready',
       auth: '/api/v1/auth',
       integrations: '/api/v1/integrations',
       opensource: '/api/v1/opensource',
       profile: '/api/v1/profile',
     },
   });
+});
+
+// Liveness probe (HTTP server alive and responsive)
+app.get(['/live', '/api/live', '/api/v1/live'], (_req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Readiness probe (Database connectivity and subsystem health)
+app.get(['/ready', '/api/ready', '/api/v1/ready'], async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ready',
+      database: 'connected',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: process.env.NODE_ENV === 'production' ? 'Database unreachable' : err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Mount Versioned API Modules

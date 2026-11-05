@@ -55,4 +55,20 @@ describe('API Structured JSON Error Handling & HTML Prevention Contract', () => 
       process.env.NODE_ENV = originalEnv;
     }
   });
+
+  it('5. Successfully exposes /live and /ready probes with database connectivity status', async () => {
+    const liveRes = await request(app).get('/live');
+    expect(liveRes.status).toBe(200);
+    expect(liveRes.body.status).toBe('ok');
+    expect(typeof liveRes.body.uptime).toBe('number');
+
+    const readyRes = await request(app).get('/ready');
+    expect(readyRes.status).toBe(200);
+    expect(readyRes.body.status).toBe('ready');
+    expect(readyRes.body.database).toBe('connected');
+
+    const v1ReadyRes = await request(app).get('/api/v1/ready');
+    expect(v1ReadyRes.status).toBe(200);
+    expect(v1ReadyRes.body.status).toBe('ready');
+  });
 });
