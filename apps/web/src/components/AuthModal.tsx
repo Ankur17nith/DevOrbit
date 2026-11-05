@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, ShieldCheck, ArrowRight } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { DevOrbitLogo } from './DevOrbitLogo.js';
-import { Button, StatusBadge } from './ui/index.js';
+import { Button } from './ui/index.js';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { login, register, demoLogin, authError, user } = useAuth();
+  const { login, register, authError } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -73,37 +73,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {isRegisterMode ? 'Create DevOrbit Account' : 'Authenticate Session'}
           </h2>
           <p className="text-xs text-[#686D79]">Local-first Multi-User Developer Intelligence OS</p>
-        </div>
-
-        {/* Explicit Demo Account Button (Development & Testing) */}
-        <div className="mt-4 p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] font-semibold">
-              Local Demo Session
-            </span>
-            <StatusBadge variant="violet" size="sm">
-              Dev Only
-            </StatusBadge>
-          </div>
-          <button
-            type="button"
-            onClick={async () => {
-              await demoLogin();
-              onClose();
-            }}
-            className="w-full flex items-center justify-between p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all text-left"
-          >
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-full bg-[#8B5CF6]/20 text-[#A78BFA] flex items-center justify-center text-[10px] font-mono font-bold">
-                AL
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-[#F8FAFC]">Sandbox Environment (Test Fixture)</div>
-                <div className="text-[10px] text-[#686D79]">Populates sample local projects & DSA</div>
-              </div>
-            </div>
-            <span className="text-xs text-[#8B5CF6] font-medium">Use Demo →</span>
-          </button>
         </div>
 
         {error && (
