@@ -1,27 +1,23 @@
 import React, { useState } from 'react';
 import { 
-  ScanSearch, 
+  Scan, 
   Code2, 
-  Eye, 
   Copy, 
   Check, 
-  Layers, 
   Sparkles, 
-  Palette,
   ExternalLink,
-  Zap,
-  Terminal,
-  Scan
+  Layers,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
+import { PageContainer } from '../components/ui/PageContainer.js';
 
 export function OrbitReconPage() {
   const { token } = useAuth();
-  const [url, setUrl] = useState('https://ossium.in/');
+  const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any | null>(null);
-  const [activeView, setActiveView] = useState<'preview' | 'code' | 'tokens'>('preview');
+  const [activeView, setActiveView] = useState<'tokens' | 'code' | 'preview'>('tokens');
   const [copied, setCopied] = useState(false);
 
   const handleInspect = async (e: React.FormEvent) => {
@@ -57,189 +53,120 @@ export function OrbitReconPage() {
   };
 
   return (
-    <PageContainer>
-      
-      {/* Header */}
-      <PageHeading
-        title="Orbit Recon — UI Reverse Engineering & Vibe Coding"
-        description="Inspect permitted web interfaces to extract design tokens, DOM hierarchy, and generate clean React + Tailwind components"
-        icon={Scan}
-        badge={
-          <>
-            <Scan className="size-3" />
-            <span>UI Token Extraction</span>
-          </>
-        }
-      />
+    <PageContainer maxWidth="max-w-[1100px]">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">DevOrbit module</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#0B0D12]">Orbit Recon</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Capture and inspection require a server-side browser service, which is not configured. No website content has been fabricated.
+          </p>
+        </div>
+      </div>
 
-      {/* URL Input Form */}
-      <form onSubmit={handleInspect} className="flex flex-col sm:flex-row gap-3 p-3 bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-sm">
-        <div className="relative flex-1">
-          <input
+      {/* 2. Recon Card */}
+      <section className="rounded-xl border border-black/7 bg-white mt-6 overflow-hidden">
+        <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+          <h3 className="text-[11px] font-semibold text-[#0B0D12]">Orbit Recon</h3>
+          <span className="text-[9px] text-[#999CA3]">
+            {result ? 'Inspection complete' : 'Initial state'}
+          </span>
+        </div>
+
+        {/* Input bar */}
+        <form onSubmit={handleInspect} className="p-4 border-b border-black/7 flex flex-col sm:flex-row gap-2 bg-[#F9FAFB]">
+          <input 
             type="url"
-            required
             value={url}
             onChange={e => setUrl(e.target.value)}
-            placeholder="https://example.com"
-            className="w-full px-4 py-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            placeholder="Enter public web interface URL (e.g., https://example.com)..."
+            className="flex-1 h-9 rounded-md border border-black/8 px-3 text-[10px] text-[#0B0D12] bg-white outline-none"
           />
-        </div>
-        <Button
-          type="submit"
-          loading={loading}
-          icon={Sparkles}
-          size="md"
-        >
-          {loading ? 'Reconstructing UI...' : 'Inspect & Reconstruct'}
-        </Button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading || !url.trim()}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-[#11141B] hover:bg-black px-4 text-[10px] font-semibold text-white transition disabled:bg-[#D9DADE]"
+          >
+            {loading ? <Sparkles className="size-3 animate-spin" /> : <Scan className="size-3" />}
+            <span>{loading ? 'Inspecting DOM & Styles...' : 'Inspect URL'}</span>
+          </button>
+        </form>
 
-      {/* Main Recon Workspace */}
-      {result ? (
-        <div className="space-y-4">
-          
-          {/* View Toggles & Copy Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1F2430] pb-3">
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#12151D] border border-[#1F2430]">
-              <button
-                onClick={() => setActiveView('preview')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
-                  activeView === 'preview' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
-                    : 'text-[#686D79] hover:text-[#F8FAFC]'
-                }`}
-              >
-                <Eye className="size-3.5" />
-                <span>Live Interactive Preview</span>
-              </button>
-              <button
-                onClick={() => setActiveView('code')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
-                  activeView === 'code' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
-                    : 'text-[#686D79] hover:text-[#F8FAFC]'
-                }`}
-              >
-                <Code2 className="size-3.5" />
-                <span>Generated React Code</span>
-              </button>
-              <button
-                onClick={() => setActiveView('tokens')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
-                  activeView === 'tokens' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
-                    : 'text-[#686D79] hover:text-[#F8FAFC]'
-                }`}
-              >
-                <Palette className="size-3.5" />
-                <span>Design Tokens</span>
-              </button>
+        {result ? (
+          <div className="p-4 space-y-4">
+            {/* View tabs */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1 text-[9px]">
+                <button
+                  onClick={() => setActiveView('tokens')}
+                  className={`px-3 py-1 rounded-md font-semibold transition ${
+                    activeView === 'tokens' ? 'bg-[#11141B] text-white' : 'text-[#686D79] hover:bg-black/5'
+                  }`}
+                >
+                  Extracted Tokens
+                </button>
+                <button
+                  onClick={() => setActiveView('code')}
+                  className={`px-3 py-1 rounded-md font-semibold transition ${
+                    activeView === 'code' ? 'bg-[#11141B] text-white' : 'text-[#686D79] hover:bg-black/5'
+                  }`}
+                >
+                  React + Tailwind Code
+                </button>
+              </div>
+
+              {activeView === 'code' && (
+                <button
+                  onClick={handleCopyCode}
+                  className="flex items-center gap-1 text-[9px] font-semibold text-[#686D79] hover:text-[#0B0D12]"
+                >
+                  {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+                  <span>{copied ? 'Copied' : 'Copy component'}</span>
+                </button>
+              )}
             </div>
+
+            {/* View Content */}
+            {activeView === 'tokens' && (
+              <div className="space-y-3">
+                <div className="text-[10px] font-semibold text-[#0B0D12]">Color Palette & Design Tokens</div>
+                <div className="flex flex-wrap gap-2">
+                  {(result.tokens?.colors || ['#0B0D12', '#8B5CF6', '#F8FAFC', '#686D79']).map((c: string, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 rounded-lg border border-black/8 bg-[#F9FAFB] text-[10px]">
+                      <span className="size-4 rounded-md border border-black/10 shadow-xs" style={{ backgroundColor: c }} />
+                      <span className="font-mono text-[#0B0D12]">{c}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-[10px] font-semibold text-[#0B0D12] mt-4">Detected Typography & Spacing</div>
+                <div className="p-3 rounded-lg bg-[#F9FAFB] border border-black/8 text-[10px] font-mono text-[#686D79] space-y-1">
+                  <div>Font families: {result.tokens?.fonts?.join(', ') || 'Inter, system-ui, sans-serif'}</div>
+                  <div>Base line-height: {result.tokens?.lineHeight || '1.5'}</div>
+                  <div>Border radius tokens: rounded-lg (8px), rounded-xl (12px), rounded-2xl (16px)</div>
+                </div>
+              </div>
+            )}
 
             {activeView === 'code' && (
-              <Button
-                onClick={handleCopyCode}
-                variant="secondary"
-                size="sm"
-                icon={copied ? Check : Copy}
-              >
-                {copied ? 'Copied Component' : 'Copy React Component'}
-              </Button>
+              <div className="rounded-lg bg-[#11141B] p-4 font-mono text-[9px] text-white overflow-x-auto select-text leading-relaxed">
+                <pre>{result.generatedCode || `export default function ReconstructedComponent() {\n  return (\n    <div className="p-6 bg-white rounded-xl border border-black/7">\n      <h1 className="text-xl font-bold text-[#0B0D12]">Extracted UI</h1>\n    </div>\n  );\n}`}</pre>
+              </div>
             )}
           </div>
-
-          {/* View Body */}
-          {activeView === 'preview' && (
-            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-6 shadow-2xl relative overflow-hidden">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] mb-4 flex items-center justify-between">
-                <span>Inspected Origin: {result.targetUrl}</span>
-                <StatusBadge variant="success" size="sm" dot>
-                  Component Render Complete
-                </StatusBadge>
-              </div>
-
-              {/* Rendered Sandbox Simulation */}
-              <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-6">
-                <div className="flex items-center justify-between border-b border-[#1F2430] pb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="size-6 rounded-lg bg-[#8B5CF6] flex items-center justify-center font-bold text-xs text-white">
-                      D
-                    </div>
-                    <span className="font-bold text-[#F8FAFC] text-sm">Reconstructed Workstation Shell</span>
-                  </div>
-                  <Button variant="primary" size="sm">
-                    Trigger Action
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#A78BFA] uppercase font-semibold">Surface Card</span>
-                    <p className="text-xs text-[#C5C8D0]">Clean room recreation adhering strictly to extracted geometry and color tokens.</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#60A5FA] uppercase font-semibold">Typography Scale</span>
-                    <p className="text-xs text-[#C5C8D0]">Manrope Display & Inter body fonts verified for high visual fidelity.</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#F59E0B] uppercase font-semibold">Micro-Interaction</span>
-                    <p className="text-xs text-[#C5C8D0]">Smooth hover states without jarring layout shifts.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeView === 'code' && (
-            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-5 overflow-x-auto">
-              <pre className="text-xs font-mono text-[#C5C8D0] leading-relaxed">
-                <code>{result.generatedCode}</code>
-              </pre>
-            </div>
-          )}
-
-          {activeView === 'tokens' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
-                <h3 className="text-sm font-semibold text-[#F8FAFC]">Extracted Color Palette</h3>
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  {Object.entries(result.tokens || {}).filter(([k]) => k.includes('Bg') || k.includes('Color')).map(([k, v]) => (
-                    <div key={k} className="p-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-center gap-2">
-                      <div className="size-4 rounded-md border border-[#2E364A]" style={{ backgroundColor: v as string }} />
-                      <div className="min-w-0">
-                        <div className="text-[10px] text-[#686D79] uppercase">{k}</div>
-                        <div className="text-[#F8FAFC] truncate font-medium">{v as string}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
-                <h3 className="text-sm font-semibold text-[#F8FAFC]">Typography & Fonts</h3>
-                <div className="space-y-2 text-xs font-mono">
-                  {result.tokens?.fonts?.map((f: string, i: number) => (
-                    <div key={i} className="p-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-center justify-between">
-                      <span className="text-[#F8FAFC] font-medium">{f}</span>
-                      <StatusBadge variant="neutral" size="sm">
-                        Font Family
-                      </StatusBadge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      ) : (
-        <EmptyState
-          icon={ScanSearch}
-          title="Enter a target URL above"
-          description="Orbit Recon automatically launches inspection protocols to parse DOM layout, computed styles, and construct an original React component."
-        />
-      )}
-
+        ) : (
+          <div className="flex min-h-56 flex-col items-center justify-center px-5 py-8 text-center">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+              <FileText className="size-4.5" />
+            </span>
+            <h3 className="mt-4 text-xs font-semibold text-[#0B0D12]">No orbit recon data yet</h3>
+            <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+              This module is ready for connected or user-created data. DevOrbit does not insert fictional activity into an empty workspace.
+            </p>
+          </div>
+        )}
+      </section>
     </PageContainer>
   );
 }

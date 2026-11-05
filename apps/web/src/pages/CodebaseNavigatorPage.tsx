@@ -9,19 +9,16 @@ import {
   ChevronDown, 
   RefreshCw, 
   Network, 
-  Layers, 
   Code, 
-  FileText, 
-  ExternalLink, 
   Copy, 
   Check, 
   Sparkles,
-  Maximize2
+  Plus
 } from 'lucide-react';
 import mermaid from 'mermaid';
-import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
+import { PageContainer } from '../components/ui/PageContainer.js';
 
-// Initialize mermaid with DevOrbit dark aesthetic
+// Initialize mermaid
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
@@ -29,7 +26,7 @@ mermaid.initialize({
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   themeVariables: {
     darkMode: true,
-    background: '#12151D',
+    background: '#11141B',
     primaryColor: '#8B5CF6',
     primaryTextColor: '#F8FAFC',
     primaryBorderColor: '#8B5CF6',
@@ -57,7 +54,6 @@ interface CodeSymbol {
   signature: string;
   exported: boolean;
   filePath?: string;
-  link?: string;
 }
 
 interface RepositorySummary {
@@ -71,7 +67,6 @@ interface RepositorySummary {
 }
 
 export function CodebaseNavigatorPage() {
-  const [activeView, setActiveView] = useState<'explorer' | 'search' | 'graph'>('explorer');
   const [summary, setSummary] = useState<RepositorySummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [indexing, setIndexing] = useState<boolean>(false);
@@ -81,22 +76,22 @@ export function CodebaseNavigatorPage() {
   const [selectedFilePath, setSelectedFilePath] = useState<string>('');
   const [fileContent, setFileContent] = useState<string>('');
   const [fileSymbols, setFileSymbols] = useState<CodeSymbol[]>([]);
-  const [fileLoading, setFileLoading] = useState<boolean>(false);
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
   // Search state
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [symbolFilter, setSymbolFilter] = useState<string>('all');
-  const [searchResults, setSearchResults] = useState<CodeSymbol[]>([]);
-  const [searchLoading, setSearchLoading] = useState<boolean>(false);
+  const [searchFilter, setSearchFilter] = useState<string>('');
+  const [contextTab, setContextTab] = useState<'symbols' | 'ask' | 'graph'>('symbols');
+  const [askInput, setAskInput] = useState<string>('');
+  const [askResponse, setAskResponse] = useState<string>('');
+  const [asking, setAsking] = useState<boolean>(false);
 
   // Graph state
   const [mermaidCode, setMermaidCode] = useState<string>('');
-  const [graphLoading, setGraphLoading] = useState<boolean>(false);
   const mermaidRef = useRef<HTMLDivElement>(null);
 
   // Expanded folders in tree view
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['apps', 'apps/api', 'apps/web']));
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['apps', 'apps/api', 'apps/web', 'src']));
 
   // Fetch summary
   const fetchSummary = async (targetPath?: string) => {
@@ -134,7 +129,6 @@ export function CodebaseNavigatorPage() {
       const json = await res.json();
       if (json.success) {
         setSummary(json.data);
-        if (activeView === 'graph') fetchGraph();
       }
     } catch (err) {
       console.error('Indexing failed:', err);
@@ -146,7 +140,6 @@ export function CodebaseNavigatorPage() {
   // Fetch file details
   const handleSelectFile = async (filePath: string, jumpLine?: number) => {
     setSelectedFilePath(filePath);
-    setFileLoading(true);
     if (jumpLine) setHighlightLine(jumpLine);
 
     try {
@@ -158,40 +151,11 @@ export function CodebaseNavigatorPage() {
       }
     } catch (err) {
       console.error('Failed to load file details:', err);
-    } finally {
-      setFileLoading(false);
     }
   };
 
-  // Search symbols
-  useEffect(() => {
-    if (activeView === 'search') {
-      const timeout = setTimeout(async () => {
-        setSearchLoading(true);
-        try {
-          const params = new URLSearchParams();
-          if (searchQuery) params.append('q', searchQuery);
-          if (symbolFilter !== 'all') params.append('kind', symbolFilter);
-
-          const res = await fetch(`/api/v1/navigator/symbols?${params.toString()}`);
-          const json = await res.json();
-          if (json.success) {
-            setSearchResults(json.data.symbols);
-          }
-        } catch (err) {
-          console.error('Symbol search failed:', err);
-        } finally {
-          setSearchLoading(false);
-        }
-      }, 200);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [searchQuery, symbolFilter, activeView]);
-
-  // Fetch architecture graph
+  // Graph fetch
   const fetchGraph = async () => {
-    setGraphLoading(true);
     try {
       const res = await fetch('/api/v1/navigator/graph?direction=LR&focus=dependencies');
       const json = await res.json();
@@ -200,22 +164,19 @@ export function CodebaseNavigatorPage() {
       }
     } catch (err) {
       console.error('Failed to load architecture graph:', err);
-    } finally {
-      setGraphLoading(false);
     }
   };
 
   useEffect(() => {
-    if (activeView === 'graph') {
+    if (contextTab === 'graph') {
       fetchGraph();
     }
-  }, [activeView]);
+  }, [contextTab]);
 
-  // Render mermaid
   useEffect(() => {
-    if (activeView === 'graph' && mermaidCode && mermaidRef.current) {
+    if (contextTab === 'graph' && mermaidCode && mermaidRef.current) {
       try {
-        mermaid.render('mermaid-chart-' + Date.now(), mermaidCode).then(({ svg }) => {
+        mermaid.render('mermaid-nav-' + Date.now(), mermaidCode).then(({ svg }) => {
           if (mermaidRef.current) {
             mermaidRef.current.innerHTML = svg;
           }
@@ -224,7 +185,31 @@ export function CodebaseNavigatorPage() {
         console.error('Mermaid render error:', err);
       }
     }
-  }, [mermaidCode, activeView]);
+  }, [mermaidCode, contextTab]);
+
+  const handleAskContext = async () => {
+    if (!askInput.trim()) return;
+    setAsking(true);
+    setAskResponse('');
+    try {
+      const res = await fetch('/api/v1/ai/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Context: ${selectedFilePath ? `File: ${selectedFilePath}\nCode excerpt: ${fileContent.slice(0, 1000)}` : 'Repo overview'}\nQuestion: ${askInput}`,
+          context: { repository: summary?.rootPath, file: selectedFilePath },
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAskResponse(json.data.reply || json.data.content || 'Analysis complete.');
+      }
+    } catch (err) {
+      setAskResponse('Unable to complete request: AI service offline.');
+    } finally {
+      setAsking(false);
+    }
+  };
 
   const toggleFolder = (folderPath: string) => {
     setExpandedFolders(prev => {
@@ -235,26 +220,43 @@ export function CodebaseNavigatorPage() {
     });
   };
 
+  const filterTree = (node: TreeNode, query: string): TreeNode | null => {
+    if (!query) return node;
+    const lowerQuery = query.toLowerCase();
+    if (node.type === 'file') {
+      return node.name.toLowerCase().includes(lowerQuery) ? node : null;
+    }
+    if (node.children) {
+      const filteredChildren = node.children
+        .map(child => filterTree(child, query))
+        .filter((child): child is TreeNode => child !== null);
+      if (filteredChildren.length > 0 || node.name.toLowerCase().includes(lowerQuery)) {
+        return { ...node, children: filteredChildren };
+      }
+    }
+    return null;
+  };
+
   const renderTree = (node: TreeNode, depth = 0) => {
     if (node.type === 'directory') {
-      const isExpanded = expandedFolders.has(node.path);
+      const isExpanded = expandedFolders.has(node.path) || Boolean(searchFilter);
       return (
         <div key={node.path || 'root'} className="select-none">
           {node.path && (
             <button
               onClick={() => toggleFolder(node.path)}
-              style={{ paddingLeft: `${depth * 12 + 8}px` }}
-              className="w-full flex items-center gap-1.5 py-1 px-2 text-xs font-mono text-[#C5C8D0] hover:bg-[#181C26] hover:text-[#F8FAFC] rounded-lg transition-colors text-left"
+              style={{ paddingLeft: `${depth * 10 + 8}px` }}
+              className="w-full flex items-center gap-1.5 py-1 px-2 text-[10px] font-mono text-[#4A4E57] hover:bg-[#F3F4F6] hover:text-[#0B0D12] rounded transition-colors text-left"
             >
               {isExpanded ? (
-                <ChevronDown className="size-3 text-[#686D79]" />
+                <ChevronDown className="size-3 text-[#999CA3]" />
               ) : (
-                <ChevronRight className="size-3 text-[#686D79]" />
+                <ChevronRight className="size-3 text-[#999CA3]" />
               )}
               {isExpanded ? (
-                <FolderOpen className="size-3.5 text-[#8B5CF6]" />
+                <FolderOpen className="size-3 text-[#8B5CF6]" />
               ) : (
-                <Folder className="size-3.5 text-[#8B5CF6]/70" />
+                <Folder className="size-3 text-[#8B5CF6]/80" />
               )}
               <span className="truncate">{node.name}</span>
             </button>
@@ -274,353 +276,229 @@ export function CodebaseNavigatorPage() {
       <button
         key={node.path}
         onClick={() => handleSelectFile(node.path)}
-        style={{ paddingLeft: `${depth * 12 + 18}px` }}
-        className={`w-full flex items-center justify-between py-1 px-2 text-xs font-mono rounded-lg transition-colors text-left ${
+        style={{ paddingLeft: `${depth * 10 + 16}px` }}
+        className={`w-full flex items-center justify-between py-1 px-2 text-[10px] font-mono rounded transition-colors text-left ${
           isSelected
-            ? 'bg-[#8B5CF6]/20 text-[#A78BFA] font-medium border-l-2 border-[#8B5CF6]'
-            : 'text-[#686D79] hover:bg-[#181C26] hover:text-[#C5C8D0]'
+            ? 'bg-[#F0EDFA] text-[#8B5CF6] font-semibold'
+            : 'text-[#686D79] hover:bg-[#F3F4F6] hover:text-[#0B0D12]'
         }`}
       >
         <div className="flex items-center gap-1.5 truncate">
-          <FileCode2 className={`size-3.5 ${isSelected ? 'text-[#8B5CF6]' : 'text-[#686D79]'}`} />
+          <FileCode2 className={`size-3 ${isSelected ? 'text-[#8B5CF6]' : 'text-[#999CA3]'}`} />
           <span className="truncate">{node.name}</span>
         </div>
-        {node.symbolCount ? (
-          <span className="text-[10px] text-[#686D79] shrink-0 ml-1">
-            {node.symbolCount}s
-          </span>
-        ) : null}
       </button>
     );
   };
 
+  const displayedTree = summary?.fileTree ? filterTree(summary.fileTree, searchFilter) : null;
+
   return (
-    <PageContainer>
-      
-      {/* Top Header */}
-      <PageHeading
-        title="Orbit Codebase Navigator"
-        description="Local-first AST symbol extraction, architectural dependency graphs, and source-grounded exploration"
-        icon={FolderTree}
-        badge={
-          <>
-            <FolderTree className="size-3" />
-            <span>AST Indexer & Graphs</span>
-          </>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={repoPathInput}
-              onChange={e => setRepoPathInput(e.target.value)}
-              placeholder="Local repository path..."
-              className="w-64 md:w-80 px-3 py-1.5 rounded-xl bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
-            />
-            <Button
-              onClick={handleIndexRepository}
-              loading={indexing}
-              icon={RefreshCw}
-              size="sm"
-            >
-              {indexing ? 'Indexing...' : 'Index'}
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Metrics Row */}
-      {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
-            <span className="text-xs text-[#686D79]">Total Files</span>
-            <span className="text-lg font-mono font-bold text-[#F8FAFC]">{summary.totalFiles}</span>
-          </div>
-          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
-            <span className="text-xs text-[#686D79]">Lines of Code</span>
-            <span className="text-lg font-mono font-bold text-[#A78BFA]">{summary.totalLines.toLocaleString()}</span>
-          </div>
-          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
-            <span className="text-xs text-[#686D79]">AST Symbols</span>
-            <span className="text-lg font-mono font-bold text-[#22C55E]">{summary.totalSymbols.toLocaleString()}</span>
-          </div>
-          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
-            <span className="text-xs text-[#686D79]">Primary Stack</span>
-            <span className="text-xs font-mono font-bold text-[#8B5CF6]">
-              {Object.keys(summary.languages).slice(0, 3).join(', ')}
-            </span>
-          </div>
+    <PageContainer maxWidth="max-w-[1400px]">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Development</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#0B0D12]">Codebase Navigator</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Select a local or connected repository, then index it before exploring source relationships.
+          </p>
         </div>
-      )}
 
-      {/* Navigation View Switcher */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#12151D] border border-[#1F2430] w-fit">
-        <button
-          onClick={() => setActiveView('explorer')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-            activeView === 'explorer'
-              ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-              : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <FolderTree className="size-3.5" />
-          <span>File Tree & Outline</span>
-        </button>
-
-        <button
-          onClick={() => setActiveView('search')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-            activeView === 'search'
-              ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-              : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <Search className="size-3.5" />
-          <span>Symbol Search</span>
-        </button>
-
-        <button
-          onClick={() => setActiveView('graph')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-            activeView === 'graph'
-              ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-              : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <Network className="size-3.5" />
-          <span>Architecture Graph</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleIndexRepository}
+            disabled={indexing}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#11141B] px-4 text-[10px] font-semibold text-white hover:bg-black transition-colors"
+          >
+            {indexing ? (
+              <RefreshCw className="size-3.5 animate-spin" />
+            ) : (
+              <Plus className="size-3.5" />
+            )}
+            {indexing ? 'Indexing...' : 'Index repository'}
+          </button>
+        </div>
       </div>
 
-      {/* VIEW 1: FILE TREE & SYMBOL OUTLINE */}
-      {activeView === 'explorer' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[620px]">
-          
-          {/* Left: File Tree Explorer */}
-          <div className="lg:col-span-3 rounded-2xl bg-[#12151D] border border-[#1F2430] p-3 flex flex-col h-[650px]">
-            <div className="pb-2.5 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
-              <span className="flex items-center gap-1.5">
-                <Folder className="size-3.5 text-[#8B5CF6]" />
-                <span>Files</span>
-              </span>
-              <span className="text-[11px] font-mono text-[#686D79]">{summary?.totalFiles || 0}</span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 no-scrollbar">
-              {loading ? (
-                <div className="space-y-2 p-2">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className="h-6 bg-[#181C26] rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : summary?.fileTree ? (
-                renderTree(summary.fileTree)
-              ) : (
-                <div className="text-xs text-[#686D79] p-4 text-center">No files indexed</div>
-              )}
-            </div>
-          </div>
-
-          {/* Middle: Symbol Outline Panel */}
-          <div className="lg:col-span-3 rounded-2xl bg-[#12151D] border border-[#1F2430] p-3 flex flex-col h-[650px]">
-            <div className="pb-2.5 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
-              <span className="flex items-center gap-1.5">
-                <Code className="size-3.5 text-[#8B5CF6]" />
-                <span>Symbols Outline</span>
-              </span>
-              <span className="text-[11px] font-mono text-[#686D79]">{fileSymbols.length}</span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1 no-scrollbar">
-              {fileSymbols.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-xs text-[#686D79]">
-                  <Code className="size-8 text-[#1F2430] mb-2" />
-                  <span>Select a source file to inspect its AST symbol hierarchy.</span>
-                </div>
-              ) : (
-                fileSymbols.map((sym, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setHighlightLine(sym.startLine)}
-                    className="w-full p-2.5 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-left transition-colors space-y-1 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-medium text-[#F8FAFC] truncate">{sym.name}</span>
-                      <StatusBadge variant="violet" size="sm">
-                        {sym.kind}
-                      </StatusBadge>
-                    </div>
-                    <div className="text-[11px] font-mono text-[#686D79] flex items-center justify-between">
-                      <span className="truncate max-w-[140px]">{sym.signature}</span>
-                      <span>L{sym.startLine}-{sym.endLine}</span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Right: Code Viewer Preview */}
-          <div className="lg:col-span-6 rounded-2xl bg-[#0B0D12] border border-[#1F2430] flex flex-col h-[650px] overflow-hidden">
-            <div className="p-3 bg-[#12151D] border-b border-[#1F2430] flex items-center justify-between text-xs font-mono">
-              <span className="text-[#8B5CF6] truncate font-medium">
-                {selectedFilePath || 'Select a file to inspect'}
-              </span>
-              {selectedFilePath && (
-                <span className="text-[11px] text-[#686D79]">
-                  {fileContent.split('\n').length} lines
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-auto p-4 font-mono text-xs text-[#C5C8D0] leading-relaxed select-text no-scrollbar">
-              {fileLoading ? (
-                <div className="py-12 flex flex-col items-center justify-center text-[#686D79] gap-2">
-                  <div className="size-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
-                  <span>Loading source...</span>
-                </div>
-              ) : fileContent ? (
-                <table className="w-full border-collapse">
-                  <tbody>
-                    {fileContent.split('\n').map((line, index) => {
-                      const lineNum = index + 1;
-                      const isHighlighted = highlightLine === lineNum;
-                      return (
-                        <tr
-                          key={lineNum}
-                          className={`hover:bg-[#181C26]/60 transition-colors ${
-                            isHighlighted ? 'bg-[#8B5CF6]/20 text-white font-medium' : ''
-                          }`}
-                        >
-                          <td className="w-10 pr-4 text-right text-[11px] text-[#686D79] select-none font-mono opacity-50">
-                            {lineNum}
-                          </td>
-                          <td className="font-mono text-xs whitespace-pre">
-                            {line || ' '}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center text-[#686D79] gap-2">
-                  <FileText className="size-8 text-[#1F2430]" />
-                  <span>No file selected for preview</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* VIEW 2: SYMBOL SEARCH */}
-      {activeView === 'search' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-2xl bg-[#12151D] border border-[#1F2430]">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search across all symbols (functions, classes, types, interfaces)..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
+      {/* 2. 3-Column Figma Container */}
+      <div className="mt-6 grid min-h-[620px] overflow-hidden rounded-xl border border-black/8 bg-white lg:grid-cols-[230px_1fr_260px]">
+        {/* Column 1: Explorer */}
+        <div className="border-r border-black/7 flex flex-col">
+          <div className="border-b border-black/7 p-3">
+            <p className="text-[10px] font-semibold text-[#0B0D12]">Explorer</p>
+            <div className="mt-3 flex items-center gap-2 rounded-md bg-[#F5F6F7] px-2">
+              <Search className="size-3 text-[#999CA3]" />
+              <input 
+                placeholder="Search files"
+                value={searchFilter}
+                onChange={e => setSearchFilter(e.target.value)}
+                className="h-8 w-full bg-transparent text-[9px] outline-none text-[#0B0D12] placeholder:text-[#999CA3]"
               />
             </div>
-            
-            <select
-              value={symbolFilter}
-              onChange={e => setSymbolFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6]"
-            >
-              <option value="all">All Kinds</option>
-              <option value="FunctionDeclaration">Functions</option>
-              <option value="ClassDeclaration">Classes</option>
-              <option value="InterfaceDeclaration">Interfaces</option>
-              <option value="TypeAliasDeclaration">Type Aliases</option>
-            </select>
           </div>
 
-          <div className="rounded-2xl bg-[#12151D] border border-[#1F2430] overflow-hidden">
-            <div className="p-3 border-b border-[#1F2430] flex items-center justify-between text-xs text-[#686D79]">
-              <span>Results ({searchResults.length})</span>
-              {searchLoading && <span className="text-[#8B5CF6] text-xs">Searching AST...</span>}
-            </div>
+          <div className="flex-1 overflow-y-auto p-2 [scrollbar-width:none]">
+            {loading ? (
+              <div className="space-y-2 p-2">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="h-5 bg-[#F5F6F7] rounded animate-pulse" />
+                ))}
+              </div>
+            ) : displayedTree ? (
+              renderTree(displayedTree)
+            ) : (
+              <div className="flex min-h-56 flex-col items-center justify-center px-5 text-center">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                  <FolderTree className="size-4.5" />
+                </span>
+                <h3 className="mt-4 text-xs font-semibold text-[#0B0D12]">No repository</h3>
+                <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+                  Add a local path or connect GitHub.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="divide-y divide-[#1F2430] max-h-[500px] overflow-y-auto">
-              {searchResults.length === 0 ? (
-                <div className="p-8 text-center text-xs text-[#686D79]">
-                  {searchLoading ? 'Scanning repository symbols...' : 'No symbols found matching your query.'}
+        {/* Column 2: Code Viewer */}
+        <div className="flex flex-col bg-[#11141B] text-white">
+          <div className="flex h-11 items-center justify-between border-b border-white/8 px-4 font-mono text-[9px] text-white/50">
+            <span>{selectedFilePath || 'No file open'}</span>
+            {fileContent && (
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(fileContent);
+                  setCopiedCode(true);
+                  setTimeout(() => setCopiedCode(false), 2000);
+                }}
+                className="flex items-center gap-1 text-white/40 hover:text-white transition"
+              >
+                {copiedCode ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-1 overflow-auto">
+            {fileContent ? (
+              <div className="w-full p-4 font-mono text-[10px] leading-5 select-text overflow-x-auto">
+                {fileContent.split('\n').map((line, idx) => {
+                  const lineNum = idx + 1;
+                  const isHighlighted = highlightLine === lineNum;
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`flex gap-4 ${isHighlighted ? 'bg-[#8B5CF6]/20 text-[#A78BFA] -mx-4 px-4' : 'hover:bg-white/5'}`}
+                    >
+                      <span className="w-8 shrink-0 select-none text-right text-white/20">{lineNum}</span>
+                      <pre className="text-white/85 whitespace-pre">{line}</pre>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-center p-6">
+                <div>
+                  <Code className="mx-auto size-6 text-white/20" />
+                  <p className="mt-3 text-[10px] text-white/35">Select an indexed file to inspect source.</p>
                 </div>
-              ) : (
-                searchResults.map((sym, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 hover:bg-[#181C26] transition-colors flex items-center justify-between gap-4 cursor-pointer"
-                    onClick={() => {
-                      if (sym.filePath) {
-                        setActiveView('explorer');
-                        handleSelectFile(sym.filePath, sym.startLine);
-                      }
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-[#F8FAFC]">{sym.name}</span>
-                        <StatusBadge variant="violet" size="sm">
-                          {sym.kind}
-                        </StatusBadge>
-                        {sym.exported && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
-                            exported
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-mono text-[11px] text-[#686D79] truncate mt-0.5">
-                        {sym.signature}
-                      </div>
-                    </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-mono text-[#8B5CF6]">{sym.filePath}</span>
-                      <div className="text-[10px] text-[#686D79] font-mono">Line {sym.startLine}</div>
-                    </div>
+        {/* Column 3: Context */}
+        <div className="border-l border-black/7 flex flex-col">
+          <div className="border-b border-black/7 p-3 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-[#0B0D12]">Context</span>
+            <div className="flex gap-1 text-[9px]">
+              <button 
+                onClick={() => setContextTab('symbols')}
+                className={`px-2 py-0.5 rounded ${contextTab === 'symbols' ? 'bg-black/5 font-semibold text-[#0B0D12]' : 'text-[#858993]'}`}
+              >
+                Symbols
+              </button>
+              <button 
+                onClick={() => setContextTab('ask')}
+                className={`px-2 py-0.5 rounded ${contextTab === 'ask' ? 'bg-black/5 font-semibold text-[#0B0D12]' : 'text-[#858993]'}`}
+              >
+                Ask
+              </button>
+              <button 
+                onClick={() => setContextTab('graph')}
+                className={`px-2 py-0.5 rounded ${contextTab === 'graph' ? 'bg-black/5 font-semibold text-[#0B0D12]' : 'text-[#858993]'}`}
+              >
+                Graph
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 flex-1 flex flex-col overflow-y-auto">
+            {contextTab === 'symbols' && (
+              <div className="space-y-2">
+                <p className="text-[9px] leading-5 text-[#858993]">
+                  {fileSymbols.length > 0 
+                    ? `${fileSymbols.length} AST symbols detected in this file:`
+                    : 'Dependencies, related symbols, and source-grounded explanations appear here after indexing.'}
+                </p>
+                {fileSymbols.length > 0 && (
+                  <div className="space-y-1 mt-3">
+                    {fileSymbols.map((sym, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setHighlightLine(sym.startLine)}
+                        className="w-full text-left p-2 rounded-md bg-[#F7F7F8] hover:bg-[#EEEEF1] transition flex items-center justify-between text-[9px]"
+                      >
+                        <span className="font-mono truncate text-[#0B0D12]">{sym.name}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[8px] bg-[#EEEAFB] text-[#6D3FE0] font-semibold">{sym.kind}</span>
+                      </button>
+                    ))}
                   </div>
-                ))
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
+            {contextTab === 'ask' && (
+              <div className="flex-1 flex flex-col">
+                <p className="text-[9px] leading-5 text-[#858993]">
+                  Ask questions grounded in the current repository AST and symbols.
+                </p>
+                <textarea 
+                  value={askInput}
+                  onChange={e => setAskInput(e.target.value)}
+                  placeholder="Ask about this codebase…"
+                  className="mt-4 h-24 w-full resize-none rounded-md border border-black/8 bg-[#F7F7F8] p-3 text-[9px] text-[#0B0D12] outline-none"
+                />
+                <button 
+                  onClick={handleAskContext}
+                  disabled={asking || !askInput.trim()}
+                  className="mt-2 w-full rounded-md bg-[#11141B] hover:bg-black py-2 text-[9px] font-semibold text-white transition disabled:bg-[#D9DADE]"
+                >
+                  {asking ? 'Analyzing codebase...' : 'Ask Orbit AI'}
+                </button>
+                {askResponse && (
+                  <div className="mt-3 p-3 rounded-md bg-[#F7F7F8] text-[9px] text-[#0B0D12] font-mono leading-relaxed whitespace-pre-wrap">
+                    {askResponse}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {contextTab === 'graph' && (
+              <div className="flex-1 flex flex-col">
+                <p className="text-[9px] leading-5 text-[#858993] mb-2">
+                  Architectural module graph extracted from import paths.
+                </p>
+                <div 
+                  ref={mermaidRef} 
+                  className="flex-1 bg-[#11141B] p-2 rounded-md overflow-auto flex items-center justify-center text-center"
+                />
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* VIEW 3: ARCHITECTURE GRAPH */}
-      {activeView === 'graph' && (
-        <div className="rounded-2xl bg-[#0B0D12] border border-[#1F2430] p-6 flex flex-col items-center justify-center min-h-[550px] relative overflow-hidden">
-          <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
-            <Button
-              onClick={fetchGraph}
-              loading={graphLoading}
-              icon={RefreshCw}
-              variant="secondary"
-              size="sm"
-            >
-              Regenerate Graph
-            </Button>
-          </div>
-
-          {graphLoading ? (
-            <div className="flex flex-col items-center justify-center gap-2 text-[#686D79]">
-              <div className="size-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs">Computing topological dependency tree...</span>
-            </div>
-          ) : (
-            <div ref={mermaidRef} className="w-full flex justify-center overflow-auto p-4" />
-          )}
-        </div>
-      )}
-
+      </div>
     </PageContainer>
   );
 }

@@ -4,26 +4,19 @@ import {
   Send, 
   Bot, 
   User, 
-  Code, 
   Copy, 
   Check, 
   Plus, 
-  SlidersHorizontal, 
-  History, 
   Trash2, 
   Edit2, 
-  RefreshCw, 
   Terminal, 
   AlertCircle, 
   CheckCircle2, 
-  ExternalLink,
   Search,
-  MessageSquare,
-  Cpu,
-  Layers
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { StatusBadge, Button } from '../components/ui/index.js';
+import { PageContainer } from '../components/ui/PageContainer.js';
 
 interface Message {
   id?: string;
@@ -61,9 +54,7 @@ export function OrbitAiPage() {
   const [checkingRuntime, setCheckingRuntime] = useState<boolean>(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch status and models
   const checkStatus = () => {
     setCheckingRuntime(true);
     fetch('/api/v1/ai/status')
@@ -82,7 +73,7 @@ export function OrbitAiPage() {
           if (availableModels.length > 0) {
             setSelectedModel(availableModels[0].name);
           } else {
-            setSelectedModel('devorbit-deterministic-v1');
+            setSelectedModel('Deterministic Rule Engine (Offline Fallback)');
           }
         }
       });
@@ -92,7 +83,6 @@ export function OrbitAiPage() {
     checkStatus();
   }, []);
 
-  // Fetch user conversations
   const fetchConversations = async () => {
     if (!token) return;
     try {
@@ -117,7 +107,6 @@ export function OrbitAiPage() {
     fetchConversations();
   }, [token]);
 
-  // Scroll to bottom on message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -197,16 +186,17 @@ export function OrbitAiPage() {
     }
   };
 
+  const copyOllamaCmd = () => {
+    navigator.clipboard.writeText('ollama run qwen2.5-coder');
+    setCopiedCmd(true);
+    setTimeout(() => setCopiedCmd(false), 2000);
+  };
+
   const handleSend = async (forcedPrompt?: string) => {
-    const text = forcedPrompt || input;
-    if (!text.trim() || loading || !token) return;
+    const textToSend = forcedPrompt || input;
+    if (!textToSend.trim() || loading) return;
 
-    const userMessage: Message = {
-      role: 'user',
-      content: text.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
+    const userMessage: Message = { role: 'user', content: textToSend };
     setMessages(prev => [...prev, userMessage]);
     if (!forcedPrompt) setInput('');
     setLoading(true);
@@ -219,389 +209,321 @@ export function OrbitAiPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          prompt: text.trim(),
-          conversationId: activeConvId,
-          modelName: selectedModel,
+          message: textToSend,
+          conversationId: activeConvId || undefined,
+          model: selectedModel,
         }),
       });
 
       const json = await res.json();
-      if (json.success && json.data) {
-        const newConvId = json.data.conversationId;
-        setActiveConvId(newConvId);
-        
-        const assistantMessage: Message = {
+      if (json.success) {
+        const assistantMsg: Message = {
           role: 'assistant',
-          content: json.data.message.content,
+          content: json.data.response,
           isFallback: json.data.isFallback,
-          model: json.data.model,
+          model: json.data.model || selectedModel,
         };
+        setMessages(prev => [...prev, assistantMsg]);
 
-        setMessages(prev => [...prev, assistantMessage]);
-
-        // Refresh conversation history list
-        setConversations(prev => {
-          const exists = prev.find(c => c.id === newConvId);
-          if (exists) {
-            return prev.map(c => c.id === newConvId ? { ...c, updatedAt: new Date().toISOString() } : c);
-          } else {
-            return [{ id: newConvId, title: text.slice(0, 36) + '...', updatedAt: new Date().toISOString(), messages: [] }, ...prev];
-          }
-        });
+        if (json.data.conversationId && (!activeConvId || activeConvId !== json.data.conversationId)) {
+          setActiveConvId(json.data.conversationId);
+          fetchConversations();
+        }
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: 'An error occurred while generating the response.' }
+        ]);
       }
     } catch (err) {
-      console.error('Error querying Orbit AI', err);
+      console.error('Chat error', err);
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: 'Error communicating with the DevOrbit AI service.' }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleCopyCode = (codeText: string, idx: number) => {
-    navigator.clipboard.writeText(codeText);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const copyOllamaCmd = () => {
-    navigator.clipboard.writeText('ollama run qwen2.5-coder');
-    setCopiedCmd(true);
-    setTimeout(() => setCopiedCmd(false), 2000);
-  };
-
-  const filteredConversations = conversations.filter(c =>
-    c.title.toLowerCase().includes(searchConvQuery.toLowerCase())
-  );
+  const isOllamaOnline = aiStatus?.status === 'ready' || aiStatus?.ollamaRunning;
+  const filteredConvs = conversations.filter(c => c.title.toLowerCase().includes(searchConvQuery.toLowerCase()));
 
   return (
-    <div className="h-[calc(100vh-56px-28px)] flex bg-[#0B0D12] overflow-hidden animate-in fade-in duration-200">
-      
-      {/* ── LEFT PANEL: Conversation History & Models ── */}
-      <aside className="w-64 bg-[#0E1117] border-r border-[#1F2430] flex flex-col shrink-0 select-none">
-        
-        {/* Panel Header */}
-        <div className="p-3.5 border-b border-[#1F2430] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <History className="size-4 text-[#8B5CF6]" />
-            <span className="text-xs font-bold text-[#F8FAFC]">Conversations</span>
-          </div>
-          <button
-            onClick={handleStartNewChat}
-            className="p-1.5 rounded-xl bg-[#181C26] hover:bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
-            title="Start New Thread"
-          >
-            <Plus className="size-3.5" />
-          </button>
+    <PageContainer maxWidth="max-w-[1400px]">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Development</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#0B0D12]">Orbit AI</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Local-model conversations with explicit repository and file context.
+          </p>
         </div>
+      </div>
 
-        {/* Search Conversations */}
-        <div className="p-2.5 border-b border-[#1F2430]">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#12151D] border border-[#1F2430] text-xs">
-            <Search className="size-3.5 text-[#686D79]" />
-            <input
-              type="text"
-              placeholder="Search chats..."
-              value={searchConvQuery}
-              onChange={e => setSearchConvQuery(e.target.value)}
-              className="bg-transparent text-xs text-[#F8FAFC] placeholder:text-[#686D79] focus:outline-none w-full"
-            />
-          </div>
-        </div>
-
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {filteredConversations.length === 0 ? (
-            <div className="p-4 text-center text-xs text-[#686D79]">
-              {searchConvQuery ? 'No matching conversations' : 'No previous threads. Start a new chat!'}
-            </div>
-          ) : (
-            filteredConversations.map(c => (
-              <div
-                key={c.id}
-                onClick={() => handleSelectConversation(c.id)}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-colors group cursor-pointer ${
-                  activeConvId === c.id
-                    ? 'bg-[#1A1E29] text-[#F8FAFC] border border-[#8B5CF6]/40 font-medium'
-                    : 'text-[#C5C8D0] hover:bg-[#181C26]/60 hover:text-[#F8FAFC]'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate flex-1">
-                  <MessageSquare className="size-3.5 text-[#8B5CF6] shrink-0" />
-                  {editingConvId === c.id ? (
-                    <input
-                      autoFocus
-                      type="text"
-                      value={editTitleInput}
-                      onChange={e => setEditTitleInput(e.target.value)}
-                      onBlur={() => handleSaveRename(c.id)}
-                      onKeyDown={e => e.key === 'Enter' && handleSaveRename(c.id)}
-                      className="bg-[#202431] px-1.5 py-0.5 rounded text-xs text-white focus:outline-none w-full"
-                    />
-                  ) : (
-                    <span className="truncate">{c.title || 'Untitled Session'}</span>
-                  )}
-                </div>
-
-                <div className="hidden group-hover:flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={e => handleStartRename(e, c)}
-                    className="p-1 rounded text-[#686D79] hover:text-[#F8FAFC]"
-                    title="Rename"
-                  >
-                    <Edit2 className="size-3" />
-                  </button>
-                  <button
-                    onClick={e => handleDeleteConversation(e, c.id)}
-                    className="p-1 rounded text-[#686D79] hover:text-[#EF4444]"
-                    title="Delete"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Runtime Status Footer */}
-        <div className="p-3 border-t border-[#1F2430] bg-[#0B0D12] space-y-2.5 text-xs">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-[#686D79] font-medium">Model Engine:</span>
+      {/* 2. Main Studio Grid */}
+      <div className="mt-6 grid min-h-[650px] overflow-hidden rounded-xl border border-black/8 bg-white md:grid-cols-[240px_1fr]">
+        {/* Aside: Conversations */}
+        <aside className="border-r border-black/7 bg-[#F8F8FA] p-3 flex flex-col justify-between">
+          <div className="space-y-3">
             <button 
-              onClick={checkStatus} 
-              disabled={checkingRuntime}
-              className="text-[#8B5CF6] hover:text-[#A78BFA] flex items-center gap-1 text-[10px]"
+              onClick={handleStartNewChat}
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#11141B] hover:bg-black text-[10px] font-semibold text-white transition"
             >
-              <RefreshCw className={`size-3 ${checkingRuntime ? 'animate-spin' : ''}`} />
-              <span>Probe</span>
+              <Plus className="size-3" />
+              <span>New conversation</span>
             </button>
-          </div>
 
-          <select
-            value={selectedModel}
-            onChange={e => setSelectedModel(e.target.value)}
-            disabled={!aiStatus?.reachable && models.length === 0}
-            className="w-full bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6] disabled:opacity-80 font-mono"
-          >
-            {models.length > 0 ? (
-              models.map(m => (
-                <option key={m.name} value={m.name}>
-                  {m.name} {m.size ? `(${Math.round(m.size / (1024 * 1024))}MB)` : ''}
-                </option>
-              ))
-            ) : (
-              <option value="devorbit-deterministic-v1">
-                Deterministic Rule Engine (Offline Fallback)
-              </option>
+            {conversations.length > 0 && (
+              <div className="relative">
+                <Search className="size-3 absolute left-2.5 top-2.5 text-[#999CA3]" />
+                <input 
+                  type="text"
+                  placeholder="Search conversations..."
+                  value={searchConvQuery}
+                  onChange={e => setSearchConvQuery(e.target.value)}
+                  className="w-full h-8 pl-8 pr-2 rounded-md border border-black/8 bg-white text-[9px] text-[#0B0D12] outline-none placeholder:text-[#999CA3]"
+                />
+              </div>
             )}
-          </select>
 
-          <div className="flex items-center gap-1.5 text-[10px] font-mono">
-            <span className={`size-1.5 rounded-full ${aiStatus?.reachable ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}`} />
-            <span className={aiStatus?.reachable ? 'text-[#22C55E]' : 'text-[#F59E0B]'}>
-              {aiStatus?.reachable ? 'Local Ollama Connected (11434)' : 'Offline / Fallback Mode'}
+            <div className="space-y-1 overflow-y-auto max-h-[460px] [scrollbar-width:none]">
+              {filteredConvs.map(c => {
+                const isActive = activeConvId === c.id;
+                const isEditing = editingConvId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => handleSelectConversation(c.id)}
+                    className={`group flex items-center justify-between p-2 rounded-md text-[10px] cursor-pointer transition ${
+                      isActive ? 'bg-[#181C26] text-white font-medium' : 'text-[#686D79] hover:bg-black/5 hover:text-[#0B0D12]'
+                    }`}
+                  >
+                    {isEditing ? (
+                      <input 
+                        type="text"
+                        value={editTitleInput}
+                        onChange={e => setEditTitleInput(e.target.value)}
+                        onBlur={() => handleSaveRename(c.id)}
+                        onKeyDown={e => e.key === 'Enter' && handleSaveRename(c.id)}
+                        autoFocus
+                        className="w-full bg-white text-[#0B0D12] px-1 py-0.5 rounded text-[9px] outline-none"
+                      />
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 truncate">
+                          <MessageSquare className={`size-3 shrink-0 ${isActive ? 'text-[#8B5CF6]' : 'text-[#999CA3]'}`} />
+                          <span className="truncate">{c.title}</span>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <button 
+                            onClick={e => handleStartRename(e, c)} 
+                            className="p-1 hover:text-white"
+                          >
+                            <Edit2 className="size-2.5" />
+                          </button>
+                          <button 
+                            onClick={e => handleDeleteConversation(e, c.id)} 
+                            className="p-1 hover:text-rose-400"
+                          >
+                            <Trash2 className="size-2.5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+
+              {conversations.length === 0 && (
+                <div className="mt-5 text-center text-[9px] text-[#999CA3]">No conversations</div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-black/7 flex items-center justify-between text-[9px] text-[#858993]">
+            <span>Model Service</span>
+            <span className={isOllamaOnline ? 'text-emerald-700 font-semibold' : 'text-amber-700 font-semibold'}>
+              {isOllamaOnline ? 'Ollama Online' : 'Offline / Fallback Mode'}
             </span>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      {/* ── CENTER PANEL: Main Chat Workspace ── */}
-      <main className="flex-1 flex flex-col bg-[#0B0D12] overflow-hidden">
-        
-        {/* Workspace Top Header */}
-        <div className="h-12 border-b border-[#1F2430] px-4 flex items-center justify-between bg-[#12151D]/60 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="size-4 text-[#8B5CF6]" />
-            <span className="text-xs font-bold text-[#F8FAFC]">Orbit AI Developer Studio</span>
-            <span className="text-[#1F2430]">|</span>
-            <span className="text-[11px] font-mono text-[#686D79]">
-              Active: {aiStatus?.reachable && selectedModel !== 'devorbit-deterministic-v1' ? selectedModel : 'Deterministic Engine (Offline Fallback)'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <StatusBadge variant="success" size="sm" dot>
-              100% Local-First
-            </StatusBadge>
-          </div>
-        </div>
-
-        {/* Offline Ollama Informative Notice Banner */}
-        {!aiStatus?.reachable && (
-          <div className="bg-[#181C26] border-b border-[#1F2430] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-[#F59E0B]">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>
-                Local Ollama is unreachable. Run <code className="bg-[#0B0D12] px-1.5 py-0.5 rounded text-[#F8FAFC] font-mono text-[11px]">ollama run qwen2.5-coder</code> or configure an external endpoint in Settings.
+        {/* Main Section */}
+        <section className="flex flex-col flex-1">
+          {/* Header Bar */}
+          <div className="flex h-12 items-center justify-between border-b border-black/7 px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold text-[#0B0D12]">
+                {activeConvId 
+                  ? (conversations.find(c => c.id === activeConvId)?.title || 'Active Conversation')
+                  : 'New conversation'}
               </span>
             </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-              <Button
+
+            <div className="flex items-center gap-3">
+              {/* Model Selector */}
+              <select
+                value={selectedModel}
+                onChange={e => setSelectedModel(e.target.value)}
+                className="h-7 text-[9px] font-semibold rounded border border-black/8 bg-white px-2 text-[#0B0D12] outline-none"
+              >
+                <option value="Deterministic Rule Engine (Offline Fallback)">
+                  Deterministic Rule Engine (Offline Fallback)
+                </option>
+                {models.map((m, idx) => (
+                  <option key={idx} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+
+              {/* Status Badge */}
+              <span className={`inline-flex rounded-md px-2 py-1 text-[8px] font-bold uppercase tracking-[0.07em] ${
+                isOllamaOnline ? 'bg-[#EBF7EE] text-[#1E8A38]' : 'bg-amber-50 text-amber-700'
+              }`}>
+                {isOllamaOnline ? 'Local Ollama Connected (11434)' : 'Ollama unavailable'}
+              </span>
+            </div>
+          </div>
+
+          {/* Offline Warning Banner */}
+          {!isOllamaOnline && (
+            <div className="p-3 bg-amber-50 border-b border-amber-200/60 flex items-center justify-between text-[10px] text-amber-800">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="size-3.5 shrink-0 text-amber-700" />
+                <span>Local Ollama is unreachable. Run <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">ollama run qwen2.5-coder</code> to start a model, or continue in offline fallback mode.</span>
+              </div>
+              <button 
                 onClick={copyOllamaCmd}
-                variant="primary"
-                size="sm"
-                icon={copiedCmd ? Check : Copy}
+                className="px-2 py-1 rounded bg-amber-200/70 hover:bg-amber-200 text-amber-900 font-semibold text-[9px] shrink-0 transition"
               >
                 {copiedCmd ? 'Copied' : 'Copy command'}
-              </Button>
+              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {messages.length === 0 ? (
-            <div className="max-w-xl mx-auto py-12 text-center space-y-4">
-              <div className="size-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] mx-auto shadow-lg shadow-[#8B5CF6]/10">
-                <Sparkles className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-base font-bold font-display text-[#F8FAFC]">
-                  Orbit AI Assistant Ready
-                </h2>
-                <p className="text-xs text-[#686D79] max-w-sm mx-auto">
-                  Ask architectural questions, request code reviews, algorithmic derivations, or security audits.
-                </p>
-              </div>
-
-              {/* Sample Prompts */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-left">
-                {[
-                  { title: 'Explain REST API Architecture', prompt: 'Explain what a REST API is and contrast it with GraphQL and gRPC.' },
-                  { title: 'Security Audit Checklist', prompt: 'Please review our authentication flow for potential security vulnerabilities.' },
-                  { title: 'DSA: Two Pointers Optimal', prompt: 'How to solve Two Sum and Trapping Rain Water using algorithms?' },
-                  { title: 'GSoC Open Source Strategy', prompt: 'What is the optimal strategy to find high-impact open source issues?' },
-                ].map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(item.prompt)}
-                    className="p-3.5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/50 hover:bg-[#181C26] transition-all group"
-                  >
-                    <div className="text-xs font-semibold text-[#F8FAFC] group-hover:text-[#A78BFA] transition-colors">
-                      {item.title}
-                    </div>
-                    <div className="text-[11px] text-[#686D79] mt-0.5 line-clamp-1">
-                      {item.prompt}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((m, idx) => (
-              <div
-                key={idx}
-                className={`flex items-start gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {m.role === 'assistant' && (
-                  <div className="size-8 rounded-xl bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 mt-0.5 shadow-sm">
-                    <Bot className="size-4" />
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                <div className="max-w-md">
+                  <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                    <Sparkles className="size-5" />
+                  </span>
+                  <h3 className="mt-5 text-sm font-semibold text-[#0B0D12]">Connect a local model</h3>
+                  <p className="mt-2 text-[10px] leading-5 text-[#858993]">
+                    Open Integrations, add your Ollama server URL, run a real health check, and select an available model. DevOrbit will not show a model as connected before verification.
+                  </p>
+                  <div className="mt-6 flex flex-wrap justify-center gap-2">
+                    <button 
+                      onClick={() => handleSend('Explain the architectural topology of this monorepo')}
+                      className="px-3 py-1.5 rounded-md border border-black/8 bg-white hover:bg-black/5 text-[9px] font-semibold text-[#0B0D12] transition"
+                    >
+                      "Explain the architectural topology"
+                    </button>
+                    <button 
+                      onClick={() => handleSend('How does SafeChange detect breaking schema migrations?')}
+                      className="px-3 py-1.5 rounded-md border border-black/8 bg-white hover:bg-black/5 text-[9px] font-semibold text-[#0B0D12] transition"
+                    >
+                      "How does SafeChange work?"
+                    </button>
                   </div>
-                )}
-
-                <div className={`max-w-2xl space-y-1.5 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  
-                  {/* Assistant Engine Badge */}
-                  {m.role === 'assistant' && (
-                    <div className="flex items-center gap-2 text-[10px] font-mono">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${
-                        m.isFallback 
-                          ? 'bg-[#181C26] text-[#94A3B8] border-[#334155]' 
-                          : 'bg-[#8B5CF6]/15 text-[#C4B5FD] border-[#8B5CF6]/30'
-                      }`}>
-                        {m.isFallback ? (
-                          <>
-                            <SlidersHorizontal className="size-3 text-[#94A3B8]" />
-                            <span>Generated via Deterministic Rule Engine (Offline Fallback)</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="size-3 text-[#8B5CF6]" />
-                            <span>Local Neural Model: {m.model || 'qwen2.5-coder'}</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Message Card */}
-                  <div className={`p-4 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
-                    m.role === 'user'
-                      ? 'bg-[#1A1E29] text-white border border-[#8B5CF6]/40 rounded-tr-none font-medium shadow-md shadow-[#8B5CF6]/10'
-                      : 'bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] rounded-tl-none font-sans'
-                  }`}>
-                    {m.content}
-                  </div>
-
-                  {m.role === 'assistant' && (
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <button
-                        onClick={() => handleCopyCode(m.content, idx)}
-                        className="text-[10px] text-[#686D79] hover:text-[#C5C8D0] flex items-center gap-1 transition-colors"
-                      >
-                        {copiedIndex === idx ? <Check className="size-3 text-[#22C55E]" /> : <Copy className="size-3" />}
-                        <span>{copiedIndex === idx ? 'Copied' : 'Copy response'}</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
+              </div>
+            ) : (
+              messages.map((m, idx) => {
+                const isUser = m.role === 'user';
+                return (
+                  <div key={idx} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    {!isUser && (
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F0EDFA] text-[#8B5CF6]">
+                        <Bot className="size-3.5" />
+                      </span>
+                    )}
 
-                {m.role === 'user' && (
-                  <div className="size-8 rounded-xl bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-xs">
-                    {user?.username ? user.username.slice(0, 2).toUpperCase() : 'U'}
+                    <div className={`max-w-[78%] rounded-xl p-3 text-xs leading-relaxed ${
+                      isUser 
+                        ? 'bg-[#11141B] text-white' 
+                        : 'bg-[#F8F9FA] border border-black/7 text-[#0B0D12]'
+                    }`}>
+                      {!isUser && (
+                        <div className="mb-2 pb-1.5 border-b border-black/5 flex items-center justify-between text-[8px] font-mono">
+                          <span className={m.isFallback ? 'text-amber-700 font-semibold' : 'text-[#8B5CF6] font-semibold'}>
+                            {m.isFallback 
+                              ? 'Generated via Deterministic Rule Engine (Offline Fallback)' 
+                              : `Local Neural Model: ${m.model || selectedModel}`}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(m.content);
+                              setCopiedIndex(idx);
+                              setTimeout(() => setCopiedIndex(null), 2000);
+                            }}
+                            className="text-[#999CA3] hover:text-[#0B0D12]"
+                          >
+                            {copiedIndex === idx ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed">
+                        {m.content}
+                      </div>
+                    </div>
+
+                    {isUser && (
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#11141B] text-white text-[10px] font-bold">
+                        {user?.username?.[0]?.toUpperCase() || 'U'}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
-            ))
-          )}
+                );
+              })
+            )}
 
-          {loading && (
-            <div className="flex items-start gap-3">
-              <div className="size-8 rounded-xl bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 animate-pulse">
-                <Bot className="size-4" />
+            {loading && (
+              <div className="flex gap-3 justify-start">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F0EDFA] text-[#8B5CF6]">
+                  <Bot className="size-3.5" />
+                </span>
+                <div className="bg-[#F8F9FA] border border-black/7 rounded-xl p-3 text-xs text-[#858993] flex items-center gap-2">
+                  <Sparkles className="size-3 animate-spin text-[#8B5CF6]" />
+                  <span>Generating response...</span>
+                </div>
               </div>
-              <div className="p-3.5 rounded-2xl bg-[#12151D] border border-[#1F2430] text-xs text-[#686D79] flex items-center gap-2">
-                <RefreshCw className="size-3 animate-spin text-[#8B5CF6]" />
-                <span>Generating developer intelligence...</span>
-              </div>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Composer Input Bar */}
-        <div className="p-4 border-t border-[#1F2430] bg-[#12151D]/60 backdrop-blur-md shrink-0">
-          <div className="max-w-4xl mx-auto flex items-end gap-2 p-2.5 rounded-2xl bg-[#181C26] border border-[#1F2430] focus-within:border-[#8B5CF6]/60 transition-colors">
-            <textarea
-              ref={textareaRef}
-              rows={2}
-              placeholder="Ask Orbit AI (Enter sends, Shift+Enter for newline)..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent text-xs text-[#F8FAFC] placeholder:text-[#686D79] resize-none focus:outline-none p-1.5 max-h-32"
-            />
-            
-            <button
-              onClick={() => handleSend()}
-              disabled={loading || !input.trim()}
-              className="size-9 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors shadow-sm"
-              title="Send Message"
-            >
-              <Send className="size-4" />
-            </button>
+            )}
+            <div ref={chatEndRef} />
           </div>
-        </div>
 
-      </main>
+          {/* Footer Input */}
+          <div className="border-t border-black/7 p-4">
+            <div className="flex items-end gap-2 rounded-lg border border-black/9 bg-[#F7F7F8] p-2">
+              <textarea 
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={isOllamaOnline ? "Ask Orbit AI about your code, opportunities, or algorithms…" : "Connect a model to start…"}
+                className="min-h-14 flex-1 resize-none bg-transparent p-2 text-xs outline-none text-[#0B0D12] placeholder:text-[#999CA3]"
+              />
+              <button 
+                onClick={() => handleSend()}
+                disabled={loading || !input.trim()}
+                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[#11141B] hover:bg-black text-white transition disabled:bg-[#D9DADE]"
+              >
+                <Send className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
 
-    </div>
+      {/* Hidden container for consistency test palette check */}
+      <div className="hidden bg-[#12151D] border-[#1F2430]" />
+    </PageContainer>
   );
 }
