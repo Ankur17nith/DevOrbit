@@ -50,6 +50,23 @@ function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('devorbit_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('devorbit_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -164,10 +181,12 @@ function AppContent() {
         onOpenAuthModal={() => setAuthModalOpen(true)}
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
       />
 
       {/* 2. Main Content Layout (Offset for Left Sidebar) */}
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-200 lg:pl-60">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-60'}`}>
         
         {/* Global Action Top Bar */}
         <TopBar

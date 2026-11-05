@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, 
   Code2, 
@@ -22,7 +22,6 @@ import {
   Zap,
   Terminal,
   Activity,
-  UserCheck,
   LogOut,
   BookOpen,
   X
@@ -36,6 +35,8 @@ interface SidebarProps {
   onOpenAuthModal: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface NavItem {
@@ -43,7 +44,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: string | number;
-  badgeColor?: string;
+  badgeVariant?: 'violet' | 'amber' | 'green' | 'neutral';
 }
 
 interface NavGroup {
@@ -51,25 +52,16 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, onCloseMobile }: SidebarProps) {
+export function Sidebar({ 
+  currentTab, 
+  onSelectTab, 
+  onOpenAuthModal, 
+  mobileOpen, 
+  onCloseMobile,
+  isCollapsed = false,
+  onToggleCollapse,
+}: SidebarProps) {
   const { user, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('devorbit_sidebar_collapsed') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const toggleCollapse = () => {
-    setIsCollapsed(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem('devorbit_sidebar_collapsed', String(next));
-      } catch {}
-      return next;
-    });
-  };
 
   const navGroups: NavGroup[] = [
     {
@@ -85,13 +77,13 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
         { id: 'fix', label: 'Orbit Fix', icon: Wrench },
         { id: 'safechange', label: 'Orbit SafeChange', icon: ShieldAlert },
         { id: 'recon', label: 'Orbit Recon', icon: Scan },
-        { id: 'ai', label: 'Orbit AI', icon: Sparkles, badge: 'Local', badgeColor: 'bg-[#8B5CF6]/20 text-[#A78BFA] border-[#8B5CF6]/30' },
+        { id: 'ai', label: 'Orbit AI', icon: Sparkles, badge: 'Local', badgeVariant: 'violet' },
       ],
     },
     {
       group: 'Learning',
       items: [
-        { id: 'dsa', label: 'DSA Intelligence', icon: Brain, badge: 'SM-2', badgeColor: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30' },
+        { id: 'dsa', label: 'DSA Intelligence', icon: Brain, badge: 'SM-2', badgeVariant: 'amber' },
         { id: 'profile', label: 'Skill Intelligence', icon: Activity },
       ],
     },
@@ -100,7 +92,7 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
       items: [
         { id: 'catalog', label: 'Discover', icon: Compass },
         { id: 'trending', label: 'Trending', icon: Flame },
-        { id: 'gsoc', label: 'Organizations & Fellowships', icon: Building2 },
+        { id: 'gsoc', label: 'Organizations', icon: Building2 },
         { id: 'issues', label: 'Issues & Pipeline', icon: GitPullRequest },
         { id: 'bounties', label: 'Bounties', icon: Coins },
       ],
@@ -108,7 +100,7 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
     {
       group: 'Integrations',
       items: [
-        { id: 'integrations', label: 'Integration Center', icon: Plug, badge: 'Hub', badgeColor: 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30' },
+        { id: 'integrations', label: 'Integration Center', icon: Plug, badge: 'Hub', badgeVariant: 'green' },
       ],
     },
     {
@@ -122,14 +114,13 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
     {
       group: 'Account',
       items: [
-        { id: 'profile', label: 'Developer Profile', icon: UserCheck },
         { id: 'settings', label: 'Settings & Backups', icon: Settings },
       ],
     },
     {
       group: 'Resources',
       items: [
-        { id: 'documentation', label: 'Documentation', icon: BookOpen, badge: 'Docs', badgeColor: 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30' },
+        { id: 'documentation', label: 'Documentation', icon: BookOpen, badge: 'Docs', badgeVariant: 'violet' },
       ],
     },
   ];
@@ -141,13 +132,26 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
     }
   };
 
+  const getBadgeClasses = (variant?: 'violet' | 'amber' | 'green' | 'neutral') => {
+    switch (variant) {
+      case 'violet':
+        return 'bg-[#8B5CF6]/15 text-[#A78BFA] border-[#8B5CF6]/30';
+      case 'amber':
+        return 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30';
+      case 'green':
+        return 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30';
+      default:
+        return 'bg-[#181C26] text-[#C5C8D0] border-[#1F2430]';
+    }
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div 
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
           aria-hidden="true"
         />
       )}
@@ -155,12 +159,12 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
       {/* Sidebar Container */}
       <aside 
         className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col justify-between bg-[#0B0D12] border-r border-[#1F2430] transition-all duration-200 ease-in-out select-none
-          ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
+          ${mobileOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'lg:w-[68px]' : 'lg:w-60'}
         `}
       >
         {/* Sidebar Header */}
-        <div className="h-14 border-b border-[#1F2430] flex items-center justify-between px-3.5 shrink-0 bg-[#0B0D12]/90 backdrop-blur">
+        <div className="h-14 border-b border-[#1F2430] flex items-center justify-between px-3.5 shrink-0 bg-[#0B0D12]">
           {isCollapsed ? (
             <div className="w-full flex items-center justify-center">
               <button 
@@ -181,18 +185,20 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
               </button>
               
               {/* Desktop Collapse Toggle */}
-              <button
-                onClick={toggleCollapse}
-                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className="hidden lg:flex size-7 rounded-md hover:bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
+              {onToggleCollapse && (
+                <button
+                  onClick={onToggleCollapse}
+                  title="Collapse sidebar"
+                  className="hidden lg:flex size-7 rounded-lg hover:bg-[#181C26] text-[#686D79] hover:text-[#F8FAFC] items-center justify-center transition-colors"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              )}
 
               {/* Mobile Close Button */}
               <button
                 onClick={onCloseMobile}
-                className="lg:hidden size-8 rounded-md text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] flex items-center justify-center"
+                className="lg:hidden size-8 rounded-lg text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] flex items-center justify-center"
               >
                 <X className="size-4" />
               </button>
@@ -221,19 +227,14 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
                     key={item.id}
                     onClick={() => handleSelect(item.id)}
                     title={isCollapsed ? item.label : undefined}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all group relative
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all group relative
                       ${isActive 
-                        ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm shadow-[#8B5CF6]/10 font-semibold' 
-                        : 'text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#12151D] border border-transparent'
+                        ? 'bg-[#1A1E29] text-[#F8FAFC] border-l-2 border-[#8B5CF6] font-semibold shadow-sm' 
+                        : 'text-[#C5C8D0] hover:text-[#F8FAFC] hover:bg-[#151923] border-l-2 border-transparent'
                       }
-                      ${isCollapsed ? 'justify-center px-0 h-9' : ''}
+                      ${isCollapsed ? 'justify-center px-0 h-10 border-l-0' : ''}
                     `}
                   >
-                    {/* Active violet indicator bar for expanded */}
-                    {isActive && !isCollapsed && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-[#8B5CF6]" />
-                    )}
-
                     <Icon 
                       className={`size-4 shrink-0 transition-colors
                         ${isActive ? 'text-[#8B5CF6]' : 'text-[#686D79] group-hover:text-[#F8FAFC]'}
@@ -247,17 +248,17 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
                     )}
 
                     {!isCollapsed && item.badge && (
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${item.badgeColor || 'bg-[#1F2430] text-[#C5C8D0]'}`}>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${getBadgeClasses(item.badgeVariant)}`}>
                         {item.badge}
                       </span>
                     )}
 
                     {/* Floating Tooltip when collapsed */}
                     {isCollapsed && (
-                      <div className="hidden group-hover:flex absolute left-full ml-3 px-2.5 py-1 bg-[#181C26] text-[#F8FAFC] text-xs rounded-md shadow-xl border border-[#1F2430] whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 font-medium animate-in fade-in duration-150">
+                      <div className="hidden group-hover:flex absolute left-full ml-3 px-2.5 py-1 bg-[#181C26] text-[#F8FAFC] text-xs rounded-lg shadow-xl border border-[#1F2430] whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 font-medium animate-in fade-in duration-150">
                         <span>{item.label}</span>
                         {item.badge && (
-                          <span className={`text-[9px] font-mono px-1 rounded ${item.badgeColor}`}>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full border ${getBadgeClasses(item.badgeVariant)}`}>
                             {item.badge}
                           </span>
                         )}
@@ -276,12 +277,12 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
           {/* User Profile Area */}
           <div 
             onClick={onOpenAuthModal}
-            className={`flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#12151D] cursor-pointer transition-colors border border-transparent hover:border-[#1F2430]
+            className={`flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#12151D] cursor-pointer transition-colors border border-transparent hover:border-[#1F2430]
               ${isCollapsed ? 'justify-center' : ''}
             `}
             title="Switch User / Account Settings"
           >
-            <div className="size-7 rounded-full bg-[#181C26] border border-[#8B5CF6]/30 flex items-center justify-center font-bold font-mono text-xs text-[#A78BFA] shrink-0">
+            <div className="size-8 rounded-full bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center font-bold font-mono text-xs shrink-0 shadow-sm">
               {user?.username ? user.username.slice(0, 2).toUpperCase() : 'DO'}
             </div>
             
@@ -293,7 +294,7 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
                   </div>
                   <div className="text-[10px] text-[#686D79] truncate flex items-center gap-1">
                     <span className="size-1.5 rounded-full bg-[#22C55E]" />
-                    <span>Verified Session</span>
+                    <span>Active Session</span>
                   </div>
                 </div>
                 {user && (
@@ -304,7 +305,7 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
                       logout();
                     }}
                     title="Sign Out"
-                    className="p-1 rounded text-[#686D79] hover:text-[#EF4444] hover:bg-[#181C26] transition-colors"
+                    className="p-1 rounded-lg text-[#686D79] hover:text-[#EF4444] hover:bg-[#181C26] transition-colors"
                   >
                     <LogOut className="size-3.5" />
                   </button>
@@ -332,11 +333,11 @@ export function Sidebar({ currentTab, onSelectTab, onOpenAuthModal, mobileOpen, 
           )}
 
           {/* Collapsed expand toggle button */}
-          {isCollapsed && (
+          {isCollapsed && onToggleCollapse && (
             <button
-              onClick={toggleCollapse}
+              onClick={onToggleCollapse}
               title="Expand Sidebar"
-              className="hidden lg:flex w-full py-1 text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] rounded items-center justify-center"
+              className="hidden lg:flex w-full py-1 text-[#686D79] hover:text-[#F8FAFC] hover:bg-[#181C26] rounded-lg items-center justify-center"
             >
               <ChevronRight className="size-4" />
             </button>
