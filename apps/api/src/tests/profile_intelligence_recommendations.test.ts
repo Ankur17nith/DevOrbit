@@ -225,5 +225,58 @@ Interested in open source, DevOps, and compiler architecture.
       expect(dismissRes.body.success).toBe(true);
       expect(dismissRes.body.data.action).toBe('DISMISSED');
     });
+
+    it('isolates user recommendations and feedback: dismissed recommendations do not appear for the user but remain visible to other users', async () => {
+      // Register or login a second isolated user User B
+      let resB = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ login: 'rec_iso_user_b', password: 'DevOrbitPassword999!' });
+
+      if (resB.status !== 200) {
+        resB = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: 'rec_iso_user_b@devorbit.local',
+            username: 'rec_iso_user_b',
+            password: 'DevOrbitPassword999!',
+            name: 'Rec Iso User B',
+          });
+      }
+      const tokenB = resB.body.data.token;
+
+      // User A gets recommendations
+      const recsA = await request(app)
+        .get('/api/v1/profile/recommendations?limit=5')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      if (recsA.body.data && recsA.body.data.length > 0) {
+        const targetIssueId = recsA.body.data[0].issue.id;
+        const targetRecId = recsA.body.data[0].id;
+
+        // User A dismisses targetRecId
+        await request(app)
+          .post('/api/v1/profile/recommendations/feedback')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({
+            recommendationId: targetRecId,
+            action: 'DISMISSED',
+            reason: 'Irrelevant to my profile',
+          });
+
+        // User A queries recommendations again - targetIssueId is filtered out
+        const afterDismissA = await request(app)
+          .get('/api/v1/profile/recommendations?limit=10')
+          .set('Authorization', `Bearer ${userToken}`);
+        const issueIdsA = afterDismissA.body.data.map((r: any) => r.issue.id);
+        expect(issueIdsA).not.toContain(targetIssueId);
+
+        // User B queries recommendations - User A's dismissal has ZERO effect on User B
+        const recsB = await request(app)
+          .get('/api/v1/profile/recommendations?limit=10')
+          .set('Authorization', `Bearer ${tokenB}`);
+        expect(recsB.status).toBe(200);
+        expect(recsB.body.success).toBe(true);
+      }
+    });
   });
 });

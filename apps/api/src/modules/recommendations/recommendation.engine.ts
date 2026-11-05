@@ -76,6 +76,7 @@ export class RecommendationEngine {
       prisma.userGithubRepo.findMany({ where: { userId } }),
       prisma.recommendationFeedback.findMany({
         where: { userId, action: 'DISMISSED' },
+        include: { recommendation: true },
       }),
       prisma.ossIssue.findMany({
         where: { state: 'open' },
@@ -88,7 +89,13 @@ export class RecommendationEngine {
     ]);
 
     // Build set of dismissed targets or technologies to lower or exclude
-    const dismissedTargetIds = new Set(dismissedFeedback.map(f => f.recommendationId));
+    const dismissedTargetIds = new Set<string>();
+    for (const f of dismissedFeedback) {
+      dismissedTargetIds.add(f.recommendationId);
+      if (f.recommendation?.targetId) {
+        dismissedTargetIds.add(f.recommendation.targetId);
+      }
+    }
 
     // Aggregate user verified skills map (name -> { confidence, evidenceCount, source })
     const skillConfidenceMap = new Map<string, { confidence: number; evidenceCount: number; source: string }>();
