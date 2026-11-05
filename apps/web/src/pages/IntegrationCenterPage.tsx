@@ -569,12 +569,27 @@ export function IntegrationCenterPage() {
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={item.onConnect}
-                  className="rounded-md border border-black/9 bg-[#11141B] px-3 py-1.5 text-[9px] font-semibold text-white hover:bg-black transition-colors"
-                >
-                  Connect
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    onClick={item.onConnect}
+                    className="rounded-md border border-black/9 bg-[#11141B] px-3 py-1.5 text-[9px] font-semibold text-white hover:bg-black transition-colors"
+                  >
+                    Connect
+                  </button>
+                  {item.id === 'github' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputToken('');
+                        setModalError(null);
+                        setActiveModal('github-pat');
+                      }}
+                      className="text-[9px] text-[#858993] hover:text-[#8B5CF6] hover:underline transition-colors"
+                    >
+                      Or connect with Personal Access Token (Advanced Fallback)
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -707,7 +722,7 @@ export function IntegrationCenterPage() {
                 />
               </label>
               <p className="text-[10px] text-[#858993] leading-relaxed">
-                Tokens are encrypted at rest with AES-256-GCM. Requires 'repo' and 'read:user' permissions.
+                Tokens are encrypted at rest with AES-256-GCM and never returned in plaintext. Classic PAT requires <code className="text-[#8B5CF6]">repo</code> and <code className="text-[#8B5CF6]">read:user</code> scopes. Fine-grained PAT requires Read access to Contents, Metadata, and Issues.
               </p>
             </div>
 
