@@ -15,6 +15,16 @@ jobs:
       matrix:
         node-version: [20.x, 22.x]
 
+    env:
+      CI: 'true'
+      NODE_ENV: 'test'
+      DATABASE_URL: 'file:./ci-test.db'
+      JWT_SECRET: 'ci_test_super_secret_jwt_key_at_least_32_chars_long_012345'
+      GITHUB_TOKEN_ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+      PORT: '3001'
+      CORS_ORIGIN: 'http://localhost:5173'
+      VITE_API_URL: 'http://localhost:3001'
+
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -28,13 +38,24 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm ci
 
-      - name: Prepare Database Schema
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      - name: Prepare Isolated CI Database Schema
         run: |
           npm run db:push
-          npm run db:generate
+          npm run db:seed
 
-      - name: Build Monorepo (Web & API)
+      - name: Run TypeScript Type Checks
+        run: |
+          npx tsc --noEmit --project apps/api/tsconfig.json
+          npx tsc --noEmit --project apps/web/tsconfig.json
+
+      - name: Run Backend Tests
+        run: npm run test:api
+
+      - name: Run Frontend Tests
+        run: npm run test:web
+
+      - name: Build Complete Monorepo (Web & API)
         run: npm run build
-
-      - name: Run Monorepo Test Suites
-        run: npm test
