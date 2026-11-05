@@ -75,6 +75,28 @@ export class GitHubService {
       },
     });
 
+    // Synchronize authenticated user profile fields from GitHub validation
+    if (validation.user.avatarUrl) {
+      try {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { avatarUrl: true, bio: true, name: true },
+        });
+        if (currentUser && (!currentUser.avatarUrl || currentUser.avatarUrl.includes('placeholder') || currentUser.avatarUrl.includes('ui-avatars.com'))) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              avatarUrl: validation.user.avatarUrl,
+              ...(currentUser.name ? {} : { name: validation.user.name || undefined }),
+              ...(currentUser.bio ? {} : { bio: validation.user.bio || undefined }),
+            },
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to update user profile from GitHub validation:', err);
+      }
+    }
+
     // Automatically trigger initial repository sync and intelligence extraction
     await this.syncRepositories(userId);
 
