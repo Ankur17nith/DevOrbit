@@ -36,4 +36,12 @@ describe('Figma Brand Identity & Design Tokens Conformance', () => {
     expect(primaryLine).not.toContain('#10B981');
     expect(primaryLine).toContain('#8B5CF6'); // Electric violet
   });
+
+  it('4. Confirms DEVORBIT_TOKENS exports required Figma canvas, card, and violet tokens', async () => {
+    const { DEVORBIT_TOKENS } = await import('../styles/tokens.js');
+    expect(DEVORBIT_TOKENS.colors.canvas).toBe('#F9FAFB');
+    expect(DEVORBIT_TOKENS.colors.card).toBe('#FFFFFF');
+    expect(DEVORBIT_TOKENS.colors.accent).toBe('#8B5CF6');
+    expect(DEVORBIT_TOKENS.colors.textPrimary).toBe('#0B0D12');
+  });
 });
