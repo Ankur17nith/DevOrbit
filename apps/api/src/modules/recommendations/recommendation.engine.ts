@@ -119,9 +119,25 @@ export class RecommendationEngine {
           });
         }
       }
+
+      if (devProfile.preferredLanguagesJson) {
+        try {
+          const prefLangs = JSON.parse(devProfile.preferredLanguagesJson) as string[];
+          for (const pl of prefLangs) {
+            const key = pl.toLowerCase();
+            if (!skillConfidenceMap.has(key)) {
+              skillConfidenceMap.set(key, {
+                confidence: 75,
+                evidenceCount: 1,
+                source: 'preferred languages',
+              });
+            }
+          }
+        } catch {}
+      }
     }
 
-    // Baseline fallback if user hasn't synced code yet
+    // Baseline fallback if user hasn't configured skills or preferred languages yet
     if (skillConfidenceMap.size === 0) {
       skillConfidenceMap.set('typescript', { confidence: 70, evidenceCount: 1, source: 'starter preference' });
       skillConfidenceMap.set('javascript', { confidence: 70, evidenceCount: 1, source: 'starter preference' });
