@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Save, ShieldAlert, CheckCircle2, Terminal } from 'lucide-react';
+import { Bot, Save, ShieldAlert, CheckCircle2, Terminal, ExternalLink, GitPullRequest } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function SelfbotPage() {
   const { token } = useAuth();
@@ -21,9 +21,9 @@ export function SelfbotPage() {
       .then(r => r.json())
       .then(json => {
         if (json.success && json.data) {
-          setWelcomeEnabled(json.data.welcomeEnabled);
+          setWelcomeEnabled(json.data.welcomeEnabled ?? true);
           setWelcomeMessage(json.data.welcomeMessage || '');
-          setGoodbyeEnabled(json.data.goodbyeEnabled);
+          setGoodbyeEnabled(json.data.goodbyeEnabled ?? false);
           setGoodbyeMessage(json.data.goodbyeMessage || '');
         }
       })
@@ -64,97 +64,120 @@ export function SelfbotPage() {
   };
 
   return (
-    <PageContainer>
-      <PageHeading
-        title="GitHub Selfbot Automator"
-        description="Zero-action GitHub maintainer automation: auto-respond to first-time contributors and manage slash commands"
-        badges={[
-          <StatusBadge key="badge" variant="violet">
-            Maintainer Automation
-          </StatusBadge>
-        ]}
-      />
-
-      {/* Safety Notice */}
-      <div className="p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-start gap-3">
-        <ShieldAlert className="size-5 text-[#8B5CF6] shrink-0 mt-0.5" />
-        <div className="text-xs text-[#C5C8D0] leading-relaxed">
-          <strong className="text-[#F8FAFC]">Strict Permission Isolation:</strong> DevOrbit Selfbot operates only on explicit repositories where you possess maintainer or admin access. Automation runs under your identity and requires explicit activation.
+    <PageContainer maxWidth="max-w-[1240px]">
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Contribution Pipeline</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Results require a connected source. DevOrbit does not fabricate issues, amounts, deadlines, or activity.
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      {/* 2-Column Grid */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-[250px_1fr]">
         
-        {/* Repo Target */}
-        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
-          <label className="block text-xs font-medium text-[#C5C8D0]">Target GitHub Repository</label>
-          <input
-            type="text"
-            required
-            value={repo}
-            onChange={e => setRepo(e.target.value)}
-            placeholder="owner/repository"
-            className="w-full px-3 py-2 rounded-lg bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
-          />
-        </div>
+        {/* Left Column: Repository Target & Status */}
+        <section className="rounded-xl border border-black/7 bg-white h-fit">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">Repository Target</h3>
+            <span className="text-[9px] text-[#8B5CF6] font-medium">Maintainer Mode</span>
+          </div>
 
-        {/* Welcome Message Module */}
-        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-[#F8FAFC]">Contributor Welcome Message</h3>
-              <p className="text-xs text-[#686D79]">Automatically replies when a new contributor files their first issue or PR</p>
+          <div className="space-y-4 p-4">
+            <label className="block">
+              <span className="mb-1.5 block text-[9px] font-semibold text-[#686D79]">Target GitHub repo</span>
+              <input
+                type="text"
+                required
+                value={repo}
+                onChange={e => setRepo(e.target.value)}
+                placeholder="owner/repository"
+                className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-2.5 text-xs font-mono text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none transition-colors"
+              />
+            </label>
+
+            <div className="pt-2 border-t border-black/5 space-y-2 text-[10px] text-[#686D79]">
+              <div className="flex items-center gap-1.5 font-medium text-[#11141B]">
+                <ShieldAlert className="size-3.5 text-[#8B5CF6]" />
+                <span>Permission Isolation</span>
+              </div>
+              <p className="leading-relaxed">
+                DevOrbit Selfbot executes only on explicit repositories where you possess maintainer or admin access.
+              </p>
             </div>
-            <input
-              type="checkbox"
-              checked={welcomeEnabled}
-              onChange={e => setWelcomeEnabled(e.target.checked)}
-              className="size-4 accent-[#8B5CF6] rounded cursor-pointer"
-            />
+          </div>
+        </section>
+
+        {/* Right Column: Maintainer Automation Pipeline */}
+        <section className="rounded-xl border border-black/7 bg-white">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">Maintainer Automations</h3>
+            <span className="text-[9px] text-[#999CA3]">Auto-triage & response</span>
           </div>
 
-          <textarea
-            disabled={!welcomeEnabled}
-            value={welcomeMessage}
-            onChange={e => setWelcomeMessage(e.target.value)}
-            rows={3}
-            className="w-full p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] disabled:opacity-40 transition-colors"
-          />
-        </div>
+          <form onSubmit={handleSave} className="p-4 space-y-5">
+            {/* Welcome Message Module */}
+            <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-[#11141B]">Contributor Welcome Responder</h4>
+                  <p className="text-[11px] text-[#686D79]">Automatically comments when a new contributor files their first issue or PR</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={welcomeEnabled}
+                  onChange={e => setWelcomeEnabled(e.target.checked)}
+                  className="size-4 accent-[#8B5CF6] rounded cursor-pointer"
+                />
+              </div>
 
-        {/* Slash Command Preview */}
-        <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
-          <div className="flex items-center gap-2">
-            <Terminal className="size-4 text-[#8B5CF6]" />
-            <h3 className="text-sm font-semibold text-[#F8FAFC]">Slash Command Rules</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-xs font-mono space-y-1.5">
-            <div className="text-[#C5C8D0]">/guide &rarr; &quot;Replies with CONTRIBUTING.md link and deletes command&quot;</div>
-            <div className="text-[#C5C8D0]">/reproduce &rarr; &quot;Requests step-by-step reproduction instructions&quot;</div>
-          </div>
-        </div>
+              <textarea
+                disabled={!welcomeEnabled}
+                value={welcomeMessage}
+                onChange={e => setWelcomeMessage(e.target.value)}
+                rows={3}
+                className="w-full p-3 rounded-lg bg-[#11141B] border border-black/10 text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] disabled:opacity-40 transition-colors"
+              />
+            </div>
 
-        {/* Save Bar */}
-        <div className="flex items-center justify-between pt-2">
-          {saved && (
-            <span className="text-xs font-mono text-[#4ADE80] flex items-center gap-1.5">
-              <CheckCircle2 className="size-4" />
-              <span>Selfbot configuration deployed!</span>
-            </span>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={saving}
-            icon={<Save className="size-4" />}
-            className="ml-auto"
-          >
-            {saving ? 'Deploying...' : 'Deploy Configuration'}
-          </Button>
-        </div>
+            {/* Slash Command Preview */}
+            <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Terminal className="size-4 text-[#8B5CF6]" />
+                <h4 className="text-xs font-semibold text-[#11141B]">Slash Command Rules</h4>
+              </div>
+              <div className="p-3 rounded-lg bg-[#11141B] text-[#F8FAFC] text-xs font-mono space-y-1.5">
+                <div className="text-[#C5C8D0]">/guide &rarr; &quot;Replies with CONTRIBUTING.md link and deletes command&quot;</div>
+                <div className="text-[#C5C8D0]">/reproduce &rarr; &quot;Requests step-by-step reproduction instructions&quot;</div>
+              </div>
+            </div>
 
-      </form>
+            {/* Save Bar */}
+            <div className="flex items-center justify-between pt-2 border-t border-black/7">
+              {saved ? (
+                <span className="text-xs font-mono text-emerald-600 flex items-center gap-1.5">
+                  <CheckCircle2 className="size-4" />
+                  <span>Configuration deployed to GitHub webhook!</span>
+                </span>
+              ) : <div />}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={saving}
+                icon={<Save className="size-3.5" />}
+              >
+                {saving ? 'Deploying...' : 'Deploy Configuration'}
+              </Button>
+            </div>
+          </form>
+        </section>
+
+      </div>
     </PageContainer>
   );
 }

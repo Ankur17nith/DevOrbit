@@ -1,135 +1,201 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Star, GitFork, ExternalLink, TrendingUp } from 'lucide-react';
-import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
+import { Flame, Star, GitFork, ExternalLink, TrendingUp, Sparkles, Filter } from 'lucide-react';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function TrendingPage() {
   const [repos, setRepos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState('All');
+  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
-  const languages = ['All', 'TypeScript', 'JavaScript', 'Python', 'Rust', 'Go', 'C++'];
+  const languages = ['All', 'TypeScript', 'JavaScript', 'Python', 'Rust', 'Go', 'C++', 'Java'];
 
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (language !== 'All') params.append('language', language);
+    params.append('since', timeRange);
 
     fetch(`/api/v1/opensource/trending?${params.toString()}`)
       .then(r => r.json())
       .then(json => {
-        if (json.success) setRepos(json.data);
+        if (json.success) setRepos(json.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [language]);
+  }, [language, timeRange]);
 
   return (
-    <PageContainer>
-      <PageHeading
-        title="Trending Repositories"
-        description="Top open-source projects ranked by verified GitHub stargazers and community activity"
-        badges={[
-          <StatusBadge key="ranking" variant="violet">
-            Verified Star Ranking
-          </StatusBadge>,
-          <StatusBadge key="provenance" variant="neutral">
-            Source: GitHub Public Index
-          </StatusBadge>
-        ]}
-        actions={
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {languages.map(l => (
+    <PageContainer maxWidth="max-w-[1240px]">
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Trending Repositories</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Results require a connected source. DevOrbit does not fabricate issues, amounts, deadlines, or activity.
+          </p>
+        </div>
+      </div>
+
+      {/* 2-Column Grid */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-[250px_1fr]">
+        
+        {/* Left Column: Filters */}
+        <section className="rounded-xl border border-black/7 bg-white h-fit">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">Filters</h3>
+            {(language !== 'All' || timeRange !== 'weekly') && (
               <button
-                key={l}
-                onClick={() => setLanguage(l)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                  language === l
-                    ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold shadow-sm'
-                    : 'text-[#686D79] hover:text-[#F8FAFC] bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A]'
-                }`}
+                onClick={() => {
+                  setLanguage('All');
+                  setTimeRange('weekly');
+                }}
+                className="text-[10px] text-[#8B5CF6] hover:underline"
               >
-                {l}
+                Reset
               </button>
-            ))}
+            )}
           </div>
-        }
-      />
 
-      {/* Repositories List */}
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-28 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
-          ))}
-        </div>
-      ) : repos.length === 0 ? (
-        <EmptyState
-          title="No trending repositories found"
-          description="Try selecting a different programming language to discover trending repositories."
-          icon={<Flame className="size-8 text-[#686D79]" />}
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setLanguage('All')}
-            >
-              Reset to All Languages
-            </Button>
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {repos.map((repo, idx) => (
-            <div
-              key={repo.id}
-              className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
-            >
-              <div className="flex items-start gap-4">
-                <span className="size-8 rounded-lg bg-[#0B0D12] border border-[#1F2430] flex items-center justify-center font-mono font-bold text-sm text-[#A78BFA] shrink-0 group-hover:border-[#8B5CF6]/40 transition-colors">
-                  #{idx + 1}
-                </span>
+          <div className="space-y-4 p-4">
+            <label className="block">
+              <span className="mb-1.5 block text-[9px] font-semibold text-[#686D79]">Programming language</span>
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+                className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-2 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none transition-colors"
+              >
+                {languages.map(l => (
+                  <option key={l} value={l}>{l === 'All' ? 'All Languages' : l}</option>
+                ))}
+              </select>
+            </label>
 
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-[#686D79]">{repo.owner}</span>
-                    <span className="text-[#1F2430]">/</span>
-                    <h3 className="text-base font-semibold text-[#F8FAFC] truncate group-hover:text-[#A78BFA] transition-colors">{repo.name}</h3>
-                  </div>
-                  <p className="mt-1 text-xs text-[#C5C8D0] line-clamp-1">{repo.description || 'No description provided.'}</p>
-                </div>
+            <label className="block">
+              <span className="mb-1.5 block text-[9px] font-semibold text-[#686D79]">Trending time window</span>
+              <select
+                value={timeRange}
+                onChange={e => setTimeRange(e.target.value as any)}
+                className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-2 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none transition-colors"
+              >
+                <option value="daily">Trending Today</option>
+                <option value="weekly">Trending This Week</option>
+                <option value="monthly">Trending This Month</option>
+              </select>
+            </label>
+
+            <div className="pt-2 border-t border-black/5 space-y-2 text-[10px] text-[#686D79]">
+              <div className="flex items-center gap-1.5 font-medium text-[#11141B]">
+                <Flame className="size-3.5 text-[#8B5CF6]" />
+                <span>Verified Star Velocity</span>
               </div>
-
-              <div className="flex items-center gap-5 shrink-0 self-end sm:self-center">
-                <div className="flex items-center gap-1.5 text-xs font-mono text-[#A78BFA] bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 px-2.5 py-1 rounded-full">
-                  <TrendingUp className="size-3 text-[#8B5CF6]" />
-                  <span>{repo.language || 'Trending'}</span>
-                </div>
-
-                <div className="flex items-center gap-3 text-xs font-mono text-[#686D79]">
-                  <span className="flex items-center gap-1">
-                    <Star className="size-3.5 text-[#F59E0B]" />
-                    <span className="text-[#F8FAFC]">{repo.stargazersCount?.toLocaleString()}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <GitFork className="size-3.5" />
-                    <span>{repo.forksCount?.toLocaleString()}</span>
-                  </span>
-                </div>
-
-                <a
-                  href={`https://github.com/${repo.fullName}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[#C5C8D0] hover:text-white transition-colors"
-                  title="View on GitHub"
-                >
-                  <ExternalLink className="size-4" />
-                </a>
-              </div>
+              <p className="leading-relaxed">
+                Ranked purely by verified star count and active commit velocity from public repositories.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        </section>
+
+        {/* Right Column: Trending List */}
+        <section className="rounded-xl border border-black/7 bg-white">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">Trending Projects</h3>
+            <span className="text-[9px] text-[#999CA3]">
+              {loading ? 'Fetching...' : `${repos.length} ranked repositories`}
+            </span>
+          </div>
+
+          <div className="p-4">
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-24 rounded-xl border border-black/6 bg-[#F7F7F8] animate-pulse" />
+                ))}
+              </div>
+            ) : repos.length === 0 ? (
+              <div className="flex min-h-64 flex-col items-center justify-center px-5 py-8 text-center">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                  <Flame className="size-5" />
+                </span>
+                <h3 className="mt-4 text-xs font-semibold text-[#11141B]">No trending repositories found</h3>
+                <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+                  Try selecting a different programming language or broadening your trending time filter.
+                </p>
+                <button
+                  onClick={() => {
+                    setLanguage('All');
+                    setTimeRange('weekly');
+                  }}
+                  className="mt-5 rounded-md border border-black/9 bg-white px-3 py-2 text-[10px] font-semibold text-[#11141B] hover:bg-zinc-50 transition-colors"
+                >
+                  Reset filters
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {repos.map((repo, idx) => (
+                  <div
+                    key={repo.id || idx}
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 hover:shadow-xs transition-all"
+                  >
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F7F7F8] border border-black/7 font-mono text-xs font-bold text-[#8B5CF6]">
+                        #{idx + 1}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-mono text-[#686D79] truncate">{repo.owner}</span>
+                          <span className="text-black/20">/</span>
+                          <h4 className="text-sm font-semibold text-[#11141B] truncate group-hover:text-[#8B5CF6] transition-colors">
+                            {repo.name}
+                          </h4>
+                        </div>
+                        <p className="mt-1 text-xs text-[#686D79] line-clamp-1">
+                          {repo.description || 'No description provided.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0 sm:self-center self-end pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="flex items-center gap-3 text-xs font-mono text-[#686D79]">
+                        {repo.language && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-[#8B5CF6]" />
+                            <span className="text-[#11141B]">{repo.language}</span>
+                          </span>
+                        )}
+
+                        <span className="flex items-center gap-1">
+                          <Star className="size-3 text-[#F59E0B]" />
+                          <span>{repo.stargazersCount?.toLocaleString()}</span>
+                        </span>
+
+                        <span className="flex items-center gap-1">
+                          <GitFork className="size-3 text-[#999CA3]" />
+                          <span>{repo.forksCount?.toLocaleString()}</span>
+                        </span>
+                      </div>
+
+                      <a
+                        href={`https://github.com/${repo.fullName || `${repo.owner}/${repo.name}`}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1.5 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
+                      >
+                        <span>GitHub</span>
+                        <ExternalLink className="size-3 text-[#999CA3]" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+      </div>
     </PageContainer>
   );
 }

@@ -18,7 +18,7 @@ import {
   Award
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 interface PipelineItem {
   id: string;
@@ -50,17 +50,17 @@ interface MatchResult {
   explanation: string;
 }
 
-const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color: string; badgeVariant: 'default' | 'violet' | 'success' | 'warning' | 'danger' }> = [
-  { key: 'SHORTLISTED', label: 'Shortlisted', color: 'text-[#686D79]', badgeVariant: 'default' },
-  { key: 'EXPLORING', label: 'Exploring', color: 'text-[#60A5FA]', badgeVariant: 'default' },
-  { key: 'PREPARING', label: 'Preparing', color: 'text-[#A78BFA]', badgeVariant: 'violet' },
-  { key: 'WORKING', label: 'In Progress', color: 'text-[#FBBF24]', badgeVariant: 'warning' },
-  { key: 'PR_SUBMITTED', label: 'PR Submitted', color: 'text-[#C4B5FD]', badgeVariant: 'violet' },
-  { key: 'MERGED', label: 'Merged 🎉', color: 'text-[#4ADE80]', badgeVariant: 'success' },
+const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color: string }> = [
+  { key: 'SHORTLISTED', label: 'Shortlisted', color: 'text-[#686D79]' },
+  { key: 'EXPLORING', label: 'Exploring', color: 'text-blue-600' },
+  { key: 'PREPARING', label: 'Preparing', color: 'text-[#8B5CF6]' },
+  { key: 'WORKING', label: 'In Progress', color: 'text-amber-600' },
+  { key: 'PR_SUBMITTED', label: 'PR Submitted', color: 'text-indigo-600' },
+  { key: 'MERGED', label: 'Merged 🎉', color: 'text-emerald-600' },
 ];
 
 export function IssuesPage() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<'explore' | 'recommendations' | 'pipeline'>('explore');
   const [issues, setIssues] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -86,12 +86,12 @@ export function IssuesPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (difficulty !== 'All') params.append('difficulty', difficulty);
-    if (search) params.append('search', search);
+    if (search.trim()) params.append('search', search.trim());
 
     fetch(`/api/v1/opensource/issues?${params.toString()}`)
       .then(r => r.json())
       .then(json => {
-        if (json.success) setIssues(json.data.issues);
+        if (json.success) setIssues(json.data.issues || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -106,7 +106,7 @@ export function IssuesPage() {
     })
       .then(r => r.json())
       .then(json => {
-        if (json.success) setRecommendations(json.data);
+        if (json.success) setRecommendations(json.data || []);
       })
       .catch(console.error)
       .finally(() => setRecommendationsLoading(false));
@@ -121,7 +121,7 @@ export function IssuesPage() {
     })
       .then(r => r.json())
       .then(json => {
-        if (json.success) setPipeline(json.data.pipeline);
+        if (json.success) setPipeline(json.data.pipeline || []);
       })
       .catch(console.error)
       .finally(() => setPipelineLoading(false));
@@ -229,546 +229,490 @@ export function IssuesPage() {
   };
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="max-w-[1240px]">
       {/* Merged Celebratory Banner */}
       {mergedNotification && (
-        <div className="p-4 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#4ADE80] flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+        <div className="mb-4 p-4 rounded-xl bg-violet-50 border border-violet-200 text-[#8B5CF6] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Award className="size-5 text-[#4ADE80] shrink-0" />
-            <span className="text-sm font-semibold">{mergedNotification}</span>
+            <Award className="size-5 text-[#8B5CF6] shrink-0" />
+            <span className="text-xs font-semibold">{mergedNotification}</span>
           </div>
           <button 
             onClick={() => setMergedNotification(null)}
-            className="p-1 hover:bg-[#22C55E]/20 rounded-lg transition-colors"
+            className="p-1 hover:bg-violet-100 rounded-md transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
       )}
 
-      {/* Header & View Switcher */}
-      <PageHeading
-        title="Orbit OSS Intelligence"
-        description="Explainable skill-matched issues, verified good-first-issues, and personal contribution pipeline"
-        badges={[
-          <StatusBadge key="badge" variant="violet">
-            Good First Issues
-          </StatusBadge>
-        ]}
-        actions={
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#12151D] border border-[#1F2430]">
-            <button
-              onClick={() => setActiveTab('explore')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'explore'
-                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                  : 'text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <ListFilter className="size-3.5" />
-              <span>Explore Issues</span>
-            </button>
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Issues</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Results require a connected source. DevOrbit does not fabricate issues, amounts, deadlines, or activity.
+          </p>
+        </div>
 
-            <button
-              onClick={() => setActiveTab('recommendations')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'recommendations'
-                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                  : 'text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <Sparkles className="size-3.5 text-[#8B5CF6]" />
-              <span>Recommended</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/30">
-                AI Match
-              </span>
-            </button>
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 rounded-lg border border-black/7 bg-white p-1">
+          <button
+            onClick={() => setActiveTab('explore')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              activeTab === 'explore'
+                ? 'bg-[#11141B] text-white'
+                : 'text-[#686D79] hover:text-[#11141B]'
+            }`}
+          >
+            <ListFilter className="size-3.5" />
+            <span>Explore</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('pipeline')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'pipeline'
-                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                  : 'text-[#686D79] hover:text-[#C5C8D0]'
-              }`}
-            >
-              <Kanban className="size-3.5" />
-              <span>Contribution Pipeline</span>
-              {pipeline.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/30">
-                  {pipeline.length}
-                </span>
-              )}
-            </button>
-          </div>
-        }
-      />
+          <button
+            onClick={() => setActiveTab('recommendations')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              activeTab === 'recommendations'
+                ? 'bg-[#11141B] text-white'
+                : 'text-[#686D79] hover:text-[#11141B]'
+            }`}
+          >
+            <Sparkles className="size-3.5" />
+            <span>AI Matches</span>
+          </button>
 
-      {/* TAB 1: EXPLORE ISSUES */}
+          <button
+            onClick={() => setActiveTab('pipeline')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              activeTab === 'pipeline'
+                ? 'bg-[#11141B] text-white'
+                : 'text-[#686D79] hover:text-[#11141B]'
+            }`}
+          >
+            <Kanban className="size-3.5" />
+            <span>Pipeline</span>
+          </button>
+        </div>
+      </div>
+
+      {/* VIEW 1: EXPLORE ISSUES */}
       {activeTab === 'explore' && (
-        <div className="space-y-4">
-          {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#12151D] border border-[#1F2430]">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by keywords, repository, or tags..."
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              <span className="text-[11px] font-mono text-[#686D79] uppercase tracking-wider mr-1">Difficulty:</span>
-              {difficulties.map(d => (
+        <div className="mt-6 grid gap-4 lg:grid-cols-[250px_1fr]">
+          
+          {/* Left Column: Filters */}
+          <section className="rounded-xl border border-black/7 bg-white h-fit">
+            <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+              <h3 className="text-[11px] font-semibold text-[#11141B]">Filters</h3>
+              {(search || difficulty !== 'All') && (
                 <button
-                  key={d}
-                  onClick={() => setDifficulty(d)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${
-                    difficulty === d
-                      ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold shadow-sm'
-                      : 'text-[#686D79] hover:text-[#F8FAFC] border border-transparent'
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Issues List */}
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-28 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : issues.length === 0 ? (
-            <EmptyState
-              title="No open issues found"
-              description="Try adjusting your search criteria or choosing a different difficulty level."
-              icon={<CircleAlert className="size-8 text-[#686D79]" />}
-              action={
-                <Button
-                  variant="secondary"
-                  size="sm"
                   onClick={() => {
                     setSearch('');
                     setDifficulty('All');
                   }}
+                  className="text-[10px] text-[#8B5CF6] hover:underline"
                 >
-                  Reset Filters
-                </Button>
-              }
-            />
-          ) : (
-            <div className="space-y-3">
-              {issues.map(issue => (
-                <div
-                  key={issue.id}
-                  className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-4 p-4">
+              <label className="block">
+                <span className="mb-1.5 block text-[9px] font-semibold text-[#686D79]">Search issues</span>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 size-3.5 text-[#999CA3]" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Keywords or topics..."
+                    className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] pl-8 pr-2 text-xs text-[#11141B] placeholder:text-[#999CA3] focus:border-[#8B5CF6] focus:bg-white focus:outline-none transition-colors"
+                  />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-[9px] font-semibold text-[#686D79]">Difficulty</span>
+                <select
+                  value={difficulty}
+                  onChange={e => setDifficulty(e.target.value)}
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-2 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none transition-colors"
                 >
-                  <div className="min-w-0 space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono text-[#8B5CF6] font-medium">{issue.repository?.fullName}</span>
-                      <span className="text-xs font-mono text-[#686D79]">#{issue.number}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold ${
-                        issue.difficulty === 'beginner' 
-                          ? 'bg-[#22C55E]/15 text-[#4ADE80] border border-[#22C55E]/30' 
-                          : 'bg-[#F59E0B]/15 text-[#FBBF24] border border-[#F59E0B]/30'
-                      }`}>
-                        {issue.difficulty || 'Good First Issue'}
-                      </span>
-                      {issue.repository?.primaryLanguage && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#A78BFA] border border-[#1F2430]">
-                          {issue.repository.primaryLanguage}
-                        </span>
+                  {difficulties.map(d => (
+                    <option key={d} value={d}>{d === 'All' ? 'All Difficulties' : d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="pt-2 border-t border-black/5 space-y-2 text-[10px] text-[#686D79]">
+                <div className="flex items-center gap-1.5 text-[#11141B] font-medium">
+                  <CircleAlert className="size-3.5 text-[#8B5CF6]" />
+                  <span>Real GitHub Issues</span>
+                </div>
+                <p className="leading-relaxed">
+                  Every issue references a real repository on GitHub with verified labels and live URLs.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Right Column: Issues List */}
+          <section className="rounded-xl border border-black/7 bg-white">
+            <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+              <h3 className="text-[11px] font-semibold text-[#11141B]">Open Issues</h3>
+              <span className="text-[9px] text-[#999CA3]">
+                {loading ? 'Searching...' : `${issues.length} issues available`}
+              </span>
+            </div>
+
+            <div className="p-4">
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="h-24 rounded-xl border border-black/6 bg-[#F7F7F8] animate-pulse" />
+                  ))}
+                </div>
+              ) : issues.length === 0 ? (
+                <div className="flex min-h-64 flex-col items-center justify-center px-5 py-8 text-center">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                    <CircleAlert className="size-5" />
+                  </span>
+                  <h3 className="mt-4 text-xs font-semibold text-[#11141B]">No issues match your criteria</h3>
+                  <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+                    Try loosening your difficulty level or clearing the search keyword.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setDifficulty('All');
+                    }}
+                    className="mt-5 rounded-md border border-black/9 bg-white px-3 py-2 text-[10px] font-semibold text-[#11141B] hover:bg-zinc-50 transition-colors"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {issues.map(issue => (
+                    <div
+                      key={issue.id}
+                      className="group flex flex-col justify-between gap-3 rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono text-[#686D79]">
+                              {issue.repository?.fullName || 'GitHub Repository'}
+                            </span>
+                            <span className="text-black/20">/</span>
+                            <span className="text-xs font-mono text-[#8B5CF6]">#{issue.number}</span>
+                            {issue.difficulty && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#F7F7F8] text-[#686D79] border border-black/6">
+                                {issue.difficulty}
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="mt-1 text-sm font-semibold text-[#11141B] group-hover:text-[#8B5CF6] transition-colors">
+                            {issue.title}
+                          </h4>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleInspectMatch(issue)}
+                            className="inline-flex items-center gap-1 rounded-md border border-black/8 bg-[#F7F7F8] px-2.5 py-1 text-xs font-medium text-[#11141B] hover:border-[#8B5CF6]/40 hover:text-[#8B5CF6] transition-colors"
+                            title="Inspect AI skill fit"
+                          >
+                            <Sparkles className="size-3 text-[#8B5CF6]" />
+                            <span>Match</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleAddToPipeline(issue.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
+                            title="Add to personal pipeline"
+                          >
+                            <Plus className="size-3" />
+                            <span>Track</span>
+                          </button>
+
+                          <a
+                            href={issue.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
+                          >
+                            <span>GitHub</span>
+                            <ExternalLink className="size-3" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {issue.labels && issue.labels.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {issue.labels.slice(0, 4).map((label: any, idx: number) => {
+                            const name = typeof label === 'string' ? label : label.name;
+                            return (
+                              <span key={idx} className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#F7F7F8] text-[#686D79] border border-black/5">
+                                {name}
+                              </span>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-
-                    <h3 className="text-base font-semibold text-[#F8FAFC] group-hover:text-[#A78BFA] transition-colors">
-                      {issue.title}
-                    </h3>
-
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {issue.labels?.map((label: any, idx: number) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#C5C8D0] border border-[#1F2430]"
-                        >
-                          {typeof label === 'string' ? label : label.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-                    {/* Explain Skill Match Button */}
-                    <button
-                      onClick={() => handleInspectMatch(issue)}
-                      className="px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-xs font-medium text-[#A78BFA] flex items-center gap-1.5 transition-all"
-                      title="Inspect explainable skill match"
-                    >
-                      <Sparkles className="size-3.5" />
-                      <span>Skill Fit</span>
-                    </button>
-
-                    {/* Add to Pipeline Button */}
-                    <button
-                      onClick={() => handleAddToPipeline(issue.id)}
-                      className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
-                      title="Add to personal contribution pipeline"
-                    >
-                      <Plus className="size-3.5 text-[#8B5CF6]" />
-                      <span>Track</span>
-                    </button>
-
-                    <a
-                      href={issue.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3.5 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#C5C8D0] hover:text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>View</span>
-                      <ExternalLink className="size-3.5" />
-                    </a>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </section>
+
         </div>
       )}
 
-      {/* TAB 2: CONTRIBUTION PIPELINE (KANBAN BOARD) */}
+      {/* VIEW 2: AI RECOMMENDATIONS */}
+      {activeTab === 'recommendations' && (
+        <div className="mt-6 space-y-4">
+          <div className="rounded-xl border border-black/7 bg-white p-5">
+            <div className="flex items-center justify-between border-b border-black/7 pb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-[#11141B]">Grounded Skill Matches</h3>
+                <p className="mt-1 text-xs text-[#686D79]">
+                  Issues matched to your verified GitHub repositories, solved DSA topics, and demonstrated tech stack.
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={fetchRecommendations} icon={<Sparkles className="size-3 text-[#8B5CF6]" />}>
+                Refresh Matches
+              </Button>
+            </div>
+
+            <div className="mt-5">
+              {recommendationsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-28 rounded-xl border border-black/6 bg-[#F7F7F8] animate-pulse" />
+                  ))}
+                </div>
+              ) : recommendations.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Sparkles className="size-8 text-[#8B5CF6] mx-auto" />
+                  <h4 className="mt-3 text-sm font-semibold text-[#11141B]">No recommendations yet</h4>
+                  <p className="mt-1 text-xs text-[#686D79] max-w-md mx-auto">
+                    Connect your GitHub account or log solved problem competencies in DevOrbit to receive tailored open-source recommendations.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {recommendations.map(rec => (
+                    <div
+                      key={rec.id}
+                      className="rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">
+                              {Math.round(rec.matchScore || 85)}% Match
+                            </span>
+                            <span className="text-xs font-mono text-[#686D79]">{rec.issue?.repository?.fullName}</span>
+                          </div>
+                          <h4 className="mt-1.5 text-sm font-semibold text-[#11141B]">{rec.issue?.title}</h4>
+                          <p className="mt-1 text-xs text-[#686D79]">{rec.explanation || 'Strong overlap with your demonstrated skill profile.'}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleAddToPipeline(rec.issue?.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
+                          >
+                            <Plus className="size-3" />
+                            <span>Track</span>
+                          </button>
+                          <a
+                            href={rec.issue?.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
+                          >
+                            <span>Solve</span>
+                            <ExternalLink className="size-3" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: PIPELINE */}
       {activeTab === 'pipeline' && (
-        <div className="space-y-4">
-          {!token ? (
-            <div className="text-center py-16 p-6 rounded-2xl bg-[#12151D] border border-[#1F2430]">
-              <Kanban className="size-8 text-[#8B5CF6] mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-[#F8FAFC]">Sign In Required</h3>
-              <p className="text-xs text-[#686D79] mt-1 max-w-sm mx-auto">
-                Sign in to manage your active open source issues through Shortlist, Exploration, PR submission, and Merge tracking.
-              </p>
+        <div className="mt-6 space-y-4">
+          <div className="rounded-xl border border-black/7 bg-white p-4">
+            <div className="flex items-center justify-between border-b border-black/7 pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#11141B]">Contribution Kanban Pipeline</h3>
+                <p className="mt-0.5 text-xs text-[#686D79]">Track active open-source issues from triage to PR merged</p>
+              </div>
+              <span className="text-xs font-mono text-[#8B5CF6] font-medium">{pipeline.length} Tracked</span>
             </div>
-          ) : pipelineLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-64 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 overflow-x-auto pb-4">
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
               {PIPELINE_STAGES.map(stage => {
-                const itemsInStage = pipeline.filter(item => item.stage === stage.key);
+                const itemsInStage = pipeline.filter(p => p.stage === stage.key);
                 return (
-                  <div
-                    key={stage.key}
-                    className="flex flex-col bg-[#12151D] border border-[#1F2430] rounded-xl min-w-[220px] max-w-full"
-                  >
-                    {/* Stage Header */}
-                    <div className="p-3 border-b border-[#1F2430] flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-semibold ${stage.color}`}>
-                          {stage.label}
+                  <div key={stage.key} className="rounded-xl border border-black/7 bg-[#F7F7F8] p-3 flex flex-col justify-between min-h-[380px]">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-black/6">
+                        <span className={`text-xs font-semibold ${stage.color}`}>{stage.label}</span>
+                        <span className="flex size-5 items-center justify-center rounded-full bg-white border border-black/6 text-[10px] font-mono font-medium text-[#686D79]">
+                          {itemsInStage.length}
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#181C26] text-[#686D79] border border-[#1F2430]">
-                        {itemsInStage.length}
-                      </span>
-                    </div>
 
-                    {/* Stage Items */}
-                    <div className="p-2.5 flex-1 space-y-2.5 min-h-[300px]">
-                      {itemsInStage.length === 0 ? (
-                        <div className="h-24 flex items-center justify-center text-[11px] text-[#686D79] border border-dashed border-[#1F2430] rounded-lg">
-                          No issues
-                        </div>
-                      ) : (
-                        itemsInStage.map(item => (
+                      <div className="mt-3 space-y-2.5">
+                        {itemsInStage.map(item => (
                           <div
                             key={item.id}
-                            className="p-3 rounded-lg bg-[#181C26] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-2 text-xs shadow-sm"
+                            className="rounded-lg border border-black/7 bg-white p-2.5 shadow-2xs space-y-2"
                           >
-                            <div className="flex items-center justify-between text-[11px] font-mono text-[#686D79]">
-                              <span className="truncate max-w-[130px] text-[#8B5CF6]">
-                                {item.issue?.repository?.fullName || 'External Repo'}
+                            <div className="flex items-start justify-between gap-1.5">
+                              <span className="text-[10px] font-mono text-[#686D79] truncate">
+                                {item.issue?.repository?.fullName || 'Repo'}
                               </span>
-                              <span>#{item.issue?.number}</span>
-                            </div>
-
-                            <h4 className="font-medium text-[#F8FAFC] line-clamp-2 leading-snug">
-                              {item.issue?.title || 'Tracked Opportunity'}
-                            </h4>
-
-                            {item.notes && (
-                              <p className="text-[11px] text-[#686D79] italic line-clamp-2 bg-[#12151D] p-1.5 rounded border border-[#1F2430]">
-                                {item.notes}
-                              </p>
-                            )}
-
-                            {/* Stage Controls */}
-                            <div className="pt-2 border-t border-[#1F2430] flex items-center justify-between gap-1">
-                              {/* Advance Stage Button */}
-                              {stage.key !== 'MERGED' ? (
-                                <button
-                                  onClick={() => {
-                                    const currentIndex = PIPELINE_STAGES.findIndex(s => s.key === stage.key);
-                                    if (currentIndex < PIPELINE_STAGES.length - 1) {
-                                      handleUpdateStage(item.id, PIPELINE_STAGES[currentIndex + 1].key, stage.key);
-                                    }
-                                  }}
-                                  className="px-2 py-1 rounded bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 text-[#A78BFA] text-[10px] font-medium flex items-center gap-1 transition-colors"
-                                  title="Advance to next pipeline stage"
-                                >
-                                  <span>Advance</span>
-                                  <ArrowRight className="size-2.5" />
-                                </button>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#4ADE80]">
-                                  <CheckCircle2 className="size-3" />
-                                  <span>Merged</span>
-                                </span>
-                              )}
-
                               <button
                                 onClick={() => handleRemoveFromPipeline(item.id)}
-                                className="p-1 text-[#686D79] hover:text-[#EF4444] rounded transition-colors"
-                                title="Remove from pipeline"
+                                className="text-[#999CA3] hover:text-red-500 p-0.5"
+                                title="Remove"
                               >
                                 <Trash2 className="size-3" />
                               </button>
                             </div>
+
+                            <h5 className="text-xs font-medium text-[#11141B] line-clamp-2 leading-snug">
+                              {item.issue?.title || 'Tracked Issue'}
+                            </h5>
+
+                            {/* Stage advance controls */}
+                            <div className="pt-2 border-t border-black/5 flex items-center justify-between">
+                              {stage.key !== 'MERGED' ? (
+                                <select
+                                  value={item.stage}
+                                  onChange={e => handleUpdateStage(item.id, e.target.value as any, item.stage)}
+                                  className="text-[9px] rounded border border-black/8 bg-[#F7F7F8] px-1 py-0.5 text-[#11141B]"
+                                >
+                                  {PIPELINE_STAGES.map(s => (
+                                    <option key={s.key} value={s.key}>{s.label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-[10px] font-mono text-emerald-600 font-semibold flex items-center gap-1">
+                                  <Check className="size-3" /> Done
+                                </span>
+                              )}
+
+                              {item.issue?.url && (
+                                <a
+                                  href={item.issue.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[#999CA3] hover:text-[#11141B]"
+                                >
+                                  <ExternalLink className="size-3" />
+                                </a>
+                              )}
+                            </div>
                           </div>
-                        ))
-                      )}
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-black/6 text-center">
+                      <button
+                        onClick={() => setActiveTab('explore')}
+                        className="text-[10px] text-[#686D79] hover:text-[#11141B] hover:underline"
+                      >
+                        + Find more issues
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 3: RECOMMENDED (EVIDENCE-GROUNDED OPPORTUNITIES) */}
-      {activeTab === 'recommendations' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-[#C5C8D0]">
-              <Sparkles className="size-4 text-[#8B5CF6]" />
-              <span>Grounded in your connected GitHub repositories, languages, and topic history.</span>
-            </div>
-            <StatusBadge variant="violet">
-              Evidence Grounded
-            </StatusBadge>
           </div>
-
-          {recommendationsLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-32 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : recommendations.length === 0 ? (
-            <EmptyState
-              title="No recommendations generated yet"
-              description="Connect your GitHub account in Integrations Center or star repositories to activate personalized AI matching."
-              icon={<Sparkles className="size-8 text-[#8B5CF6]" />}
-            />
-          ) : (
-            <div className="space-y-3">
-              {recommendations.map(issue => (
-                <div
-                  key={issue.id}
-                  className="p-5 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-[#8B5CF6] font-semibold">
-                        {issue.repository?.fullName} #{issue.number}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30">
-                        {issue.matchScore}% Match
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleInspectMatch(issue)}
-                        className="px-2.5 py-1 rounded-lg bg-[#181C26] hover:bg-[#1F2430] border border-[#1F2430] text-[#C5C8D0] hover:text-[#F8FAFC] text-xs font-medium flex items-center gap-1.5 transition-colors"
-                      >
-                        <Info className="size-3 text-[#8B5CF6]" />
-                        <span>Inspect Match</span>
-                      </button>
-                      <button
-                        onClick={() => handleAddToPipeline(issue.id, 'SHORTLISTED')}
-                        className="px-3 py-1 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      >
-                        <Plus className="size-3" />
-                        <span>Add to Pipeline</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-bold text-[#F8FAFC]">{issue.title}</h3>
-                    <p className="mt-1 text-xs text-[#A78BFA] font-mono bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 p-2 rounded-lg">
-                      {issue.explanation}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#1F2430] text-xs font-mono text-[#686D79]">
-                    <div className="flex flex-wrap gap-1.5">
-                      {issue.labels?.map((label: any, idx: number) => (
-                        <span key={idx} className="px-2 py-0.5 rounded bg-[#181C26] border border-[#1F2430] text-[#C5C8D0] text-[10px]">
-                          {typeof label === 'string' ? label : label.name}
-                        </span>
-                      ))}
-                    </div>
-                    {issue.url && (
-                      <a
-                        href={issue.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[#686D79] hover:text-[#8B5CF6] transition-colors"
-                      >
-                        <span>GitHub</span>
-                        <ExternalLink className="size-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
-      {/* EXPLAINABLE SKILL MATCH MODAL */}
+      {/* Skill Match Explainability Modal */}
       {selectedIssueForMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-lg rounded-2xl bg-[#12151D] border border-[#1F2430] p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#1F2430] pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6]">
-                  <Sparkles className="size-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#F8FAFC]">Explainable Skill Match</h3>
-                  <p className="text-xs text-[#686D79]">Algorithmic fit analysis against your verified skills</p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl border border-black/10 bg-white p-6 shadow-2xl space-y-5">
+            <div className="flex items-start justify-between border-b border-black/7 pb-4">
+              <div>
+                <span className="text-[10px] font-mono text-[#8B5CF6] uppercase tracking-wider font-semibold">AI Skill Fit Provenance</span>
+                <h3 className="text-base font-semibold text-[#11141B] mt-0.5">{selectedIssueForMatch.title}</h3>
               </div>
               <button
                 onClick={() => setSelectedIssueForMatch(null)}
-                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
+                className="p-1 rounded-md text-[#999CA3] hover:text-[#11141B] hover:bg-zinc-100"
               >
                 <X className="size-5" />
               </button>
             </div>
 
-            {/* Target Issue Context */}
-            <div className="p-3 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-              <div className="text-xs font-mono text-[#8B5CF6]">
-                {selectedIssueForMatch.repository?.fullName} #{selectedIssueForMatch.number}
-              </div>
-              <div className="text-sm font-semibold text-[#F8FAFC] line-clamp-2">
-                {selectedIssueForMatch.title}
-              </div>
-            </div>
-
-            {/* Match Analysis Content */}
-            {!token ? (
-              <div className="p-4 rounded-xl bg-[#181C26] border border-[#1F2430] text-center space-y-2">
-                <Info className="size-6 text-[#8B5CF6] mx-auto" />
-                <p className="text-xs text-[#C5C8D0]">
-                  Please sign in to analyze your verified GitHub skills against this issue's tech stack.
-                </p>
-              </div>
-            ) : matchLoading ? (
-              <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <div className="size-8 rounded-full border-2 border-[#8B5CF6] border-t-transparent animate-spin" />
-                <span className="text-xs text-[#686D79]">Computing verified skill alignment...</span>
+            {matchLoading ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="size-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-[#686D79]">Calculating grounded skill vector overlap...</p>
               </div>
             ) : matchData ? (
               <div className="space-y-4">
-                {/* Score Banner */}
-                <div className="p-4 rounded-xl bg-[#181C26] border border-[#1F2430] flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#C5C8D0]">Overall Match Score</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-2xl font-bold font-mono ${
-                      matchData.matchScore >= 70 ? 'text-[#4ADE80]' :
-                      matchData.matchScore >= 40 ? 'text-[#FBBF24]' : 'text-[#8B5CF6]'
-                    }`}>
-                      {matchData.matchScore}%
-                    </span>
-                    <span className="text-xs text-[#686D79]">Fit</span>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#F0EDFA] border border-[#8B5CF6]/20">
+                  <span className="text-xs font-medium text-[#11141B]">Calculated Match Score</span>
+                  <span className="text-lg font-bold font-mono text-[#8B5CF6]">{matchData.matchScore}%</span>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-semibold text-[#11141B] mb-1.5">Matched Competencies</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {matchData.matchedSkills?.map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded text-xs font-mono bg-violet-50 text-[#8B5CF6] border border-violet-200">
+                        ✓ {s}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                {/* Explanation text */}
-                <div className="p-3.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-xs text-[#C5C8D0] leading-relaxed">
-                  {matchData.explanation}
-                </div>
-
-                {/* Matched Skills */}
-                <div>
-                  <h4 className="text-xs font-mono uppercase tracking-wider text-[#686D79] mb-1.5">
-                    Matched Skills ({matchData.matchedSkills.length})
-                  </h4>
-                  {matchData.matchedSkills.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {matchData.matchedSkills.map((s, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 rounded text-xs font-mono bg-[#22C55E]/10 text-[#4ADE80] border border-[#22C55E]/30 flex items-center gap-1"
-                        >
-                          <Check className="size-3" />
-                          <span>{s}</span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-[#686D79]">No direct skill overlap found in your profile.</span>
-                  )}
-                </div>
-
-                {/* Missing Skills */}
-                {matchData.missingSkills.length > 0 && (
+                {matchData.missingSkills && matchData.missingSkills.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-mono uppercase tracking-wider text-[#686D79] mb-1.5">
-                      Recommended Prerequisite Skills ({matchData.missingSkills.length})
-                    </h4>
+                    <h4 className="text-xs font-semibold text-[#11141B] mb-1.5">Growth Opportunities</h4>
                     <div className="flex flex-wrap gap-1.5">
-                      {matchData.missingSkills.map((s, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 rounded text-xs font-mono bg-[#181C26] text-[#686D79] border border-[#1F2430]"
-                        >
-                          {s}
+                      {matchData.missingSkills.map((s, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded text-xs font-mono bg-[#F7F7F8] text-[#686D79] border border-black/6">
+                          + {s}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
+
+                <div className="p-3 rounded-xl bg-[#F7F7F8] border border-black/7 text-xs text-[#686D79] leading-relaxed">
+                  {matchData.explanation}
+                </div>
               </div>
             ) : (
-              <p className="text-xs text-[#686D79]">Unable to compute skill match at this moment.</p>
+              <p className="text-xs text-[#686D79]">Sign in to compare this issue against your real skill history.</p>
             )}
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1F2430]">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSelectedIssueForMatch(null)}
-              >
+            <div className="pt-4 border-t border-black/7 flex items-center justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setSelectedIssueForMatch(null)}>
                 Close
               </Button>
-
               <Button
                 variant="primary"
                 size="sm"
