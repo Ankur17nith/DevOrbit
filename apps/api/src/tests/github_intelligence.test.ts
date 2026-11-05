@@ -142,6 +142,9 @@ describe('GitHub Intelligence & Repository Sync Tests (Milestone M2)', () => {
 
     expect(statusB.body.data.username).toBe('sara-chen');
     expect(statusB.body.data.repoCount).toBe(2); // distributed-raft, orbit-mesh-proxy
+    expect(statusB.body.data.tokenMasked).toBeDefined();
+    expect(statusB.body.data.tokenMasked).not.toContain('mock_token_sara_chen');
+    expect(statusB.body.data.tokenMasked).toMatch(/\*\*\*/);
   });
 
   // 7. Multi-user repository isolation

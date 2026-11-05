@@ -185,6 +185,15 @@ export class GitHubService {
       where: { userId },
     });
 
+    let tokenMasked: string | null = null;
+    try {
+      if (cred.encryptedToken) {
+        tokenMasked = maskSecretToken(decryptSecret(cred.encryptedToken));
+      }
+    } catch {
+      tokenMasked = '****';
+    }
+
     return {
       connected: true,
       username: cred.username,
@@ -193,6 +202,8 @@ export class GitHubService {
       rateLimitTotal: cred.rateLimitTotal,
       rateLimitReset: cred.rateLimitReset,
       lastSyncedAt: cred.lastSyncedAt,
+      tokenExpiresAt: cred.tokenExpiresAt,
+      tokenMasked,
       repoCount,
     };
   }
