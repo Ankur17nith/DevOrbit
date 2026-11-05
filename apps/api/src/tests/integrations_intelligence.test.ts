@@ -188,6 +188,37 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
     expect(forgedRes.body.error.message).toMatch(/Invalid, expired, or tampered OAuth state parameter/i);
   });
 
+  // 11. Persistent Single-Use OAuth State & Anti-Replay
+  it('11. Enforces persistent single-use OAuth state preventing replay attacks', async () => {
+    // 1. Generate legitimate state
+    const stateRes = await request(app)
+      .get('/api/v1/integrations/github/oauth/start')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(stateRes.status).toBe(200);
+    const validState = stateRes.body.data.state;
+    expect(validState).toBeDefined();
+
+    // 2. First callback with valid state succeeds
+    const firstCallback = await request(app)
+      .post('/api/v1/integrations/github/oauth/callback')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ code: 'test_oauth_code_valid', state: validState });
+
+    expect(firstCallback.status).toBe(200);
+    expect(firstCallback.body.success).toBe(true);
+    expect(firstCallback.body.data.connected).toBe(true);
+
+    // 3. Second callback with identical state fails with 400 (replay prevented)
+    const replayCallback = await request(app)
+      .post('/api/v1/integrations/github/oauth/callback')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ code: 'test_oauth_code_valid', state: validState });
+
+    expect(replayCallback.status).toBe(400);
+    expect(replayCallback.body.error.message).toMatch(/Invalid, expired, or tampered OAuth state parameter/i);
+  });
+
   // 12. Root Service Info (ensures no Cannot GET / in browser)
   it('12. Root / endpoint returns structured JSON service information', async () => {
     const res = await request(app).get('/');
