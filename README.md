@@ -6,34 +6,65 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite%20(Local--First)-003B57.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-91%2F91%20Passing%20(100%25)-success.svg)](./apps/api/src/tests/)
+[![Tests](https://img.shields.io/badge/Tests-143%2F143%20Passing%20(100%25)-success.svg)](./apps/api/src/tests/)
 [![Design System](https://img.shields.io/badge/Figma-Figma%20Brand%20Identity-8B5CF6.svg)](./docs/release/FIGMA_IMPLEMENTATION_REPORT.md)
 
 ---
 
 ## 1. Product Overview
 
-**DevOrbit** is a local-first, privacy-respecting **Developer Intelligence Operating System**. It connects fragmented developer data—source code repositories, competitive programming handles, algorithmic revision schedules, open-source contribution pipelines, and local neural intelligence—into a single, unified, space-themed command center.
+**DevOrbit** is a local-first, privacy-respecting **Developer Intelligence Platform**. It connects fragmented developer data—source code repositories, competitive programming handles, algorithmic revision schedules, multi-platform open-source discovery, and evidence-grounded recommendations—into a single, unified, space-themed command center.
 
 Unlike cloud dashboards that sell user metrics or lock workflows behind recurring SaaS fees, DevOrbit is 100% locally owned. All data resides in an encrypted SQLite database on your local machine, and AI assistance runs completely on-device via [Ollama](https://ollama.ai) with zero cloud telemetry.
 
 ---
 
-## 2. Problem Statement
+## 2. Key Capabilities & Innovations
 
-Modern software engineers suffer from extreme tool fragmentation:
-1. **GitHub Activity**: Scattered across private and public repositories, organizations, and pull request threads.
-2. **Algorithmic Mastery (DSA)**: Spread between LeetCode, Codeforces, and curated sheets (e.g., Striver A2Z, NeetCode 150), leading to duplicate solves, forgotten patterns, and lack of systematic spaced repetition.
-3. **Open-Source Intelligence (OSS)**: Difficult discovery of matching GSoC programs, fellowship cutoffs, and legitimate issue bounties without manual curation.
-4. **AI & Code Privacy**: Cloud-based coding assistants often index proprietary code bases and leak developer intellectual property.
+### 🔍 Multi-Platform Open Source Organization Discovery
+DevOrbit provides a normalized multi-platform discovery architecture supporting top global open-source ecosystems:
+- **Google Summer of Code (GSoC)**: 600+ organizations with historical topic indexing and project counts.
+- **Outreachy Mentorship**: Verified diversity-focused open-source internships (Mozilla, Wikimedia, GNOME, Tor, Wagtail, Oppia).
+- **Linux Foundation (LFX Mentorship)**: Kernel, cloud native, and infrastructure mentorships (CNCF, Hyperledger, OpenSSF, Zephyr, GraphQL Foundation).
+- **Major League Hacking (MLH Fellowship)**: Production open-source fellowships (Meta Open Source, Pallets, Solana, Julia Language).
+- **GitHub Open Source**: Direct ecosystem leaders (Vercel, Supabase, Tailwind Labs, Bun, Prisma).
 
-**DevOrbit solves this** by serving as an on-device operating system that aggregates your engineering footprint, automates cognitive spaced review using SuperMemo SM-2, tracks open-source fellowships, and provides private, local AI inference.
+Features:
+- Multi-platform selection filter with combined OR / AND logic.
+- Technology filters with active count badges.
+- Organization detail modal accessible via card click, showing verified website URLs, platform history, and open beginner issues.
+- URL Query Parameter synchronization (`?platforms=...&techs=...&techLogic=...&search=...&org=...`) preserving exact filter state across browser refreshes and shareable bookmarks.
+
+### 🎯 7-Factor Explainable Recommendation Engine
+DevOrbit replaces opaque heuristics with a deterministic, explainable 7-factor scoring engine:
+1. **Technology Match (25%)**: Overlap between candidate project stack and developer's verified codebase languages.
+2. **Domain Relevance (20%)**: Architectural domain fit (Systems, Web, Cloud Native, DevOps, AI).
+3. **Difficulty Alignment (15%)**: Calibrated to developer's stated experience level (`BEGINNER`, `INTERMEDIATE`, `ADVANCED`).
+4. **Skill Strength Match (15%)**: Confidence weighting derived from multi-repository AST evidence.
+5. **Project Health (10%)**: Star counts, active issues, verified maintenance indicators.
+6. **Issue Freshness (10%)**: Creation recency and active conversation activity.
+7. **Organization Relevance (5%)**: Mentorship platform provenance and foundation backing.
+
+Every recommendation includes:
+- **Category Classification**: `BEST_SKILL_FIT`, `GOOD_FIRST_ISSUE`, `DOMAIN_EXPANSION`, `TRENDING_HOT`, `SPONSORED_BOUNTY`.
+- **Transparent Explanation**: Formatted reason text detailing the exact match provenance.
+- **Feedback Loop**: "Save", "Track", and "Dismiss" buttons; dismissing adjusts future interest weights deterministically.
+
+### 🧠 Unified Developer Intelligence Profile & README Signal Extraction
+- **README Signal Extractor**: Ingests `<user>/<user>` profile README and repository READMEs, parsing tech stack shields/badges, declared languages, frameworks, databases, and focus areas.
+- **Multi-Source Skill Aggregation**: Unifies GitHub code AST metrics, README signals, competitive handles, and manual calibrations with provenance tags (`GITHUB_CODEBASE`, `GITHUB_README`, `MANUAL_VERIFIED`).
+- **Editable Opportunity Preferences**: Real-time configuration of primary focus, experience level, bio, and weekly availability commitment hours.
+
+### 🛡️ Enterprise Security & OAuth Replay Defense
+- **Atomic OAuth State Verification**: Single-use SHA-256 hashed state tokens preventing OAuth CSRF and replay attacks.
+- **AES-256-GCM Cryptographic Vault**: Integration secrets (GitHub PATs, OAuth credentials) encrypted with authenticated AES-256-GCM.
+- **Content-Type Protected API Client (`apiFetch`)**: Centralized response parser preventing unexpected HTML error crashes (`<!DOCTYPE ...`) when proxies or services return non-JSON responses.
 
 ---
 
 ## 3. Product Visual Walkthrough
 
-DevOrbit's UI is designed strictly against the official Figma brand identity (*Orbit Black* `#0B0D12`, *Electric Violet* `#8B5CF6`, *Soft White* `#F8FAFC`, and *Signal Gray* `#686D79`), featuring responsive navigation, custom typography, and zero emerald green bleed.
+DevOrbit's UI is designed strictly against the official Figma brand identity (*Workspace Canvas* `#F9FAFB`, *Cards* `#FFFFFF` with `border border-black/7`, *Electric Violet* `#8B5CF6`, *Signal Gray* `#686D79`, and *Dark Code Editors* `#11141B`).
 
 ### Public Landing Page (Figma Reference Canvas)
 ![DevOrbit Public Landing Page](docs/design/verified_landing_page.png)
@@ -47,130 +78,115 @@ DevOrbit's UI is designed strictly against the official Figma brand identity (*O
 ![DevOrbit Documentation Hub](docs/design/verified_documentation_page.png)
 *Clean two-column technical docs, category sidebar, breadcrumb hierarchy, copyable shell blocks, and local API reference.*
 
-### Authentication & Fast Local Demo
-![DevOrbit Sign In Screen](docs/design/verified_login_page.png)
-*Secure sign-in with instant 1-click local demo authentication.*
-
 ---
 
-## 4. Key Features
+## 4. Key Modules
 
 | Module | Core Capabilities |
 |---|---|
 | **Command Center** | Unified developer HUD, 365-day verified coding heatmap, active OSS pipeline, SM-2 daily revision queue. |
-| **Integration Center** | Zero-friction connections for GitHub, Codeforces, LeetCode, TUF Striver A2Z, and Ollama with AES-256-GCM token encryption. |
-| **DSA Intelligence** | 455+ problem tracking, cognitive mastery classification (`INDEPENDENT`, `WITH_HINTS`, `WITH_EDITORIAL`, `WITH_AI`), automated SuperMemo SM-2 scheduling, and cross-platform deduplication. |
+| **Organization Discovery** | Multi-platform discovery across GSoC, Outreachy, LFX Mentorship, MLH, and GitHub Open Source. |
+| **Recommendation Engine** | 7-factor explainable matching with categories, transparent evidence text, and feedback loop. |
+| **Developer Profile** | Unified intelligence profile with README badge extraction and multi-source skill calibration. |
+| **Integration Center** | Real connections for GitHub (OAuth/PAT), Codeforces (live REST), LeetCode, TUF Striver A2Z, and Ollama. |
+| **DSA Intelligence** | 455+ problem tracking, cognitive mastery classification, and SuperMemo SM-2 spaced repetition scheduling. |
 | **Orbit AI Studio** | 100% on-device neural assistant powered by Ollama (`deepseek-coder`, `qwen2.5-coder`). Honest deterministic rule engine fallback when offline. |
-| **Orbit Recon & Fix** | Local AST analysis, automated dead-code detection, vulnerability inspection, and non-destructive refactoring plans. |
-| **Orbit SafeChange** | Semantic impact analysis calculating blast radius and confidence scores before modifying shared dependencies. |
-| **Open Source Intelligence** | Real GSoC organization database, issue shortlist pipeline, verified bounty matching, and mentorship deadline tracking. |
 | **Disaster Recovery** | Single-click full JSON export and restore for database backups and account portability. |
 
 ---
 
 ## 5. Architecture Overview
 
-DevOrbit operates as an atomic local-first monorepo:
-
 ```mermaid
 flowchart TD
-    subgraph Client ["Client Layer (Desktop / Web)"]
+    subgraph Client ["Client Layer (Web & Desktop)"]
         UI["React 19 + Tailwind CSS + Lucide"]
-        Shell["Collapsible Left Navigation + Global TopBar"]
-        Tauri["Tauri v2 Desktop Shell (Rust)"]
+        Shell["Figma Nav Shell + Filter Query Sync"]
+        Modal["Slide-over Organization & Match Modals"]
     end
 
     subgraph Server ["DevOrbit Local API (:3001)"]
         Express["Express API Server (TypeScript)"]
         AuthGuards["JWT + RBAC + Helmet Security"]
-        CryptoEngine["AES-256-GCM Cryptographic Vault"]
+        CryptoVault["AES-256-GCM Cryptographic Vault"]
         
-        subgraph Providers ["Integration Adapters"]
-            GH["GitHub Provider (OAuth / PAT)"]
-            CF["Codeforces Provider (REST API)"]
-            LC["LeetCode Provider (GraphQL / CSV)"]
-            TUF["Take U Forward Adapter"]
-            OLLAMA["Ollama Local AI Provider"]
+        subgraph Providers ["Multi-Platform Providers"]
+            GSOC["GSoC 2026 Provider (606 orgs)"]
+            OUTREACHY["Outreachy Provider"]
+            LFX["Linux Foundation LFX Provider"]
+            MLH["MLH Fellowship Provider"]
+            GH_OSS["GitHub Open Source Provider"]
         end
 
-        subgraph CoreServices ["Core Engines"]
+        subgraph CoreEngines ["Intelligence Engines"]
+            RecEngine["7-Factor Explainable Recommendation Engine"]
+            ReadmeExtractor["README Signal Extraction Engine"]
             SM2["SuperMemo SM-2 Spaced Repetition Engine"]
-            Recon["Orbit Recon (Codebase Indexer)"]
-            SafeChange["SafeChange Impact Analyzer"]
-            Backup["Disaster Recovery Backup/Restore"]
+            Normalizer["Canonical Repository Normalizer"]
         end
     end
 
     subgraph Storage ["Local Storage & Offline AI"]
-        Prisma["Prisma ORM"]
+        Prisma["Prisma ORM 6.4"]
         SQLite[("Local SQLite Database (devorbit.db)")]
         LocalLLM["Local Ollama Daemon (127.0.0.1:11434)"]
     end
 
-    UI -->|HTTP / JSON| Express
-    Tauri -->|Spawns / Embeds| UI
+    UI -->|HTTP / JSON (apiFetch)| Express
     Express --> AuthGuards
-    AuthGuards --> CryptoEngine
-    CryptoEngine --> Providers
-    Express --> CoreServices
-    CoreServices --> Prisma
+    AuthGuards --> CryptoVault
+    Express --> CoreEngines
+    CoreEngines --> Providers
+    CoreEngines --> Prisma
     Prisma --> SQLite
-    OLLAMA -->|HTTP / Stream| LocalLLM
+    Express -.->|Optional Local AI| LocalLLM
 ```
 
 ---
 
 ## 6. Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite 6, Tailwind CSS 3.4, Radix UI primitives, Recharts, Lucide Icons.
+- **Frontend**: React 19, TypeScript, Vite 6, Tailwind CSS 3.4, Lucide Icons, Recharts.
 - **Backend API**: Node.js 22, Express 4.21, TypeScript 5.7, Zod input validation, Helmet, CORS.
-- **Database**: SQLite with Prisma ORM 6.4 (26 relational models, WAL mode).
-- **Security**: AES-256-GCM token encryption, bcryptjs password hashing, JWT with UUID `jti` replay mitigation.
-- **Desktop Packaging**: Tauri v2 (Rust).
+- **Database**: SQLite with Prisma ORM 6.4 (32 relational models, WAL mode).
+- **Security**: AES-256-GCM token encryption, bcryptjs password hashing, atomic SHA-256 OAuth replay defense.
 - **AI Runtime**: Local Ollama daemon via native HTTP streaming (`deepseek-coder`, `qwen2.5-coder`).
 - **Testing**: Vitest 3.0, Supertest.
 
 ---
 
-## 7. Prerequisites
+## 7. Installation & Quick Start
 
-Before running DevOrbit, ensure the following are installed:
-- **Node.js**: `v20.0.0` or higher (verified on Node `v22.23.1`)
+### 1. Prerequisites
+- **Node.js**: `v20.0.0` or higher (tested on Node `v22.23.1`)
 - **npm**: `v10.0.0` or higher
 - **Git**: `v2.40+`
-- *(Optional for AI)* **Ollama**: [Download Ollama](https://ollama.ai) for local neural intelligence.
-- *(Optional for Desktop Packaging)* **Rust & Cargo**: `v1.75+` for Tauri v2 desktop bundles.
 
----
-
-## 8. Installation & Setup
-
-### 1. Clone Repository & Install Dependencies
+### 2. Clone Repository & Install Dependencies
 ```bash
 git clone https://github.com/ankurgupta/DevOrbit.git
 cd DevOrbit
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 3. Configure Environment Variables
 ```bash
 cp .env.example .env
 ```
 *(The defaults in `.env.example` are immediately functional for local development out of the box).*
 
-### 3. Initialize & Seed Local SQLite Database
+### 4. Initialize Local SQLite Database
 ```bash
 npm run db:push
 npm run db:seed
 ```
-This generates the Prisma client, establishes relational SQLite tables in `apps/api/devorbit.db`, and seeds initial algorithmic problems and open-source data.
 
-### 4. Start Development Servers
+### 5. Start Development Servers
 Run both backend and frontend concurrently:
 ```bash
 npm run dev
 ```
-Or start them in separate terminals:
+Or in separate terminals:
 ```bash
 # Terminal 1: Backend API Server (Port 3001)
 npm run dev:api
@@ -179,29 +195,29 @@ npm run dev:api
 npm run dev:web
 ```
 
-Open your browser to **`http://localhost:5173`** to access the DevOrbit Command Center.
+Open your browser to **`http://localhost:5173`** to access DevOrbit.
 
 ---
 
-## 9. Integrations Guide
+## 8. Verified Integrations Guide
 
 ### GitHub Connection
 1. Navigate to **Integration Center** (`/integrations`).
 2. Click **Connect GitHub**.
-3. **Personal Access Token (PAT)**: Generate a token on [GitHub Settings > Tokens](https://github.com/settings/tokens) with `repo` and `read:user` scopes, paste it, and click Save.
-4. **OAuth Application (Optional)**: Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `.env` to enable 1-click web authorization.
-5. All tokens are encrypted using authenticated **AES-256-GCM** before being saved to SQLite.
+3. **Personal Access Token (PAT)**: Provide a token with `repo` and `read:user` scopes.
+4. **OAuth Application**: Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `.env` to enable 1-click web authorization with atomic SHA-256 anti-replay validation.
+5. All secrets are encrypted via authenticated **AES-256-GCM** before database persistence.
 
 ### Codeforces Connection
 1. Go to **Integration Center** (`/integrations`).
 2. Click **Connect Codeforces Handle**.
 3. Enter your public Codeforces handle (e.g., `tourist`, `Petr`).
-4. DevOrbit will query the official live Codeforces REST API (`user.info`, `user.rating`, `user.status`) and display your current rating, peak rating, and contest analytics. No secret credentials required.
+4. DevOrbit queries the live official Codeforces REST API (`user.info`, `user.rating`, `user.status`) and displays your verified rating, max rating, and contest analytics.
 
-### LeetCode & Take U Forward Progress
+### LeetCode & Take U Forward (TUF)
 1. Open **Integration Center** (`/integrations`).
-2. Connect or update your handle to fetch problem counts and topic breakdowns.
-3. Import Striver A2Z sheet progress to track your algorithmic progress against the 455-problem curriculum.
+2. Connect your handle to synchronize solved problem metrics and topic proficiencies.
+3. Track your algorithmic progress across the 455-problem Striver A2Z curriculum with automated SuperMemo SM-2 spaced repetition.
 
 ### Local Ollama AI Setup
 1. Install Ollama:
@@ -216,73 +232,46 @@ Open your browser to **`http://localhost:5173`** to access the DevOrbit Command 
 
 ---
 
-## 10. Automated Test Suite
+## 9. Automated Test Suite
 
-DevOrbit includes **91 automated integration and unit tests** (82 API + 9 Web) covering multi-user isolation, SuperMemo SM-2 calculations, token encryption, API validation, disaster recovery backups, rate limiting, and external provider adapters:
+DevOrbit maintains **143 automated tests across 25 test files** (106 API + 37 Web) verifying all architectural layers:
 
 ```bash
 npm test
 ```
 
-### Verification Output:
-```text
-Test Files  13 passed (13)
-     Tests  91 passed (91)
-  Duration  ~13.2s
-```
+### Verification Results:
+- **`@devorbit/api`**: 15 test files passed, 106 tests passed.
+- **`@devorbit/web`**: 10 test files passed, 37 tests passed.
+- **Total**: 143 passed (100% pass rate, 0 failures).
 
 ---
 
-## 11. Production Build & Desktop Packaging
+## 10. Production Build
 
-### Production Web & API Build
+To compile production-optimized bundles:
 ```bash
 npm run build
 ```
-Generates optimized frontend bundles in `apps/web/dist` and compiled server code in `apps/api/dist`.
-
-### Tauri Desktop Packaging
-To compile a native desktop application bundle for Linux/macOS/Windows:
-```bash
-cd src-tauri
-cargo build --release
-```
+This runs TypeScript type checking (`tsc`) and generates optimized production artifacts in `apps/web/dist` and `apps/api/dist`.
 
 ---
 
-## 12. Backup & Disaster Recovery
+## 11. Security & Privacy Architecture
 
-DevOrbit provides native disaster recovery without vendor lock-in:
-1. Navigate to **Settings > Backups & Restore** (`/settings`).
-2. Click **Export Backup JSON** to download a complete cryptographic export of your account profile, solved problems, SM-2 intervals, and bookmarks.
-3. To recover, click **Choose Backup File** and upload your JSON backup to restore all progress instantly.
-
-Alternatively, execute the backup endpoint directly via CLI:
-```bash
-curl -H "Authorization: Bearer <YOUR_JWT_TOKEN>" http://localhost:3001/api/v1/system/backup -o devorbit_backup.json
-```
+- **Zero Cloud Telemetry**: No third-party analytics, user tracking beacons, or telemetry scripts.
+- **AES-256-GCM Token Encryption**: Integration secrets are encrypted with authenticated AES-256-GCM with unique 96-bit initialization vectors.
+- **Single-Use OAuth State Verification**: High-entropy OAuth state tokens are stored as SHA-256 hashes and consumed atomically.
+- **HTML Leak Protection**: Centralized response parser (`apiFetch`) guarantees structured JSON errors even if intermediate proxies return HTML.
+- **IDOR Safeguards**: All user-specific database entities strictly enforce `where: { id, userId }` ownership checks.
+- **Strict Figma Brand Consistency**: Strict adherence to official design tokens, eliminating emerald green brand bleed.
 
 ---
 
-## 13. Security & Privacy Architecture
-
-- **Zero Cloud Leakage**: No telemetry, tracking beacons, or analytics scripts.
-- **AES-256-GCM Token Storage**: Integration secrets (GitHub PATs, OAuth tokens) are encrypted with AES-256-GCM with unique 96-bit initialization vectors.
-- **Session Protection**: JWTs include high-entropy UUID `jti` claims and are verified on all protected API routes. Session invalidation is enforced immediately upon logout.
-- **IDOR Prevention**: All user-specific database entities strictly enforce `where: { id, userId }` or workspace membership checks.
-- **Production Safeguards**: Refuses to launch in production if `JWT_SECRET` is weak/default or `CORS_ORIGIN` is wildcard (`*`).
-- **Rate Limiting**: Sliding-window rate limiters defend against brute force and resource exhaustion on auth, sync, and AI inference.
-- **Secure Headers**: Express is hardened with `helmet()` middleware protecting against MIME sniffing, clickjacking, and XSS.
-
----
-
-## 14. Documentation Directory
+## 12. Documentation Directory
 
 Detailed implementation guides and references are located in [`docs/`](./docs/):
 
-- [`docs/audits/SECURITY_REMEDIATION_REPORT.md`](./docs/audits/SECURITY_REMEDIATION_REPORT.md): Security vulnerability remediations and hardening audit.
-- [`docs/audits/FUNCTIONAL_VERIFICATION_REPORT.md`](./docs/audits/FUNCTIONAL_VERIFICATION_REPORT.md): Verified behavior of all 11 core functional modules.
-- [`docs/release/FIGMA_IMPLEMENTATION_REPORT.md`](./docs/release/FIGMA_IMPLEMENTATION_REPORT.md): Side-by-side Figma brand identity visual alignment report.
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md): Complete OS-specific installation manual.
 - [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md): Developer architecture and contributing workflow.
 - [`docs/PRODUCTION_DEPLOYMENT.md`](./docs/PRODUCTION_DEPLOYMENT.md): Production deployment and systemd service setup.
@@ -293,11 +282,9 @@ Detailed implementation guides and references are located in [`docs/`](./docs/):
 - [`docs/BACKUP_AND_RESTORE.md`](./docs/BACKUP_AND_RESTORE.md): Disaster recovery and data portability procedures.
 - [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md): Solutions for common setup and runtime errors.
 - [`docs/SECURITY.md`](./docs/SECURITY.md): Threat model and cryptographic implementation details.
-- [`docs/RELEASE_CHECKLIST.md`](./docs/RELEASE_CHECKLIST.md): Quality assurance criteria and release gate checklist.
-- [`docs/release/M9_FINAL_ACCEPTANCE_REPORT.md`](./docs/release/M9_FINAL_ACCEPTANCE_REPORT.md): Milestone M9 final acceptance and verification report.
 
 ---
 
-## 15. License
+## 13. License
 
 DevOrbit is open-source software licensed under the [MIT License](LICENSE).
