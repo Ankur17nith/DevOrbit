@@ -63,10 +63,15 @@ jobs:
           npx tsc --noEmit --project apps/api/tsconfig.json
           npx tsc --noEmit --project apps/web/tsconfig.json
 
-      - name: Run Backend Tests
+      - name: Run Backend Tests (API Unit & Integration Suite)
+        env:
+          DATABASE_URL: "file:${{ github.workspace }}/ci-test.db"
+          NODE_ENV: "test"
         run: npm run test:api
 
-      - name: Run Frontend Tests
+      - name: Run Frontend Tests (UI & Contract Conformance Suite)
+        env:
+          NODE_ENV: "test"
         run: npm run test:web
 
       - name: Build Complete Monorepo (Web & API)
