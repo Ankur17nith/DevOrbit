@@ -34,8 +34,8 @@ app.use(express.json());
 
 import { systemRouter } from './modules/system/system.routes.js';
 
-// Public Health Check
-app.get('/api/health', (_req, res) => {
+// Public Health Checks
+app.get(['/api/health', '/api/v1/health'], (_req, res) => {
   res.json({
     status: 'ok',
     service: 'devorbit-api',
