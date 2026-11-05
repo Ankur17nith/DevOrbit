@@ -20,7 +20,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
-  const { login, demoLogin } = useAuth();
+  const { login, demoLogin, authError } = useAuth();
   const [usernameOrEmail, setUsernameOrEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -42,7 +42,7 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
         if (onSuccess) onSuccess();
         else onNavigate('dashboard');
       } else {
-        setError('Invalid username or password. Please try again.');
+        setError(authError || 'Invalid username or password. Please try again.');
       }
     } catch (err: any) {
       setError(err?.message || 'Login failed. Please check your credentials.');
@@ -125,7 +125,7 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
                   required
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="alex_developer"
+                  placeholder="username or email"
                   className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-xl text-xs text-[#0E121B] placeholder-[#94A3B8] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all pl-9"
                 />
                 <User className="size-4 text-[#94A3B8] absolute left-3 top-3" />

@@ -19,7 +19,7 @@ interface RegisterPageProps {
 }
 
 export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
-  const { register } = useAuth();
+  const { register, authError } = useAuth();
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [username, setUsername] = useState<string>('');
@@ -48,7 +48,7 @@ export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
         if (onSuccess) onSuccess();
         else onNavigate('dashboard');
       } else {
-        setError('Registration could not be completed. Please check your inputs.');
+        setError(authError || 'Registration could not be completed. Please check your inputs.');
       }
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Username or email may already be registered.');
@@ -113,7 +113,7 @@ export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Alex Rivera"
+                  placeholder="e.g. Jane Developer"
                   className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-xl text-xs text-[#0E121B] placeholder-[#94A3B8] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all pl-9"
                 />
                 <User className="size-4 text-[#94A3B8] absolute left-3 top-3" />
@@ -130,7 +130,7 @@ export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="developer@devorbit.local"
+                  placeholder="developer@example.com"
                   className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-xl text-xs text-[#0E121B] placeholder-[#94A3B8] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all pl-9"
                 />
                 <Mail className="size-4 text-[#94A3B8] absolute left-3 top-3" />
@@ -147,7 +147,7 @@ export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="alex_developer"
+                  placeholder="e.g. janedev"
                   className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-xl text-xs text-[#0E121B] placeholder-[#94A3B8] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all pl-9"
                 />
                 <User className="size-4 text-[#94A3B8] absolute left-3 top-3" />

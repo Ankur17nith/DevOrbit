@@ -10,7 +10,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { login, register, demoLogin, user } = useAuth();
+  const { login, register, demoLogin, authError, user } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -32,14 +32,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (success) {
           onClose();
         } else {
-          setError('Registration failed. Username or email may already be taken.');
+          setError(authError || 'Registration failed. Username or email may already be taken.');
         }
       } else {
         const success = await login(username, password);
         if (success) {
           onClose();
         } else {
-          setError('Invalid login credentials.');
+          setError(authError || 'Invalid login credentials.');
         }
       }
     } catch {
@@ -154,7 +154,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 required
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder={isRegisterMode ? 'elena_vanguard' : 'alex_developer'}
+                placeholder={isRegisterMode ? 'e.g. janedev' : 'username or email'}
                 className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-sm focus:outline-none focus:border-[#8B5CF6] transition-colors"
               />
             </div>

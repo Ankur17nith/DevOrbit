@@ -19,6 +19,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   login: (login: string, pass: string) => Promise<boolean>;
   register: (email: string, username: string, pass: string, name?: string) => Promise<boolean>;
   logout: () => void;
@@ -31,6 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('devorbit_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const clearAuthError = () => setAuthError(null);
 
   const fetchCurrentUser = async (authToken: string) => {
     try {
@@ -63,41 +68,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (loginId: string, pass: string): Promise<boolean> => {
+    setAuthError(null);
     try {
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login: loginId, password: pass }),
       });
-      if (res.ok) {
-        const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.data?.token) {
         setToken(json.data.token);
         setUser(json.data.user);
         localStorage.setItem('devorbit_token', json.data.token);
         return true;
       }
+      const errMessage = json?.error?.message || json?.message || 'Invalid credentials. Please verify your login and password.';
+      setAuthError(errMessage);
       return false;
-    } catch {
+    } catch (err: any) {
+      setAuthError(err?.message || 'Network error while attempting to sign in.');
       return false;
     }
   };
 
   const register = async (email: string, username: string, pass: string, name?: string): Promise<boolean> => {
+    setAuthError(null);
     try {
       const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, username, password: pass, name }),
       });
-      if (res.ok) {
-        const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.data?.token) {
         setToken(json.data.token);
         setUser(json.data.user);
         localStorage.setItem('devorbit_token', json.data.token);
         return true;
       }
+      const errMessage = json?.error?.message || json?.message || 'Registration failed. Username or email may already be registered.';
+      setAuthError(errMessage);
       return false;
-    } catch {
+    } catch (err: any) {
+      setAuthError(err?.message || 'Network error while attempting to register account.');
       return false;
     }
   };
@@ -122,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, demoLogin }}>
+    <AuthContext.Provider value={{ user, token, isLoading, authError, clearAuthError, login, register, logout, demoLogin }}>
       {children}
     </AuthContext.Provider>
   );

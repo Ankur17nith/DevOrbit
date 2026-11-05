@@ -16,7 +16,7 @@ export class AuthService {
       throw new BadRequestError('Username is already taken');
     }
 
-    const passwordHash = await bcrypt.hash(data.password, 10);
+    const passwordHash = await bcrypt.hash(data.password, 12);
     const user = await prisma.user.create({
       data: {
         email: data.email,
