@@ -190,16 +190,25 @@ async function main() {
   const createdRepos: Record<string, string> = {};
 
   for (const r of reposToSeed) {
-    const fullName = r.full_name || `${r.owner?.login || r.owner}/${r.name}`;
-    if (!fullName) continue;
+    const rawLink = r.full_name || r.repoLink || (r.owner && r.name ? `${typeof r.owner === 'string' ? r.owner : r.owner.login}/${r.name}` : null);
+    if (!rawLink) continue;
+    const parts = rawLink.split('/');
+    const owner = (typeof r.owner === 'string' ? r.owner : r.owner?.login) || parts[0];
+    const name = r.name || parts[1];
+    if (!owner || owner === 'undefined' || !name || name === 'undefined') continue;
+    const fullName = `${owner}/${name}`;
 
     const created = await prisma.ossRepository.upsert({
       where: { fullName },
-      update: {},
+      update: {
+        owner,
+        name,
+        fullName,
+      },
       create: {
         fullName,
-        name: r.name || fullName.split('/')[1],
-        owner: r.owner?.login || (typeof r.owner === 'string' ? r.owner : fullName.split('/')[0]),
+        name,
+        owner,
         description: r.description || null,
         language: r.language || 'TypeScript',
         stargazersCount: r.stargazers_count || 0,
@@ -226,10 +235,35 @@ async function main() {
   if (defaultRepoId && bountiesToSeed.length > 0) {
     console.log(`💎 Seeding ${bountiesToSeed.length} Open Source Bounties / Issues...`);
     for (const b of bountiesToSeed) {
-      const targetRepoId = createdRepos[`${b.repo_owner || b.repoOwner}/${b.repo_name || b.repoName}`] || defaultRepoId;
+      const owner = b.repo_owner || b.repoOwner || (b.html_url ? b.html_url.split('/')[3] : 'angular');
+      const name = b.repo_name || b.repoName || (b.html_url ? b.html_url.split('/')[4] : 'angular');
+      const repoFullName = `${owner}/${name}`;
+
+      let targetRepoId = createdRepos[repoFullName];
+      if (!targetRepoId && owner && name && owner !== 'undefined' && name !== 'undefined') {
+        const repoRecord = await prisma.ossRepository.upsert({
+          where: { fullName: repoFullName },
+          update: {},
+          create: {
+            fullName: repoFullName,
+            owner,
+            name,
+            description: `Repository for ${repoFullName}`,
+            language: b.language || 'TypeScript',
+            stargazersCount: 1500,
+            forksCount: 400,
+            openIssuesCount: 20,
+            topicsJson: JSON.stringify(['open-source', 'bounty']),
+            isVerified: true,
+          },
+        });
+        targetRepoId = repoRecord.id;
+        createdRepos[repoFullName] = targetRepoId;
+      }
+
       await prisma.ossIssue.create({
         data: {
-          repositoryId: targetRepoId,
+          repositoryId: targetRepoId || defaultRepoId,
           number: b.number || b.issueNumber || Math.floor(Math.random() * 1000),
           title: b.title,
           body: (b.body || b.description || '').slice(0, 500),
@@ -240,7 +274,7 @@ async function main() {
           difficulty: b.difficulty || 'intermediate',
           bountyAmount: b.bountyAmount || '500',
           currency: b.currency || 'USD',
-          url: b.html_url || b.issueUrl || 'https://github.com',
+          url: b.html_url || b.issueUrl || `https://github.com/${repoFullName}/issues/${b.number || 1}`,
         },
       });
     }

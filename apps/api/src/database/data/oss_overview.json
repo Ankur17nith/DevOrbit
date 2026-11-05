@@ -24,7 +24,9 @@
       "company": "angular",
       "category": "web",
       "pushed_at": "2026-11-04T09:10:21Z",
-      "updated_at": "2026-11-04T10:42:38Z"
+      "updated_at": "2026-11-04T10:42:38Z",
+      "owner": "angular",
+      "full_name": "angular/angular"
     },
     {
       "name": "dubbo",
@@ -54,7 +56,9 @@
       "company": "dubbo",
       "category": "devops",
       "pushed_at": "2026-11-03T10:56:39Z",
-      "updated_at": "2026-11-04T12:28:19Z"
+      "updated_at": "2026-11-04T12:28:19Z",
+      "owner": "apache",
+      "full_name": "apache/dubbo"
     },
     {
       "name": "nacos",
@@ -89,7 +93,9 @@
       "company": "nacos",
       "category": "devops",
       "pushed_at": "2026-11-04T07:01:32Z",
-      "updated_at": "2026-11-04T10:18:05Z"
+      "updated_at": "2026-11-04T10:18:05Z",
+      "owner": "alibaba",
+      "full_name": "alibaba/nacos"
     },
     {
       "name": "incubator-seata",
@@ -115,7 +121,9 @@
       "company": "incubator-seata",
       "category": "devops",
       "pushed_at": "2026-10-31T17:59:14Z",
-      "updated_at": "2026-11-03T18:43:09Z"
+      "updated_at": "2026-11-03T18:43:09Z",
+      "owner": "apache",
+      "full_name": "apache/incubator-seata"
     },
     {
       "name": "airbyte",
@@ -154,7 +162,9 @@
       "company": "Airbyte",
       "category": "data",
       "pushed_at": "2026-11-04T10:44:51Z",
-      "updated_at": "2026-11-04T10:42:34Z"
+      "updated_at": "2026-11-04T10:42:34Z",
+      "owner": "airbytehq",
+      "full_name": "airbytehq/airbyte"
     },
     {
       "name": "activepieces",
@@ -186,7 +196,9 @@
       "company": "Activepieces",
       "category": "automation",
       "pushed_at": "2026-11-04T11:27:28Z",
-      "updated_at": "2026-11-04T11:27:36Z"
+      "updated_at": "2026-11-04T11:27:36Z",
+      "owner": "activepieces",
+      "full_name": "activepieces/activepieces"
     },
     {
       "name": "components",
@@ -209,7 +221,9 @@
       "company": "components",
       "category": "web",
       "pushed_at": "2026-11-04T12:23:07Z",
-      "updated_at": "2026-11-04T12:23:24Z"
+      "updated_at": "2026-11-04T12:23:24Z",
+      "owner": "angular",
+      "full_name": "angular/components"
     },
     {
       "name": "doris",
@@ -246,7 +260,9 @@
       "company": "doris",
       "category": "data",
       "pushed_at": "2026-11-04T13:11:21Z",
-      "updated_at": "2026-11-04T13:03:03Z"
+      "updated_at": "2026-11-04T13:03:03Z",
+      "owner": "apache",
+      "full_name": "apache/doris"
     },
     {
       "name": "hive",
@@ -279,7 +295,9 @@
       "company": "Hive",
       "category": "productivity",
       "pushed_at": "2026-11-02T10:07:20Z",
-      "updated_at": "2026-11-04T09:07:59Z"
+      "updated_at": "2026-11-04T09:07:59Z",
+      "owner": "aden-hive",
+      "full_name": "aden-hive/hive"
     },
     {
       "name": "apisix",
@@ -317,7 +335,9 @@
       "company": "Apache APISIX",
       "category": "devops",
       "pushed_at": "2026-11-04T06:26:10Z",
-      "updated_at": "2026-11-04T11:05:35Z"
+      "updated_at": "2026-11-04T11:05:35Z",
+      "owner": "apache",
+      "full_name": "apache/apisix"
     },
     {
       "name": "Anki-Android",
@@ -344,7 +364,9 @@
       "company": "Anki-Android",
       "category": "education",
       "pushed_at": "2026-11-04T14:28:55Z",
-      "updated_at": "2026-11-04T14:29:00Z"
+      "updated_at": "2026-11-04T14:29:00Z",
+      "owner": "ankidroid",
+      "full_name": "ankidroid/Anki-Android"
     },
     {
       "name": "akaunting",
@@ -382,7 +404,9 @@
       "company": "Akaunting",
       "category": "productivity",
       "pushed_at": "2026-11-04T10:11:26Z",
-      "updated_at": "2026-11-04T10:14:19Z"
+      "updated_at": "2026-11-04T10:14:19Z",
+      "owner": "akaunting",
+      "full_name": "akaunting/akaunting"
     },
     {
       "name": "goaccess",
@@ -421,7 +445,9 @@
       "company": "GoAccess",
       "category": "observability",
       "pushed_at": "2026-10-28T13:04:43Z",
-      "updated_at": "2026-11-04T09:19:32Z"
+      "updated_at": "2026-11-04T09:19:32Z",
+      "owner": "allinurl",
+      "full_name": "allinurl/goaccess"
     },
     {
       "name": "gun",
@@ -460,7 +486,9 @@
       "company": "GUN",
       "category": "devtools",
       "pushed_at": "2026-10-15T00:29:24Z",
-      "updated_at": "2026-11-04T07:17:50Z"
+      "updated_at": "2026-11-04T07:17:50Z",
+      "owner": "amark",
+      "full_name": "amark/gun"
     },
     {
       "name": "activitywatch",
@@ -491,7 +519,9 @@
       "company": "ActivityWatch",
       "category": "productivity",
       "pushed_at": "2026-11-01T13:12:51Z",
-      "updated_at": "2026-11-04T11:31:03Z"
+      "updated_at": "2026-11-04T11:31:03Z",
+      "owner": "ActivityWatch",
+      "full_name": "ActivityWatch/activitywatch"
     },
     {
       "name": "audiobookshelf",
@@ -515,7 +545,9 @@
       "company": "Audiobookshelf",
       "category": "media",
       "pushed_at": "2026-11-03T23:00:57Z",
-      "updated_at": "2026-11-04T09:23:49Z"
+      "updated_at": "2026-11-04T09:23:49Z",
+      "owner": "advplyr",
+      "full_name": "advplyr/audiobookshelf"
     },
     {
       "name": "anki",
@@ -533,7 +565,9 @@
       "company": "Anki",
       "category": "education",
       "pushed_at": "2026-11-04T14:20:13Z",
-      "updated_at": "2026-11-04T14:28:04Z"
+      "updated_at": "2026-11-04T14:28:04Z",
+      "owner": "ankitects",
+      "full_name": "ankitects/anki"
     },
     {
       "name": "nifi",
@@ -556,7 +590,9 @@
       "company": "Apache NiFi",
       "category": "data",
       "pushed_at": "2026-11-03T16:51:10Z",
-      "updated_at": "2026-11-04T04:37:07Z"
+      "updated_at": "2026-11-04T04:37:07Z",
+      "owner": "apache",
+      "full_name": "apache/nifi"
     },
     {
       "name": "featuretools",
@@ -583,7 +619,9 @@
       "company": "featuretools",
       "category": "ml",
       "pushed_at": "2026-09-11T08:13:00Z",
-      "updated_at": "2026-11-04T08:41:26Z"
+      "updated_at": "2026-11-04T08:41:26Z",
+      "owner": "alteryx",
+      "full_name": "alteryx/featuretools"
     },
     {
       "name": "deeplake",
@@ -621,7 +659,9 @@
       "company": "Activeloop",
       "category": "ai",
       "pushed_at": "2026-05-21T15:28:00Z",
-      "updated_at": "2026-11-04T05:32:37Z"
+      "updated_at": "2026-11-04T05:32:37Z",
+      "owner": "activeloopai",
+      "full_name": "activeloopai/deeplake"
     },
     {
       "name": "agenta",
@@ -660,7 +700,9 @@
       "company": "agenta",
       "category": "ai",
       "pushed_at": "2026-11-04T11:21:04Z",
-      "updated_at": "2026-11-04T00:15:31Z"
+      "updated_at": "2026-11-04T00:15:31Z",
+      "owner": "Agenta-AI",
+      "full_name": "Agenta-AI/agenta"
     },
     {
       "name": "Ant-Media-Server",
@@ -698,7 +740,9 @@
       "company": "Ant Media Server",
       "category": "media",
       "pushed_at": "2026-11-03T14:10:43Z",
-      "updated_at": "2026-11-03T12:23:18Z"
+      "updated_at": "2026-11-03T12:23:18Z",
+      "owner": "ant-media",
+      "full_name": "ant-media/Ant-Media-Server"
     },
     {
       "name": "scancode-toolkit",
@@ -737,7 +781,9 @@
       "company": "scancode-toolkit",
       "category": "security",
       "pushed_at": "2026-11-02T22:19:55Z",
-      "updated_at": "2026-11-04T05:54:21Z"
+      "updated_at": "2026-11-04T05:54:21Z",
+      "owner": "aboutcode-org",
+      "full_name": "aboutcode-org/scancode-toolkit"
     },
     {
       "name": "OpenMLDB",
@@ -767,7 +813,9 @@
       "company": "OpenMLDB",
       "category": "data",
       "pushed_at": "2026-11-02T07:02:10Z",
-      "updated_at": "2026-11-01T15:16:33Z"
+      "updated_at": "2026-11-01T15:16:33Z",
+      "owner": "4paradigm",
+      "full_name": "4paradigm/OpenMLDB"
     },
     {
       "name": "aave-v3-core",
@@ -790,7 +838,9 @@
       "company": "Aave",
       "category": "web3",
       "pushed_at": "2024-09-03T13:56:47Z",
-      "updated_at": "2026-11-03T11:55:32Z"
+      "updated_at": "2026-11-03T11:55:32Z",
+      "owner": "aave",
+      "full_name": "aave/aave-v3-core"
     },
     {
       "name": "openoffice",
@@ -812,7 +862,9 @@
       "company": "Apache OpenOffice",
       "category": "productivity",
       "pushed_at": "2026-11-04T13:46:26Z",
-      "updated_at": "2026-11-04T13:46:29Z"
+      "updated_at": "2026-11-04T13:46:29Z",
+      "owner": "apache",
+      "full_name": "apache/openoffice"
     },
     {
       "name": "agave",
@@ -830,7 +882,9 @@
       "company": "Anza",
       "category": "web3",
       "pushed_at": "2026-11-04T14:29:29Z",
-      "updated_at": "2026-11-04T13:50:59Z"
+      "updated_at": "2026-11-04T13:50:59Z",
+      "owner": "anza-xyz",
+      "full_name": "anza-xyz/agave"
     },
     {
       "name": "aave-protocol",
@@ -848,7 +902,9 @@
       "company": "Aave",
       "category": "web3",
       "pushed_at": "2024-08-02T20:11:21Z",
-      "updated_at": "2026-10-23T02:38:50Z"
+      "updated_at": "2026-10-23T02:38:50Z",
+      "owner": "aave",
+      "full_name": "aave/aave-protocol"
     },
     {
       "name": "forms-flow-ai",
@@ -874,7 +930,9 @@
       "company": "formsflow.ai",
       "category": "ai",
       "pushed_at": "2026-11-03T17:15:12Z",
-      "updated_at": "2026-10-29T06:44:15Z"
+      "updated_at": "2026-10-29T06:44:15Z",
+      "owner": "AOT-Technologies",
+      "full_name": "AOT-Technologies/forms-flow-ai"
     },
     {
       "name": "ameliorate",
@@ -903,7 +961,9 @@
       "company": "ameliorate",
       "category": "productivity",
       "pushed_at": "2026-11-03T15:51:22Z",
-      "updated_at": "2026-11-03T15:51:27Z"
+      "updated_at": "2026-11-03T15:51:27Z",
+      "owner": "amelioro",
+      "full_name": "amelioro/ameliorate"
     }
   ],
   "total": 770,
