@@ -5,12 +5,13 @@ import {
   CheckCircle, 
   Plus, 
   Tag, 
-  Search,
-  Sparkles,
-  X
+  Search, 
+  Sparkles, 
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function ForumPage() {
   const { token, user } = useAuth();
@@ -28,7 +29,7 @@ export function ForumPage() {
     fetch('/api/v1/forum/posts')
       .then(res => res.json())
       .then(json => {
-        if (json.success) setPosts(json.data);
+        if (json.success) setPosts(json.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -74,177 +75,170 @@ export function ForumPage() {
     }
   };
 
+  const handleUpvote = async (postId: string) => {
+    if (!token) return;
+    try {
+      await fetch(`/api/v1/forum/posts/${postId}/upvote`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <PageContainer>
-      <PageHeading
-        title="Community Forum & Discussions"
-        description="Exchange contribution advice, GSoC proposal feedback, and technical architecture questions"
-        badges={[
-          <StatusBadge key="badge" variant="violet">
-            Developer Discussions
-          </StatusBadge>
-        ]}
-        actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowCreateModal(true)}
-            icon={<Plus className="size-4" />}
-          >
-            New Discussion
-          </Button>
-        }
-      />
-
-      {/* Posts List */}
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
-          ))}
+    <PageContainer maxWidth="max-w-[1100px]">
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Community</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Community</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Focused technical discussion without social engagement clutter.
+          </p>
         </div>
-      ) : posts.length === 0 ? (
-        <EmptyState
-          title="No discussions started yet"
-          description="Start a new discussion thread to ask questions, share insights, or get feedback on your open source proposals."
-          icon={<MessageSquare className="size-8 text-[#686D79]" />}
-          action={
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowCreateModal(true)}
-              icon={<Plus className="size-4" />}
-            >
-              Start First Discussion
-            </Button>
-          }
-        />
-      ) : (
-        <div className="space-y-4">
-          {posts.map(p => (
-            <div
-              key={p.id}
-              className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-3 group"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <img
-                    src={p.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&crop=faces'}
-                    alt={p.user?.name}
-                    className="size-7 rounded-full object-cover border border-[#8B5CF6]/30"
-                  />
-                  <div>
-                    <span className="text-xs font-semibold text-[#F8FAFC]">{p.user?.name || p.user?.username}</span>
-                    <span className="text-[11px] font-mono text-[#686D79] ml-1.5">@{p.user?.username}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {p.isSolved && (
-                    <StatusBadge variant="success">
-                      Solved
-                    </StatusBadge>
-                  )}
-                  <span className="text-xs font-mono text-[#686D79]">
-                    {new Date(p.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          icon={<Plus className="size-3.5" />}
+        >
+          New Discussion
+        </Button>
+      </div>
 
-              <div>
-                <h3 className="text-base font-semibold text-[#F8FAFC] leading-snug group-hover:text-[#A78BFA] transition-colors">{p.title}</h3>
-                <p className="mt-1.5 text-xs text-[#C5C8D0] leading-relaxed">{p.content}</p>
-              </div>
+      {/* Main Container */}
+      <section className="rounded-xl border border-black/7 bg-white mt-6">
+        <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+          <h3 className="text-[11px] font-semibold text-[#11141B]">Discussions</h3>
+          <span className="text-[9px] text-[#999CA3]">
+            {loading ? 'Loading...' : posts.length === 0 ? 'Initial state' : `${posts.length} discussions`}
+          </span>
+        </div>
 
-              <div className="pt-2 border-t border-[#1F2430] flex items-center justify-between text-xs">
-                <div className="flex flex-wrap gap-1">
-                  {p.tags?.map((t: string, i: number) => (
-                    <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#181C26] text-[#A78BFA] border border-[#1F2430]">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4 text-[#686D79] font-mono text-xs">
-                  <span className="flex items-center gap-1">
-                    <ThumbsUp className="size-3 text-[#686D79]" />
-                    <span>{p.upvotes}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="size-3 text-[#686D79]" />
-                    <span>{p.replyCount || 0} replies</span>
-                  </span>
-                </div>
-              </div>
+        <div className="p-5">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-24 rounded-xl border border-black/6 bg-[#F7F7F8] animate-pulse" />
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Discussion Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
-              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Start a New Discussion</h3>
+          ) : posts.length === 0 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center px-5 py-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                <MessageSquare className="size-5" />
+              </span>
+              <h3 className="mt-4 text-xs font-semibold text-[#11141B]">No community data yet</h3>
+              <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+                This module is ready for connected or user-created data. DevOrbit does not insert fictional activity into an empty workspace.
+              </p>
               <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
+                onClick={() => setShowCreateModal(true)}
+                className="mt-5 rounded-md border border-black/9 bg-[#11141B] px-3.5 py-2 text-[10px] font-semibold text-white hover:bg-black transition-colors"
               >
-                <X className="size-4" />
+                Start a discussion
               </button>
             </div>
-            <form onSubmit={handleCreatePost} className="space-y-3">
+          ) : (
+            <div className="space-y-3">
+              {posts.map(post => (
+                <div
+                  key={post.id}
+                  className="rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 transition-all flex items-start justify-between gap-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-semibold text-[#11141B]">{post.title}</h4>
+                    <p className="mt-1 text-xs text-[#686D79] line-clamp-2">{post.content}</p>
+
+                    <div className="mt-3 flex items-center gap-3 text-xs text-[#686D79]">
+                      <span className="font-mono text-[11px]">@{post.author?.username || 'developer'}</span>
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {post.tags.map((t: string, i: number) => (
+                            <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#F7F7F8] text-[#686D79] border border-black/5">
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleUpvote(post.id)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-black/8 bg-[#F7F7F8] text-xs font-mono text-[#686D79] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition-colors"
+                    >
+                      <ThumbsUp className="size-3" />
+                      <span>{post.upvotes || 0}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* NEW DISCUSSION MODAL */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl border border-black/10 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between border-b border-black/7 pb-3">
               <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Title</label>
+                <h3 className="text-sm font-semibold text-[#11141B]">New Discussion</h3>
+                <p className="text-xs text-[#686D79] mt-0.5">Post an architectural question or contribution experience</p>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="p-1 rounded-md text-[#999CA3] hover:text-[#11141B]">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePost} className="space-y-3">
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Title</span>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="What is your question or topic?"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  placeholder="e.g. Tips for GSoC proposal in robotics & ROS"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Tags (comma separated)</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Content</span>
+                <textarea
+                  required
+                  rows={4}
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  placeholder="Provide technical context..."
+                  className="w-full rounded-md border border-black/8 bg-[#F7F7F8] p-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Tags (comma-separated)</span>
                 <input
                   type="text"
                   value={tags}
                   onChange={e => setTags(e.target.value)}
                   placeholder="gsoc, mentorship, rust"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs font-mono text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Content</label>
-                <textarea
-                  required
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  placeholder="Elaborate on your question or proposal..."
-                  rows={5}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowCreateModal(false)}
-                >
+              <div className="pt-3 border-t border-black/7 flex items-center justify-end gap-2">
+                <Button variant="secondary" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                >
-                  Post Discussion
+                <Button variant="primary" size="sm" type="submit">
+                  Publish Discussion
                 </Button>
               </div>
             </form>

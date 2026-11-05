@@ -12,20 +12,23 @@ import {
   Layers, 
   RefreshCw,
   Zap,
-  Server
+  Server,
+  Bell,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function SettingsPage() {
   const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'account' | 'ai' | 'backup' | 'app'>('account');
+  const [activeTab, setActiveTab] = useState<'general' | 'account' | 'security' | 'privacy' | 'notifications' | 'ai' | 'backup'>('general');
   const [ecoMode, setEcoMode] = useState<boolean>(true);
   const [healthData, setHealthData] = useState<any>(null);
   const [backupLoading, setBackupLoading] = useState<boolean>(false);
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [models, setModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('qwen2.5-coder:7b');
 
   useEffect(() => {
     fetch('/api/v1/system/health')
@@ -93,232 +96,306 @@ export function SettingsPage() {
     reader.readAsText(file);
   };
 
-  return (
-    <PageContainer>
-      {/* Header */}
-      <PageHeading
-        title="Settings & System Preferences"
-        description="Manage your account credentials, local AI runtime, database backups, and hardware resource footprint."
-        badges={[
-          <StatusBadge key="sys" variant="violet">
-            System Preferences
-          </StatusBadge>
-        ]}
-      />
+  const sections = [
+    { id: 'general', label: 'General' },
+    { id: 'account', label: 'Account' },
+    { id: 'security', label: 'Security' },
+    { id: 'privacy', label: 'Privacy' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'ai', label: 'AI Settings' },
+    { id: 'backup', label: 'Data & Backups' },
+  ];
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#1F2430] pb-2 text-xs font-medium">
-        <button
-          onClick={() => setActiveTab('account')}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'account' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <User className="size-3.5" />
-          <span>Account Profile</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('ai')}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'ai' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <Sparkles className="size-3.5 text-[#8B5CF6]" />
-          <span>Local AI Runtime</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('backup')}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'backup' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <Database className="size-3.5 text-[#4ADE80]" />
-          <span>Backups & Restore</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('app')}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-            activeTab === 'app' ? 'bg-[#181C26] text-white font-semibold border border-[#8B5CF6]/40 shadow-sm' : 'text-[#686D79] hover:text-[#C5C8D0]'
-          }`}
-        >
-          <Zap className="size-3.5 text-[#FBBF24]" />
-          <span>App Preferences</span>
-        </button>
+  return (
+    <PageContainer maxWidth="max-w-[1100px]">
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Settings</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Settings</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Control your workspace, connected data, notifications, local models, and backups.
+          </p>
+        </div>
       </div>
 
-      {/* 1. Account Settings */}
-      {activeTab === 'account' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
-            <h2 className="text-sm font-semibold text-[#F8FAFC]">Active User Session</h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                <span className="text-[#686D79]">Username</span>
-                <p className="font-mono font-medium text-white">@{user?.username || 'alex_developer'}</p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                <span className="text-[#686D79]">Email Address</span>
-                <p className="font-mono font-medium text-white">{user?.email || 'alex@devorbit.local'}</p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                <span className="text-[#686D79]">Full Name</span>
-                <p className="font-medium text-white">{user?.name || 'Alex Chen'}</p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                <span className="text-[#686D79]">Session Token Integrity</span>
-                <p className="font-mono text-[#4ADE80] flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5" /> Authenticated JWT (UUID jti)
-                </p>
-              </div>
-            </div>
+      {/* 2-Column Grid */}
+      <div className="mt-6 grid gap-4 md:grid-cols-[200px_1fr]">
+        
+        {/* Left Column: Sections Navigation */}
+        <section className="rounded-xl border border-black/7 bg-white h-fit">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">Sections</h3>
           </div>
-        </div>
-      )}
-
-      {/* 2. AI Runtime Settings */}
-      {activeTab === 'ai' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-[#F8FAFC]">Ollama Daemon Configuration</h2>
-                <p className="text-xs text-[#686D79] mt-0.5">
-                  DevOrbit connects to local LLMs over HTTP on <code className="text-[#8B5CF6]">127.0.0.1:11434</code>.
-                </p>
-              </div>
-              <StatusBadge variant={aiStatus?.ollamaAvailable ? 'success' : 'warning'}>
-                {aiStatus?.ollamaAvailable ? 'Online' : 'Offline (Fallback Mode)'}
-              </StatusBadge>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-[#686D79]">Active Intelligence Engine:</span>
-                <span className="font-mono font-semibold text-[#A78BFA]">{aiStatus?.activeEngine}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#686D79]">Default Model:</span>
-                <span className="font-mono text-white">{aiStatus?.defaultModel}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#686D79]">Privacy Guarantee:</span>
-                <span className="text-[#4ADE80] font-medium">{aiStatus?.privacy}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-[#C5C8D0]">Discovered Models</h3>
-              <div className="divide-y divide-[#1F2430] rounded-xl bg-[#181C26] border border-[#1F2430] text-xs">
-                {models.map((m: any) => (
-                  <div key={m.name} className="p-3 flex items-center justify-between">
-                    <div>
-                      <span className="font-mono font-medium text-white">{m.name}</span>
-                      {m.description && <p className="text-[11px] text-[#686D79]">{m.description}</p>}
-                    </div>
-                    {m.isFallback ? (
-                      <StatusBadge variant="warning">
-                        Deterministic Fallback
-                      </StatusBadge>
-                    ) : (
-                      <StatusBadge variant="success">
-                        Neural LLM
-                      </StatusBadge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Backups & Restore */}
-      {activeTab === 'backup' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
-            <div>
-              <h2 className="text-sm font-semibold text-[#F8FAFC]">Local Data Backup & Disaster Recovery</h2>
-              <p className="text-xs text-[#686D79] mt-0.5">
-                Export your full algorithmic progress, custom sheets, skill profiles, bookmarks, and preferences as an offline JSON snapshot.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={handleDownloadBackup}
-                disabled={backupLoading}
-                icon={<Download className="size-3.5" />}
-              >
-                {backupLoading ? 'Generating Snapshot...' : 'Export Local JSON Backup'}
-              </Button>
-
-              <label className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                <Upload className="size-3.5 text-[#4ADE80]" />
-                <span>Restore From Backup File</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleRestoreFile}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {restoreStatus && (
-              <div className="p-3 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#4ADE80] text-xs flex items-center gap-2">
-                <CheckCircle2 className="size-4 shrink-0" />
-                <span>{restoreStatus}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 4. App Preferences */}
-      {activeTab === 'app' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
-            <h2 className="text-sm font-semibold text-[#F8FAFC]">Performance & Diagnostics</h2>
-
-            {healthData && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                  <span className="text-[#686D79]">SQLite Query Latency</span>
-                  <p className="font-mono text-white font-medium">{healthData.database?.latencyMs} ms</p>
-                </div>
-                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                  <span className="text-[#686D79]">Free System RAM</span>
-                  <p className="font-mono text-white font-medium">{healthData.system?.freeMemoryMb} MB</p>
-                </div>
-                <div className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] space-y-1">
-                  <span className="text-[#686D79]">Platform Architecture</span>
-                  <p className="font-mono text-white font-medium">{healthData.system?.platform} ({healthData.system?.arch})</p>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-white">Eco Mode</span>
-                <p className="text-[11px] text-[#686D79]">Throttles background poll intervals when idle to minimize laptop battery draw.</p>
-              </div>
+          <div className="p-2 space-y-0.5">
+            {sections.map(s => (
               <button
-                onClick={() => setEcoMode(!ecoMode)}
-                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                  ecoMode ? 'bg-[#8B5CF6]' : 'bg-[#1F2430]'
+                key={s.id}
+                onClick={() => setActiveTab(s.id as any)}
+                className={`w-full text-left rounded-md px-3 py-2 text-[10px] font-medium transition-colors ${
+                  activeTab === s.id
+                    ? 'bg-[#11141B] text-white font-semibold'
+                    : 'text-[#686D79] hover:text-[#11141B] hover:bg-zinc-50'
                 }`}
               >
-                <div className={`size-5 rounded-full bg-white transition-transform ${
-                  ecoMode ? 'translate-x-5' : 'translate-x-0'
-                }`} />
+                {s.label}
               </button>
-            </div>
+            ))}
           </div>
-        </div>
-      )}
+        </section>
+
+        {/* Right Column: Active Tab Content */}
+        <section className="rounded-xl border border-black/7 bg-white">
+          <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+            <h3 className="text-[11px] font-semibold text-[#11141B]">
+              {sections.find(s => s.id === activeTab)?.label} Settings
+            </h3>
+            <span className="text-[9px] text-[#999CA3]">
+              {activeTab === 'ai' ? 'Neural Runtime' : activeTab === 'backup' ? 'Encrypted JSON' : 'Verified State'}
+            </span>
+          </div>
+
+          <div className="p-5 space-y-6">
+            
+            {/* GENERAL TAB */}
+            {activeTab === 'general' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Workspace Appearance & Units</h4>
+                  <p className="text-[10px] text-[#686D79]">Figma light-canvas workspace configuration</p>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-[#11141B]">Energy Efficient Sync</p>
+                      <p className="text-[10px] text-[#686D79]">Throttle background polling when the browser tab is inactive</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={ecoMode}
+                      onChange={e => setEcoMode(e.target.checked)}
+                      className="size-4 accent-[#8B5CF6] rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+                  <p className="text-xs font-medium text-[#11141B]">System Health Diagnostic</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                    <div className="p-2.5 rounded-lg bg-white border border-black/6">
+                      <span className="text-[9px] text-[#858993] block">Status</span>
+                      <span className="font-semibold text-[#8B5CF6]">{healthData?.status || 'HEALTHY'}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-black/6">
+                      <span className="text-[9px] text-[#858993] block">API Environment</span>
+                      <span className="text-[#11141B]">{healthData?.environment || 'Development'}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-black/6">
+                      <span className="text-[9px] text-[#858993] block">Uptime</span>
+                      <span className="text-[#11141B]">{healthData?.uptime ? `${Math.round(healthData.uptime)}s` : '100%'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACCOUNT TAB */}
+            {activeTab === 'account' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Account Identity</h4>
+                  <p className="text-[10px] text-[#686D79]">Your registered developer identity</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-[#686D79] uppercase">Username</span>
+                    <input
+                      type="text"
+                      disabled
+                      value={user?.username || 'developer'}
+                      className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-[#686D79] uppercase">Email</span>
+                    <input
+                      type="text"
+                      disabled
+                      value={user?.email || 'user@devorbit.local'}
+                      className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B]"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-black/7 bg-[#F7F7F8]">
+                  <p className="text-xs font-medium text-[#11141B]">Account Role & Tier</p>
+                  <p className="text-[10px] text-[#686D79] mt-0.5">Developer Private Edition — Full offline and neural capabilities enabled.</p>
+                </div>
+              </div>
+            )}
+
+            {/* SECURITY TAB */}
+            {activeTab === 'security' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Security & Sessions</h4>
+                  <p className="text-[10px] text-[#686D79]">Credential isolation and token rotation</p>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="size-4 text-[#8B5CF6]" />
+                    <span className="text-xs font-semibold text-[#11141B]">OAuth Token Protection</span>
+                  </div>
+                  <p className="text-[10px] text-[#686D79] leading-relaxed">
+                    Third-party tokens from GitHub and Codeforces are encrypted with AES-256-GCM. Expiring tokens automatically refresh without exposing raw tokens to the client.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PRIVACY TAB */}
+            {activeTab === 'privacy' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Telemetry & Data Sovereignty</h4>
+                  <p className="text-[10px] text-[#686D79]">Zero analytics trackers or behavioral telemetry</p>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <EyeOff className="size-4 text-[#8B5CF6]" />
+                    <span className="text-xs font-semibold text-[#11141B]">Private By Design</span>
+                  </div>
+                  <p className="text-[10px] text-[#686D79] leading-relaxed">
+                    DevOrbit does not transmit repository code, DSA solver notes, or conversation histories to third parties. All evaluations run against your local database and local Ollama instance.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* NOTIFICATIONS TAB */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Notification Preferences</h4>
+                  <p className="text-[10px] text-[#686D79]">In-app alerts and mentorship deadline updates</p>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-[#11141B]">SM-2 Spaced Repetition Due Alerts</p>
+                      <p className="text-[10px] text-[#686D79]">Show a notice when solved DSA problems are due for recall</p>
+                    </div>
+                    <input type="checkbox" defaultChecked className="size-4 accent-[#8B5CF6] rounded" />
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-black/5">
+                    <div>
+                      <p className="text-xs font-medium text-[#11141B]">Mentorship Deadline Warnings</p>
+                      <p className="text-[10px] text-[#686D79]">Alert when GSoC or fellowship applications close within 72 hours</p>
+                    </div>
+                    <input type="checkbox" defaultChecked className="size-4 accent-[#8B5CF6] rounded" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI SETTINGS TAB */}
+            {activeTab === 'ai' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Local Neural Engine & Models</h4>
+                  <p className="text-[10px] text-[#686D79]">Configure Ollama on localhost:11434 with automatic rule-based fallback</p>
+                </div>
+
+                <div className="rounded-xl border border-black/7 bg-[#F7F7F8] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[#11141B]">Local Ollama Connection</p>
+                      <p className="text-[10px] text-[#686D79]">Host: {aiStatus?.host || 'http://127.0.0.1:11434'}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                      aiStatus?.connected 
+                        ? 'bg-[#F0EDFA] text-[#8B5CF6]' 
+                        : 'bg-zinc-200 text-[#686D79]'
+                    }`}>
+                      {aiStatus?.connected ? 'Online' : 'Offline / Fallback'}
+                    </span>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="block text-[10px] font-semibold text-[#686D79] mb-1">Active Neural Model</label>
+                    <select
+                      value={selectedModel}
+                      onChange={e => setSelectedModel(e.target.value)}
+                      className="h-9 w-full rounded-md border border-black/8 bg-white px-2.5 text-xs text-[#11141B]"
+                    >
+                      <option value="qwen2.5-coder:7b">qwen2.5-coder:7b (Recommended)</option>
+                      <option value="codellama:7b">codellama:7b</option>
+                      <option value="deepseek-coder:6.7b">deepseek-coder:6.7b</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* BACKUP & RESTORE TAB */}
+            {activeTab === 'backup' && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-semibold text-[#11141B]">Data Portability & Backups</h4>
+                  <p className="text-[10px] text-[#686D79]">Download your full DevOrbit workspace database or restore from a previous JSON export</p>
+                </div>
+
+                {restoreStatus && (
+                  <div className="p-3 rounded-lg bg-violet-50 border border-violet-200 text-xs text-[#8B5CF6]">
+                    {restoreStatus}
+                  </div>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="p-4 rounded-xl border border-black/7 bg-[#F7F7F8] space-y-3 flex flex-col justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[#11141B]">Export Workspace</p>
+                      <p className="text-[10px] text-[#686D79] mt-1 leading-relaxed">
+                        Creates a JSON export of your solved problems, SM-2 cards, repos, and configuration.
+                      </p>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={backupLoading}
+                      onClick={handleDownloadBackup}
+                      icon={<Download className="size-3.5" />}
+                    >
+                      {backupLoading ? 'Generating...' : 'Download JSON Backup'}
+                    </Button>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-black/7 bg-[#F7F7F8] space-y-3 flex flex-col justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[#11141B]">Restore Workspace</p>
+                      <p className="text-[10px] text-[#686D79] mt-1 leading-relaxed">
+                        Restore your workspace data from a verified DevOrbit JSON backup file.
+                      </p>
+                    </div>
+                    <label className="inline-flex items-center justify-center gap-1.5 rounded-md border border-black/9 bg-white px-3 py-2 text-xs font-semibold text-[#11141B] hover:bg-zinc-50 cursor-pointer transition-colors">
+                      <Upload className="size-3.5" />
+                      <span>Select Backup File</span>
+                      <input type="file" accept=".json" onChange={handleRestoreFile} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </section>
+
+      </div>
     </PageContainer>
   );
 }

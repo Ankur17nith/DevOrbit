@@ -9,10 +9,11 @@ import {
   Check, 
   Clock,
   Sparkles,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
-import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
+import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function WorkspacesPage() {
   const { token, user } = useAuth();
@@ -37,7 +38,7 @@ export function WorkspacesPage() {
     })
       .then(res => res.json())
       .then(json => {
-        if (json.success) setWorkspaces(json.data);
+        if (json.success) setWorkspaces(json.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -98,181 +99,163 @@ export function WorkspacesPage() {
   };
 
   return (
-    <PageContainer>
-      <PageHeading
-        title="Workspaces & Collaboration"
-        description="Collaborative developer environments with role-based access control (RBAC) and team isolation"
-        badges={[
-          <StatusBadge key="badge" variant="violet">
-            Team Workspaces
-          </StatusBadge>
-        ]}
-        actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowCreateModal(true)}
-            icon={<Plus className="size-4" />}
-          >
-            New Workspace
-          </Button>
-        }
-      />
-
-      {/* Workspaces List */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2].map(i => (
-            <div key={i} className="h-44 bg-[#12151D] border border-[#1F2430] rounded-xl animate-pulse"></div>
-          ))}
+    <PageContainer maxWidth="max-w-[1100px]">
+      {/* Header */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Collaboration</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Workspaces</h2>
+          <p className="mt-2 text-xs leading-5 text-[#686D79]">
+            Permission-aware spaces for shared repositories, tasks, members, and activity.
+          </p>
         </div>
-      ) : workspaces.length === 0 ? (
-        <EmptyState
-          title="No workspaces created yet"
-          description="Create your first collaborative workspace to share project resources, notes, and track progress with teammates."
-          icon={<Building className="size-8 text-[#686D79]" />}
-          action={
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowCreateModal(true)}
-              icon={<Plus className="size-4" />}
-            >
-              Create Workspace
-            </Button>
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {workspaces.map(ws => (
-            <div
-              key={ws.id}
-              className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#2E364A] transition-all space-y-4"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-[#F8FAFC] font-display">{ws.name}</h3>
-                    <StatusBadge
-                      variant={
-                        ws.role === 'OWNER' ? 'violet' :
-                        ws.role === 'ADMIN' ? 'warning' : 'default'
-                      }
-                    >
-                      {ws.role}
-                    </StatusBadge>
+
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          icon={<Plus className="size-3.5" />}
+        >
+          Create Workspace
+        </Button>
+      </div>
+
+      {/* Main Container */}
+      <section className="rounded-xl border border-black/7 bg-white mt-6">
+        <div className="flex min-h-12 items-center justify-between border-b border-black/7 px-4">
+          <h3 className="text-[11px] font-semibold text-[#11141B]">Workspaces</h3>
+          <span className="text-[9px] text-[#999CA3]">
+            {loading ? 'Loading...' : workspaces.length === 0 ? 'Initial state' : `${workspaces.length} active`}
+          </span>
+        </div>
+
+        <div className="p-5">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2].map(i => (
+                <div key={i} className="h-32 rounded-xl border border-black/6 bg-[#F7F7F8] animate-pulse" />
+              ))}
+            </div>
+          ) : workspaces.length === 0 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center px-5 py-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-[#F0EDFA] text-[#8B5CF6]">
+                <Building className="size-5" />
+              </span>
+              <h3 className="mt-4 text-xs font-semibold text-[#11141B]">No workspaces data yet</h3>
+              <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#858993]">
+                This module is ready for connected or user-created data. DevOrbit does not insert fictional activity into an empty workspace.
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-5 rounded-md border border-black/9 bg-[#11141B] px-3.5 py-2 text-[10px] font-semibold text-white hover:bg-black transition-colors"
+              >
+                Create your first workspace
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {workspaces.map(ws => (
+                <div
+                  key={ws.id}
+                  className="rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-mono text-[#8B5CF6] font-semibold">/{ws.slug}</span>
+                        <h4 className="text-sm font-semibold text-[#11141B] mt-0.5">{ws.name}</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono uppercase bg-[#F0EDFA] text-[#8B5CF6]">
+                        {ws.currentUserRole || 'Owner'}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-[#686D79] line-clamp-2">
+                      {ws.description || 'Collaborative team development workspace.'}
+                    </p>
                   </div>
-                  <p className="text-xs text-[#686D79] mt-1">{ws.description || 'No description provided.'}</p>
-                </div>
 
-                <div className="size-8 rounded-lg bg-[#181C26] border border-[#1F2430] flex items-center justify-center text-[#8B5CF6]">
-                  <Building className="size-4" />
-                </div>
-              </div>
+                  <div className="mt-4 pt-3 border-t border-black/5 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-[#686D79]">
+                      <Users className="size-3.5" />
+                      <span>{ws.memberCount || 1} members</span>
+                    </span>
 
-              {/* Members Section */}
-              <div className="pt-3 border-t border-[#1F2430] space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#686D79] font-mono">Members ({ws.membersCount || ws.members?.length || 0})</span>
-                  {['OWNER', 'ADMIN'].includes(ws.role) && (
                     <button
                       onClick={() => {
                         setSelectedWsId(ws.id);
                         setShowInviteModal(true);
                       }}
-                      className="text-xs text-[#A78BFA] hover:text-white font-medium flex items-center gap-1 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs text-[#8B5CF6] hover:underline"
                     >
                       <UserPlus className="size-3" />
                       <span>Invite Member</span>
                     </button>
-                  )}
+                  </div>
                 </div>
-
-                <div className="space-y-1.5 pt-1">
-                  {ws.members?.map((m: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-[#0B0D12] border border-[#1F2430] text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-[#F8FAFC]">{m.name || m.username}</span>
-                        <span className="text-[#686D79] font-mono text-[11px]">@{m.username}</span>
-                      </div>
-                      <span className="font-mono text-[10px] text-[#A78BFA] uppercase px-1.5 py-0.2 rounded bg-[#181C26] border border-[#1F2430]">
-                        {m.role}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </section>
 
-      {/* Create Workspace Modal */}
+      {/* CREATE WORKSPACE MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
-              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Create Collaborative Workspace</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
-              >
-                <X className="size-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between border-b border-black/7 pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#11141B]">Create Workspace</h3>
+                <p className="text-xs text-[#686D79] mt-0.5">Initialize a collaborative team environment</p>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="p-1 rounded-md text-[#999CA3] hover:text-[#11141B]">
+                <X className="size-5" />
               </button>
             </div>
+
             <form onSubmit={handleCreateWorkspace} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Workspace Name</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Workspace Name</span>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={e => {
                     setName(e.target.value);
-                    setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                    if (!slug) setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
                   }}
-                  placeholder="e.g. Distributed Systems Lab"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  placeholder="e.g. Core Engineering"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Slug</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Slug</span>
                 <input
                   type="text"
                   required
                   value={slug}
                   onChange={e => setSlug(e.target.value)}
-                  placeholder="distributed-systems-lab"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  placeholder="e.g. core-eng"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs font-mono text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Description</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Description</span>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="Workspace purpose and team goals..."
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  placeholder="Short description..."
+                  rows={2}
+                  className="w-full rounded-md border border-black/8 bg-[#F7F7F8] p-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowCreateModal(false)}
-                >
+              <div className="pt-3 border-t border-black/7 flex items-center justify-end gap-2">
+                <Button variant="secondary" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                >
+                <Button variant="primary" size="sm" type="submit">
                   Create
                 </Button>
               </div>
@@ -281,60 +264,51 @@ export function WorkspacesPage() {
         </div>
       )}
 
-      {/* Invite Member Modal */}
+      {/* INVITE MEMBER MODAL */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1F2430] pb-3">
-              <h3 className="text-base font-bold text-[#F8FAFC] font-display">Invite Team Member</h3>
-              <button
-                onClick={() => setShowInviteModal(false)}
-                className="p-1 rounded-lg text-[#686D79] hover:text-[#F8FAFC] transition-colors"
-              >
-                <X className="size-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between border-b border-black/7 pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#11141B]">Invite Member</h3>
+                <p className="text-xs text-[#686D79] mt-0.5">Add an existing user to this workspace</p>
+              </div>
+              <button onClick={() => setShowInviteModal(false)} className="p-1 rounded-md text-[#999CA3] hover:text-[#11141B]">
+                <X className="size-5" />
               </button>
             </div>
+
             <form onSubmit={handleInviteMember} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Target Username</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Username</span>
                 <input
                   type="text"
                   required
                   value={targetUsername}
                   onChange={e => setTargetUsername(e.target.value)}
-                  placeholder="e.g. sara_chen or alex_developer"
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  placeholder="username"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-[#C5C8D0] mb-1">Role Permission</label>
+              <label className="block">
+                <span className="text-xs font-medium text-[#11141B] block mb-1">Role</span>
                 <select
                   value={role}
                   onChange={e => setRole(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-2 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
                 >
-                  <option value="MEMBER">Member (Full collaboration)</option>
-                  <option value="ADMIN">Admin (Manage members & settings)</option>
-                  <option value="VIEWER">Viewer (Read-only access)</option>
+                  <option value="MEMBER">Member (Read & Write)</option>
+                  <option value="ADMIN">Admin (Full Control)</option>
                 </select>
-              </div>
+              </label>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F2430]">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowInviteModal(false)}
-                >
+              <div className="pt-3 border-t border-black/7 flex items-center justify-end gap-2">
+                <Button variant="secondary" size="sm" type="button" onClick={() => setShowInviteModal(false)}>
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                >
-                  Invite
+                <Button variant="primary" size="sm" type="submit">
+                  Send Invite
                 </Button>
               </div>
             </form>
