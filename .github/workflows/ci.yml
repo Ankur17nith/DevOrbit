@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build & Test (Node ${{ matrix.node-version }})
@@ -59,10 +63,8 @@ jobs:
           npm run db:push -- --accept-data-loss
           npm run db:seed
 
-      - name: Run TypeScript Type Checks
-        run: |
-          npx tsc --noEmit --project apps/api/tsconfig.json
-          npx tsc --noEmit --project apps/web/tsconfig.json
+      - name: Run TypeScript Type Checks (API & Web Monorepo)
+        run: npm run typecheck
 
       - name: Run Backend Tests (API Unit & Integration Suite)
         env:
