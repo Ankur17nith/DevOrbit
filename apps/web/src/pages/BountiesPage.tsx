@@ -5,11 +5,32 @@ import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function BountiesPage() {
   const { token } = useAuth();
+  
+  const getInitialParams = () => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
+    return {
+      difficulty: params.get('difficulty') || 'All',
+      currency: params.get('currency') || 'All',
+    };
+  };
+
+  const initial = getInitialParams();
   const [bounties, setBounties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const [selectedDifficulty, setSelectedDifficulty] = useState(initial.difficulty);
+  const [selectedCurrency, setSelectedCurrency] = useState(initial.currency);
 
   const difficulties = ['All', 'beginner', 'intermediate', 'advanced'];
+  const currencies = ['All', 'USD', 'EUR', 'USDC'];
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams();
+    if (selectedDifficulty !== 'All') urlParams.set('difficulty', selectedDifficulty);
+    if (selectedCurrency !== 'All') urlParams.set('currency', selectedCurrency);
+    const qs = urlParams.toString();
+    const newPath = qs ? `${window.location.pathname}#bounties?${qs}` : `${window.location.pathname}#bounties`;
+    window.history.replaceState(null, '', newPath);
+  }, [selectedDifficulty, selectedCurrency]);
 
   useEffect(() => {
     fetch('/api/v1/opensource/bounties')
@@ -22,8 +43,13 @@ export function BountiesPage() {
   }, []);
 
   const filteredBounties = bounties.filter(b => {
-    if (selectedDifficulty === 'All') return true;
-    return (b.difficulty || '').toLowerCase() === selectedDifficulty.toLowerCase();
+    if (selectedDifficulty !== 'All' && (b.difficulty || '').toLowerCase() !== selectedDifficulty.toLowerCase()) {
+      return false;
+    }
+    if (selectedCurrency !== 'All' && (b.currency || 'USD').toUpperCase() !== selectedCurrency.toUpperCase()) {
+      return false;
+    }
+    return true;
   });
 
   return (

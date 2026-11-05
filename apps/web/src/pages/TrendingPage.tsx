@@ -3,14 +3,31 @@ import { Flame, Star, GitFork, ExternalLink, TrendingUp, Sparkles, Filter } from
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 
 export function TrendingPage() {
+  const getInitialParams = () => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
+    return {
+      language: params.get('language') || 'All',
+      timeRange: (params.get('since') as 'daily' | 'weekly' | 'monthly') || 'weekly',
+    };
+  };
+
+  const initial = getInitialParams();
   const [repos, setRepos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [language, setLanguage] = useState('All');
-  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [language, setLanguage] = useState(initial.language);
+  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>(initial.timeRange);
 
   const languages = ['All', 'TypeScript', 'JavaScript', 'Python', 'Rust', 'Go', 'C++', 'Java'];
 
   useEffect(() => {
+    // Update URL query parameters
+    const urlParams = new URLSearchParams();
+    if (language !== 'All') urlParams.set('language', language);
+    if (timeRange !== 'weekly') urlParams.set('since', timeRange);
+    const qs = urlParams.toString();
+    const newPath = qs ? `${window.location.pathname}#trending?${qs}` : `${window.location.pathname}#trending`;
+    window.history.replaceState(null, '', newPath);
+
     setLoading(true);
     const params = new URLSearchParams();
     if (language !== 'All') params.append('language', language);

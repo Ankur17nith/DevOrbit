@@ -75,15 +75,26 @@ const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color:
 
 export function IssuesPage() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'explore' | 'recommendations' | 'pipeline'>('explore');
+  
+  const getInitialParams = () => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
+    return {
+      tab: (params.get('tab') as 'explore' | 'recommendations' | 'pipeline') || 'explore',
+      difficulty: params.get('difficulty') || 'All',
+      search: params.get('search') || '',
+    };
+  };
+
+  const initial = getInitialParams();
+  const [activeTab, setActiveTab] = useState<'explore' | 'recommendations' | 'pipeline'>(initial.tab);
   const [issues, setIssues] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [pipeline, setPipeline] = useState<PipelineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [pipelineLoading, setPipelineLoading] = useState(false);
-  const [difficulty, setDifficulty] = useState('All');
-  const [search, setSearch] = useState('');
+  const [difficulty, setDifficulty] = useState(initial.difficulty);
+  const [search, setSearch] = useState(initial.search);
   
   // Skill match explainability modal state
   const [selectedIssueForMatch, setSelectedIssueForMatch] = useState<any | null>(null);
@@ -94,6 +105,17 @@ export function IssuesPage() {
   const [mergedNotification, setMergedNotification] = useState<string | null>(null);
 
   const difficulties = ['All', 'beginner', 'intermediate', 'advanced'];
+
+  // Sync state to URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams();
+    if (activeTab !== 'explore') urlParams.set('tab', activeTab);
+    if (difficulty !== 'All') urlParams.set('difficulty', difficulty);
+    if (search.trim()) urlParams.set('search', search.trim());
+    const qs = urlParams.toString();
+    const newPath = qs ? `${window.location.pathname}#issues?${qs}` : `${window.location.pathname}#issues`;
+    window.history.replaceState(null, '', newPath);
+  }, [activeTab, difficulty, search]);
 
   // Fetch explore issues
   useEffect(() => {

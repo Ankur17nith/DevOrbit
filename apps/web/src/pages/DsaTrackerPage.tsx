@@ -52,14 +52,37 @@ export function DsaTrackerPage() {
   const { token } = useAuth();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const getInitialParams = () => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
+    return {
+      sheet: params.get('sheet') || 'ALL',
+      difficulty: params.get('difficulty') || 'All',
+      topic: params.get('topic') || 'All',
+      search: params.get('search') || '',
+    };
+  };
+
+  const initial = getInitialParams();
   const [revisionQueue, setRevisionQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Filters
-  const [selectedSheet, setSelectedSheet] = useState('ALL');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-  const [selectedTopic, setSelectedTopic] = useState('All');
-  const [search, setSearch] = useState('');
+  const [selectedSheet, setSelectedSheet] = useState(initial.sheet);
+  const [selectedDifficulty, setSelectedDifficulty] = useState(initial.difficulty);
+  const [selectedTopic, setSelectedTopic] = useState(initial.topic);
+  const [search, setSearch] = useState(initial.search);
+
+  // Sync state to URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams();
+    if (selectedSheet !== 'ALL') urlParams.set('sheet', selectedSheet);
+    if (selectedDifficulty !== 'All') urlParams.set('difficulty', selectedDifficulty);
+    if (selectedTopic !== 'All') urlParams.set('topic', selectedTopic);
+    if (search.trim()) urlParams.set('search', search.trim());
+    const qs = urlParams.toString();
+    const newPath = qs ? `${window.location.pathname}#dsa?${qs}` : `${window.location.pathname}#dsa`;
+    window.history.replaceState(null, '', newPath);
+  }, [selectedSheet, selectedDifficulty, selectedTopic, search]);
   
   // Modals
   const [solveModalProblem, setSolveModalProblem] = useState<Problem | null>(null);
