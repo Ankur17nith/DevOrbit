@@ -1,5 +1,6 @@
 import { prisma } from '../../config/index.js';
 import { NotFoundError, BadRequestError } from '../../lib/errors.js';
+import { normalizeRepository, isValidRepository } from './repository.normalizer.js';
 
 export class OpenSourceService {
   async getCatalog(query: {
@@ -45,10 +46,17 @@ export class OpenSourceService {
     ]);
 
     return {
-      repos: repos.map(r => ({
-        ...r,
-        topics: r.topicsJson ? JSON.parse(r.topicsJson) : [],
-      })),
+      repos: repos.map(r => {
+        try {
+          return normalizeRepository(r);
+        } catch {
+          return {
+            ...r,
+            ownerLogin: r.owner,
+            topics: r.topicsJson ? JSON.parse(r.topicsJson) : [],
+          };
+        }
+      }),
       pagination: {
         page,
         limit,
@@ -70,12 +78,23 @@ export class OpenSourceService {
       orderBy: { stargazersCount: 'desc' },
     });
 
-    return repos.map((r, index) => ({
-      ...r,
-      rank: index + 1,
-      topics: r.topicsJson ? JSON.parse(r.topicsJson) : [],
-      provenance: 'github_rest_index',
-    }));
+    return repos.map((r, index) => {
+      let normalized;
+      try {
+        normalized = normalizeRepository(r);
+      } catch {
+        normalized = {
+          ...r,
+          ownerLogin: r.owner,
+          topics: r.topicsJson ? JSON.parse(r.topicsJson) : [],
+        };
+      }
+      return {
+        ...normalized,
+        rank: index + 1,
+        provenance: 'github_rest_index',
+      };
+    });
   }
 
   async getIssues(query: {
@@ -110,9 +129,18 @@ export class OpenSourceService {
         include: {
           repository: {
             select: {
+              id: true,
               fullName: true,
+              name: true,
+              owner: true,
               language: true,
               stargazersCount: true,
+              forksCount: true,
+              description: true,
+              topicsJson: true,
+              license: true,
+              defaultBranch: true,
+              updatedAt: true,
             },
           },
         },
@@ -121,10 +149,38 @@ export class OpenSourceService {
     ]);
 
     return {
-      issues: issues.map(i => ({
-        ...i,
-        labels: i.labelsJson ? JSON.parse(i.labelsJson) : [],
-      })),
+      issues: issues.map(i => {
+        let normalizedRepo = null;
+        if (i.repository) {
+          try {
+            normalizedRepo = normalizeRepository(i.repository);
+          } catch {
+            const parts = (i.repository.fullName || '').split('/');
+            const owner = parts[0] || i.repository.owner || 'unknown';
+            const name = parts[1] || i.repository.name || 'unknown';
+            normalizedRepo = {
+              id: i.repository.id,
+              owner,
+              ownerLogin: owner,
+              name,
+              fullName: `${owner}/${name}`,
+              htmlUrl: `https://github.com/${owner}/${name}`,
+              description: i.repository.description || null,
+              primaryLanguage: i.repository.language || null,
+              stars: i.repository.stargazersCount || 0,
+              forks: i.repository.forksCount || 0,
+              topics: [],
+              defaultBranch: 'main',
+              updatedAt: new Date().toISOString(),
+            };
+          }
+        }
+        return {
+          ...i,
+          repository: normalizedRepo,
+          labels: i.labelsJson ? JSON.parse(i.labelsJson) : [],
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -209,10 +265,21 @@ export class OpenSourceService {
     ]);
 
     return {
-      bounties: bounties.map(b => ({
-        ...b,
-        labels: b.labelsJson ? JSON.parse(b.labelsJson) : [],
-      })),
+      bounties: bounties.map(b => {
+        let normalizedRepo = null;
+        if (b.repository) {
+          try {
+            normalizedRepo = normalizeRepository(b.repository);
+          } catch {
+            normalizedRepo = b.repository;
+          }
+        }
+        return {
+          ...b,
+          repository: normalizedRepo,
+          labels: b.labelsJson ? JSON.parse(b.labelsJson) : [],
+        };
+      }),
       pagination: {
         page,
         limit,

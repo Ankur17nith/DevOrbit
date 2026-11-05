@@ -134,7 +134,18 @@ export function TrendingPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {repos.map((repo, idx) => (
+                {repos.map((repo, idx) => {
+                  const owner = (repo.owner && repo.owner !== 'undefined') 
+                    ? repo.owner 
+                    : (repo.fullName && !repo.fullName.startsWith('undefined/') ? repo.fullName.split('/')[0] : 'github');
+                  const name = (repo.name && repo.name !== 'undefined') 
+                    ? repo.name 
+                    : (repo.fullName && !repo.fullName.startsWith('undefined/') ? repo.fullName.split('/')[1] : 'repository');
+                  const fullName = repo.fullName && !repo.fullName.startsWith('undefined/') 
+                    ? repo.fullName 
+                    : `${owner}/${name}`;
+
+                  return (
                   <div
                     key={repo.id || idx}
                     className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-black/7 bg-white p-4 hover:border-[#8B5CF6]/50 hover:shadow-xs transition-all"
@@ -146,10 +157,10 @@ export function TrendingPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-mono text-[#686D79] truncate">{repo.owner}</span>
+                          <span className="text-xs font-mono text-[#686D79] truncate">{owner}</span>
                           <span className="text-black/20">/</span>
                           <h4 className="text-sm font-semibold text-[#11141B] truncate group-hover:text-[#8B5CF6] transition-colors">
-                            {repo.name}
+                            {name}
                           </h4>
                         </div>
                         <p className="mt-1 text-xs text-[#686D79] line-clamp-1">
@@ -179,7 +190,7 @@ export function TrendingPage() {
                       </div>
 
                       <a
-                        href={`https://github.com/${repo.fullName || `${repo.owner}/${repo.name}`}`}
+                        href={`https://github.com/${fullName}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-white px-2.5 py-1.5 text-xs font-medium text-[#11141B] hover:bg-zinc-50 transition-colors"
@@ -189,7 +200,8 @@ export function TrendingPage() {
                       </a>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

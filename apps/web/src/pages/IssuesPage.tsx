@@ -50,6 +50,20 @@ interface MatchResult {
   explanation: string;
 }
 
+function getCleanRepoName(repo?: { fullName?: string; owner?: string; name?: string }, url?: string): string {
+  if (repo?.fullName && !repo.fullName.startsWith('undefined/')) {
+    return repo.fullName;
+  }
+  if (repo?.owner && repo?.name && repo.owner !== 'undefined' && repo.name !== 'undefined') {
+    return `${repo.owner}/${repo.name}`;
+  }
+  if (url && url.includes('github.com/')) {
+    const extracted = url.split('github.com/')[1]?.split('/issues/')[0];
+    if (extracted && !extracted.includes('undefined')) return extracted;
+  }
+  return 'github/repository';
+}
+
 const PIPELINE_STAGES: Array<{ key: PipelineItem['stage']; label: string; color: string }> = [
   { key: 'SHORTLISTED', label: 'Shortlisted', color: 'text-[#686D79]' },
   { key: 'EXPLORING', label: 'Exploring', color: 'text-blue-600' },
@@ -403,7 +417,7 @@ export function IssuesPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-mono text-[#686D79]">
-                              {issue.repository?.fullName || 'GitHub Repository'}
+                              {getCleanRepoName(issue.repository, issue.url)}
                             </span>
                             <span className="text-black/20">/</span>
                             <span className="text-xs font-mono text-[#8B5CF6]">#{issue.number}</span>
@@ -516,7 +530,9 @@ export function IssuesPage() {
                             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F0EDFA] text-[#8B5CF6] border border-[#8B5CF6]/20">
                               {Math.round(rec.matchScore || 85)}% Match
                             </span>
-                            <span className="text-xs font-mono text-[#686D79]">{rec.issue?.repository?.fullName}</span>
+                            <span className="text-xs font-mono text-[#686D79]">
+                              {getCleanRepoName(rec.issue?.repository, rec.issue?.url)}
+                            </span>
                           </div>
                           <h4 className="mt-1.5 text-sm font-semibold text-[#11141B]">{rec.issue?.title}</h4>
                           <p className="mt-1 text-xs text-[#686D79]">{rec.explanation || 'Strong overlap with your demonstrated skill profile.'}</p>
@@ -583,7 +599,7 @@ export function IssuesPage() {
                           >
                             <div className="flex items-start justify-between gap-1.5">
                               <span className="text-[10px] font-mono text-[#686D79] truncate">
-                                {item.issue?.repository?.fullName || 'Repo'}
+                                {getCleanRepoName(item.issue?.repository, item.issue?.url)}
                               </span>
                               <button
                                 onClick={() => handleRemoveFromPipeline(item.id)}
