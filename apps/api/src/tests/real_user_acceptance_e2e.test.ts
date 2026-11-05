@@ -141,7 +141,7 @@ describe('DevOrbit Real User End-to-End Acceptance Test Suite', () => {
     expect(statusRes.status).toBe(200);
     expect(statusRes.body.data.codeforces.connected).toBe(true);
     expect(statusRes.body.data.codeforces.handle).toBe('tourist');
-  });
+  }, 15000);
 
   it('6. Connects LeetCode username and syncs user-specific statistics', async () => {
     const lcRes = await request(app)
@@ -159,7 +159,7 @@ describe('DevOrbit Real User End-to-End Acceptance Test Suite', () => {
     expect(statusRes.status).toBe(200);
     expect(statusRes.body.data.leetcode.connected).toBe(true);
     expect(statusRes.body.data.leetcode.username).toBe('neal_wu');
-  });
+  }, 15000);
 
   it('7. Initiates GitHub OAuth flow with anti-replay state token and valid redirect URL', async () => {
     const oauthRes = await request(app)
