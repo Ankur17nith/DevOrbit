@@ -30,4 +30,29 @@ describe('API Structured JSON Error Handling & HTML Prevention Contract', () => 
     expect(res.headers['x-request-id']).toBeDefined();
     expect(res.body.status).toBe('ok');
   });
+
+  it('4. Suppresses internal error details in production environment', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      const { errorHandler } = await import('../middleware/errorHandler.js');
+      const mockReq = { headers: {} } as any;
+      let responseBody: any = null;
+      let responseStatus = 0;
+      const mockRes = {
+        status: (code: number) => {
+          responseStatus = code;
+          return {
+            json: (body: any) => { responseBody = body; }
+          };
+        }
+      } as any;
+      errorHandler(new Error('Internal secret database query failed at line 42'), mockReq, mockRes, (() => {}) as any);
+      expect(responseStatus).toBe(500);
+      expect(responseBody.error.message).toBe('An unexpected internal server error occurred.');
+      expect(responseBody.error.stack).toBeUndefined();
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
 });

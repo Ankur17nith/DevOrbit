@@ -19,17 +19,23 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     return;
   }
 
-  console.error('Unhandled Server Error:', err);
+  console.error(`[${new Date().toISOString()}] Unhandled Server Error [req:${requestId}]:`, err);
   const statusCode = (err as any).statusCode || 500;
+  const isProd = process.env.NODE_ENV === 'production';
+  const safeMessage = isProd && statusCode === 500
+    ? 'An unexpected internal server error occurred.'
+    : err.message || 'Internal server error';
+
   res.status(statusCode).json({
     success: false,
     data: null,
     error: {
-      message: err.message || 'Internal server error',
+      message: safeMessage,
       statusCode,
-      details: null,
+      details: isProd ? null : (err as any).details || null,
+      ...(isProd ? {} : { stack: err.stack }),
     },
-    message: err.message || 'Internal server error',
+    message: safeMessage,
     requestId,
   });
 }
