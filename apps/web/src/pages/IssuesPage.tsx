@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 interface PipelineItem {
   id: string;
@@ -139,10 +140,9 @@ export function IssuesPage() {
   const fetchRecommendations = () => {
     if (!token) return;
     setRecommendationsLoading(true);
-    fetch('/api/v1/opensource/recommendations', {
+    apiFetch('/api/v1/opensource/recommendations', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.json())
       .then(json => {
         if (json.success) setRecommendations(json.data || []);
       })
@@ -155,7 +155,7 @@ export function IssuesPage() {
   const handleRecommendationFeedback = async (recId: string, action: 'SAVED' | 'DISMISSED', reason?: string) => {
     if (!token) return;
     try {
-      await fetch('/api/v1/profile/recommendations/feedback', {
+      const json = await apiFetch('/api/v1/profile/recommendations/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,10 +168,12 @@ export function IssuesPage() {
         }),
       });
 
-      if (action === 'DISMISSED') {
-        setRecommendations(prev => prev.filter(r => (r.recommendationId || r.id) !== recId));
-      } else if (action === 'SAVED') {
-        setSavedRecommendations(prev => new Set(prev).add(recId));
+      if (json.success) {
+        if (action === 'DISMISSED') {
+          setRecommendations(prev => prev.filter(r => (r.recommendationId || r.id) !== recId));
+        } else if (action === 'SAVED') {
+          setSavedRecommendations(prev => new Set(prev).add(recId));
+        }
       }
     } catch (err) {
       console.error('Failed to record recommendation feedback', err);
