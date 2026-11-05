@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
 
 interface GitHubStatus {
   connected: boolean;
@@ -141,26 +142,18 @@ export function DeveloperProfilePage() {
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      const [statusRes, metricsRes, heatmapRes, reposRes, unifiedProfileRes] = await Promise.all([
-        fetch('/api/v1/github/status', { headers }),
-        fetch('/api/v1/github/metrics', { headers }),
-        fetch('/api/v1/github/heatmap', { headers }),
-        fetch('/api/v1/github/repositories', { headers }),
-        fetch('/api/v1/profile', { headers }),
-      ]);
-
       const [statusJson, metricsJson, heatmapJson, reposJson, unifiedProfileJson] = await Promise.all([
-        statusRes.json(),
-        metricsRes.json(),
-        heatmapRes.json(),
-        reposRes.json(),
-        unifiedProfileRes.json(),
+        apiFetch('/api/v1/github/status', { headers }),
+        apiFetch('/api/v1/github/metrics', { headers }),
+        apiFetch('/api/v1/github/heatmap', { headers }),
+        apiFetch('/api/v1/github/repositories', { headers }),
+        apiFetch('/api/v1/profile', { headers }),
       ]);
 
-      if (statusJson.success) setStatus(statusJson.data);
-      if (metricsJson.success) setMetrics(metricsJson.data);
-      if (heatmapJson.success) setHeatmap(heatmapJson.data?.points || []);
-      if (reposJson.success) setRepositories(reposJson.data?.repositories || []);
+      if (statusJson.success && statusJson.data) setStatus(statusJson.data);
+      if (metricsJson.success && metricsJson.data) setMetrics(metricsJson.data);
+      if (heatmapJson.success && heatmapJson.data) setHeatmap(heatmapJson.data?.points || []);
+      if (reposJson.success && reposJson.data) setRepositories(reposJson.data?.repositories || []);
       
       if (unifiedProfileJson.success && unifiedProfileJson.data) {
         const prof = unifiedProfileJson.data;
@@ -185,7 +178,7 @@ export function DeveloperProfilePage() {
     if (!token) return;
     setSyncing(true);
     try {
-      await fetch('/api/v1/github/sync', {
+      await apiFetch('/api/v1/github/sync', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -204,7 +197,7 @@ export function DeveloperProfilePage() {
     setProfileSaveSuccess(false);
 
     try {
-      const res = await fetch('/api/v1/profile', {
+      const json = await apiFetch('/api/v1/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +210,6 @@ export function DeveloperProfilePage() {
           weeklyCommitmentHours: weeklyHours,
         }),
       });
-      const json = await res.json();
       if (json.success) {
         setProfileSaveSuccess(true);
         setTimeout(() => setProfileSaveSuccess(false), 3000);
@@ -236,7 +228,7 @@ export function DeveloperProfilePage() {
     setReadmeResult(null);
 
     try {
-      const res = await fetch('/api/v1/profile/readme/sync', {
+      const json = await apiFetch('/api/v1/profile/readme/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,7 +238,6 @@ export function DeveloperProfilePage() {
           markdown: readmeContent.trim() || undefined,
         }),
       });
-      const json = await res.json();
       if (json.success) {
         setReadmeResult(json.data);
         await fetchProfileData();
@@ -263,7 +254,7 @@ export function DeveloperProfilePage() {
     if (!token || !newSkillName.trim()) return;
 
     try {
-      await fetch('/api/v1/profile/skills', {
+      await apiFetch('/api/v1/profile/skills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,7 +277,7 @@ export function DeveloperProfilePage() {
   const handleRemoveSkill = async (skillName: string) => {
     if (!token) return;
     try {
-      await fetch(`/api/v1/profile/skills/${encodeURIComponent(skillName)}`, {
+      await apiFetch(`/api/v1/profile/skills/${encodeURIComponent(skillName)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
