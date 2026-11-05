@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Terminal
 } from 'lucide-react';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 interface CodeContextLine {
   lineNumber: number;
@@ -155,44 +156,39 @@ export function OrbitFixPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1500px] mx-auto space-y-6 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Wrench className="size-6 text-[#8B5CF6]" />
-            <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
-              Orbit Fix: Root-Cause Debugger
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] text-[11px] font-mono font-semibold">
-              Source-Grounded Patch Studio
-            </span>
+      <PageHeading
+        title="Orbit Fix: Root-Cause Debugger"
+        description="Ingest stack traces, compiler errors, or test failures to diagnose root causes and generate non-destructive unified diff patches"
+        icon={Wrench}
+        badge={
+          <>
+            <Wrench className="size-3" />
+            <span>Source-Grounded Patch Studio</span>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-mono text-[#686D79] uppercase tracking-wider mr-1">Samples:</span>
+            {samples.map((s, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setErrorLog(s.log);
+                  setAnalysis(null);
+                  setPatch(null);
+                  setVerification(null);
+                }}
+                className="px-2.5 py-1 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-xs font-mono text-[#C5C8D0] hover:text-[#F8FAFC] transition-colors"
+              >
+                {s.name.split(' ')[0]}
+              </button>
+            ))}
           </div>
-          <p className="text-xs text-[#686D79] mt-1">
-            Ingest stack traces, compiler errors, or test failures to diagnose root causes and generate non-destructive unified diff patches
-          </p>
-        </div>
-
-        {/* Quick Sample Selector */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-mono text-[#686D79] uppercase tracking-wider mr-1">Samples:</span>
-          {samples.map((s, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                setErrorLog(s.log);
-                setAnalysis(null);
-                setPatch(null);
-                setVerification(null);
-              }}
-              className="px-2.5 py-1 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-xs font-mono text-[#C5C8D0] hover:text-[#F8FAFC] transition-colors"
-            >
-              {s.name.split(' ')[0]}
-            </button>
-          ))}
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Grid: Input & Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -224,14 +220,15 @@ export function OrbitFixPage() {
               <span className="text-[11px] font-mono text-[#686D79]">
                 {errorLog.split('\n').filter(Boolean).length} log lines
               </span>
-              <button
+              <Button
                 onClick={handleAnalyze}
-                disabled={analyzing || !errorLog.trim()}
-                className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-40 shadow-sm"
+                disabled={!errorLog.trim()}
+                loading={analyzing}
+                icon={Sparkles}
+                size="sm"
               >
-                <Sparkles className={`size-3.5 ${analyzing ? 'animate-spin' : ''}`} />
-                <span>{analyzing ? 'Diagnosing...' : 'Diagnose Root Cause'}</span>
-              </button>
+                {analyzing ? 'Diagnosing...' : 'Diagnose Root Cause'}
+              </Button>
             </div>
           </div>
         </div>
@@ -249,12 +246,12 @@ export function OrbitFixPage() {
           ) : (
             <div className="space-y-4">
               {/* Diagnosis Header Card */}
-              <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold uppercase bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30">
+                    <StatusBadge variant="violet" size="sm">
                       {analysis.category}
-                    </span>
+                    </StatusBadge>
                     <span className="text-xs font-mono text-[#686D79]">
                       Confidence: {analysis.confidence}%
                     </span>
@@ -273,7 +270,7 @@ export function OrbitFixPage() {
                 </p>
 
                 {/* Recommended Action */}
-                <div className="p-3 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-start gap-2.5 text-xs text-[#A78BFA]">
+                <div className="p-3.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-start gap-2.5 text-xs text-[#A78BFA]">
                   <CheckCircle2 className="size-4 shrink-0 text-[#8B5CF6] mt-0.5" />
                   <div>
                     <span className="font-semibold text-white">Recommended Fix: </span>
@@ -285,7 +282,7 @@ export function OrbitFixPage() {
               {/* Code Context Viewer */}
               {analysis.codeContext.length > 0 && (
                 <div className="rounded-2xl bg-[#0B0D12] border border-[#1F2430] overflow-hidden">
-                  <div className="p-2.5 bg-[#12151D] border-b border-[#1F2430] flex items-center justify-between text-xs font-mono">
+                  <div className="p-3 bg-[#12151D] border-b border-[#1F2430] flex items-center justify-between text-xs font-mono">
                     <span className="text-[#8B5CF6] truncate font-medium">
                       {analysis.filePath}:{analysis.lineNumber}
                     </span>
@@ -294,7 +291,7 @@ export function OrbitFixPage() {
                     )}
                   </div>
 
-                  <div className="p-3 font-mono text-xs leading-relaxed overflow-x-auto">
+                  <div className="p-3.5 font-mono text-xs leading-relaxed overflow-x-auto">
                     <table className="w-full border-collapse">
                       <tbody>
                         {analysis.codeContext.map(line => (
@@ -317,7 +314,7 @@ export function OrbitFixPage() {
               )}
 
               {/* Patch Proposal Section */}
-              <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
+              <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Code2 className="size-4 text-[#8B5CF6]" />
@@ -325,32 +322,34 @@ export function OrbitFixPage() {
                   </div>
 
                   {!patch ? (
-                    <button
+                    <Button
                       onClick={handleProposePatch}
-                      disabled={patching}
-                      className="px-3.5 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+                      loading={patching}
+                      icon={Sparkles}
+                      size="sm"
                     >
-                      <Sparkles className={`size-3.5 ${patching ? 'animate-spin' : ''}`} />
-                      <span>{patching ? 'Synthesizing...' : 'Generate Patch'}</span>
-                    </button>
+                      {patching ? 'Synthesizing...' : 'Generate Patch'}
+                    </Button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
                         onClick={copyDiffToClipboard}
-                        className="px-2.5 py-1 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-mono text-[#C5C8D0] flex items-center gap-1.5 transition-colors"
+                        variant="secondary"
+                        size="sm"
+                        icon={copiedDiff ? Check : Copy}
                       >
-                        {copiedDiff ? <Check className="size-3 text-[#22C55E]" /> : <Copy className="size-3" />}
-                        <span>{copiedDiff ? 'Copied' : 'Copy Diff'}</span>
-                      </button>
+                        {copiedDiff ? 'Copied' : 'Copy Diff'}
+                      </Button>
 
-                      <button
+                      <Button
                         onClick={handleVerify}
-                        disabled={verifying}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#22C55E]/20 hover:bg-[#22C55E]/30 border border-[#22C55E]/40 text-[#22C55E] text-xs font-medium flex items-center gap-1.5 transition-colors"
+                        loading={verifying}
+                        variant="primary"
+                        size="sm"
+                        icon={Play}
                       >
-                        <Play className={`size-3 ${verifying ? 'animate-spin' : ''}`} />
-                        <span>{verifying ? 'Verifying...' : 'Test Verification'}</span>
-                      </button>
+                        {verifying ? 'Verifying...' : 'Test Verification'}
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -379,7 +378,7 @@ export function OrbitFixPage() {
 
                     {/* Verification Result Banner */}
                     {verification && (
-                      <div className="p-3.5 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/40 text-xs space-y-2 animate-in fade-in duration-200">
+                      <div className="p-4 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/40 text-xs space-y-2 animate-in fade-in duration-200">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-[#22C55E] flex items-center gap-1.5">
                             <CheckCircle2 className="size-4" />
@@ -404,6 +403,6 @@ export function OrbitFixPage() {
 
       </div>
 
-    </div>
+    </PageContainer>
   );
 }

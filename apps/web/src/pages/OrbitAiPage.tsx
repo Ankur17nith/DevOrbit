@@ -19,9 +19,11 @@ import {
   ExternalLink,
   Search,
   MessageSquare,
-  Cpu
+  Cpu,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { StatusBadge, Button } from '../components/ui/index.js';
 
 interface Message {
   id?: string;
@@ -99,11 +101,10 @@ export function OrbitAiPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
+        if (json.success) {
           setConversations(json.data);
           if (json.data.length > 0 && !activeConvId) {
-            setActiveConvId(json.data[0].id);
-            setMessages(json.data[0].messages || []);
+            handleSelectConversation(json.data[0].id);
           }
         }
       }
@@ -116,34 +117,44 @@ export function OrbitAiPage() {
     fetchConversations();
   }, [token]);
 
+  // Scroll to bottom on message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const handleStartNewChat = () => {
-    setActiveConvId(null);
-    setMessages([]);
-    if (textareaRef.current) textareaRef.current.focus();
-  };
-
   const handleSelectConversation = async (convId: string) => {
     setActiveConvId(convId);
+    if (!token) return;
     try {
       const res = await fetch(`/api/v1/ai/conversations/${convId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
       if (json.success && json.data) {
-        setMessages(json.data.messages || []);
+        const formatted: Message[] = json.data.messages.map((m: any) => ({
+          id: m.id,
+          role: m.role.toLowerCase() as 'user' | 'assistant',
+          content: m.content,
+          createdAt: m.createdAt,
+          isFallback: m.isFallback,
+          model: m.model,
+        }));
+        setMessages(formatted);
       }
     } catch (err) {
-      console.error('Failed to load thread messages', err);
+      console.error('Error fetching conversation', err);
     }
+  };
+
+  const handleStartNewChat = () => {
+    setActiveConvId(null);
+    setMessages([]);
+    setInput('');
   };
 
   const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
     e.stopPropagation();
-    if (!confirm('Delete this conversation?')) return;
+    if (!token) return;
     try {
       await fetch(`/api/v1/ai/conversations/${convId}`, {
         method: 'DELETE',
@@ -154,7 +165,7 @@ export function OrbitAiPage() {
         handleStartNewChat();
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to delete conversation', err);
     }
   };
 
@@ -165,7 +176,10 @@ export function OrbitAiPage() {
   };
 
   const handleSaveRename = async (convId: string) => {
-    if (!editTitleInput.trim()) return;
+    if (!token || !editTitleInput.trim()) {
+      setEditingConvId(null);
+      return;
+    }
     try {
       await fetch(`/api/v1/ai/conversations/${convId}`, {
         method: 'PATCH',
@@ -176,22 +190,25 @@ export function OrbitAiPage() {
         body: JSON.stringify({ title: editTitleInput.trim() }),
       });
       setConversations(prev => prev.map(c => c.id === convId ? { ...c, title: editTitleInput.trim() } : c));
+    } catch (err) {
+      console.error(err);
     } finally {
       setEditingConvId(null);
     }
   };
 
-  const handleSend = async (textToSend?: string) => {
-    const text = textToSend || input;
-    if (!text.trim() || !token || loading) return;
+  const handleSend = async (forcedPrompt?: string) => {
+    const text = forcedPrompt || input;
+    if (!text.trim() || loading || !token) return;
 
-    const userMessage: Message = { 
-      role: 'user', 
+    const userMessage: Message = {
+      role: 'user',
       content: text.trim(),
+      createdAt: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    if (!textToSend) setInput('');
+    if (!forcedPrompt) setInput('');
     setLoading(true);
 
     try {
@@ -263,20 +280,20 @@ export function OrbitAiPage() {
   );
 
   return (
-    <div className="h-[calc(100vh-56px)] flex bg-[#0B0D12] overflow-hidden animate-in fade-in duration-200">
+    <div className="h-[calc(100vh-56px-28px)] flex bg-[#0B0D12] overflow-hidden animate-in fade-in duration-200">
       
       {/* ── LEFT PANEL: Conversation History & Models ── */}
-      <aside className="w-64 bg-[#12151D] border-r border-[#1F2430] flex flex-col shrink-0 select-none">
+      <aside className="w-64 bg-[#0E1117] border-r border-[#1F2430] flex flex-col shrink-0 select-none">
         
         {/* Panel Header */}
-        <div className="p-3 border-b border-[#1F2430] flex items-center justify-between">
+        <div className="p-3.5 border-b border-[#1F2430] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="size-4 text-[#8B5CF6]" />
             <span className="text-xs font-bold text-[#F8FAFC]">Conversations</span>
           </div>
           <button
             onClick={handleStartNewChat}
-            className="p-1.5 rounded-lg bg-[#181C26] hover:bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
+            className="p-1.5 rounded-xl bg-[#181C26] hover:bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all"
             title="Start New Thread"
           >
             <Plus className="size-3.5" />
@@ -284,8 +301,8 @@ export function OrbitAiPage() {
         </div>
 
         {/* Search Conversations */}
-        <div className="p-2 border-b border-[#1F2430]">
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#181C26] border border-[#1F2430] text-xs">
+        <div className="p-2.5 border-b border-[#1F2430]">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#12151D] border border-[#1F2430] text-xs">
             <Search className="size-3.5 text-[#686D79]" />
             <input
               type="text"
@@ -308,9 +325,9 @@ export function OrbitAiPage() {
               <div
                 key={c.id}
                 onClick={() => handleSelectConversation(c.id)}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-colors group cursor-pointer ${
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition-colors group cursor-pointer ${
                   activeConvId === c.id
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 font-medium'
+                    ? 'bg-[#1A1E29] text-[#F8FAFC] border border-[#8B5CF6]/40 font-medium'
                     : 'text-[#C5C8D0] hover:bg-[#181C26]/60 hover:text-[#F8FAFC]'
                 }`}
               >
@@ -324,7 +341,7 @@ export function OrbitAiPage() {
                       onChange={e => setEditTitleInput(e.target.value)}
                       onBlur={() => handleSaveRename(c.id)}
                       onKeyDown={e => e.key === 'Enter' && handleSaveRename(c.id)}
-                      className="bg-[#202431] px-1 py-0.5 rounded text-xs text-white focus:outline-none w-full"
+                      className="bg-[#202431] px-1.5 py-0.5 rounded text-xs text-white focus:outline-none w-full"
                     />
                   ) : (
                     <span className="truncate">{c.title || 'Untitled Session'}</span>
@@ -353,7 +370,7 @@ export function OrbitAiPage() {
         </div>
 
         {/* Runtime Status Footer */}
-        <div className="p-3 border-t border-[#1F2430] bg-[#0B0D12] space-y-2 text-xs">
+        <div className="p-3 border-t border-[#1F2430] bg-[#0B0D12] space-y-2.5 text-xs">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#686D79] font-medium">Model Engine:</span>
             <button 
@@ -370,7 +387,7 @@ export function OrbitAiPage() {
             value={selectedModel}
             onChange={e => setSelectedModel(e.target.value)}
             disabled={!aiStatus?.reachable && models.length === 0}
-            className="w-full bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6] disabled:opacity-80"
+            className="w-full bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CF6] disabled:opacity-80 font-mono"
           >
             {models.length > 0 ? (
               models.map(m => (
@@ -409,9 +426,9 @@ export function OrbitAiPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-mono">
+            <StatusBadge variant="success" size="sm" dot>
               100% Local-First
-            </span>
+            </StatusBadge>
           </div>
         </div>
 
@@ -425,13 +442,14 @@ export function OrbitAiPage() {
               </span>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-              <button
+              <Button
                 onClick={copyOllamaCmd}
-                className="px-2.5 py-1 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[11px] font-medium flex items-center gap-1 transition-colors shadow-sm"
+                variant="primary"
+                size="sm"
+                icon={copiedCmd ? Check : Copy}
               >
-                {copiedCmd ? <Check className="size-3" /> : <Copy className="size-3" />}
-                <span>{copiedCmd ? 'Copied' : 'Copy command'}</span>
-              </button>
+                {copiedCmd ? 'Copied' : 'Copy command'}
+              </Button>
             </div>
           </div>
         )}
@@ -463,7 +481,7 @@ export function OrbitAiPage() {
                   <button
                     key={i}
                     onClick={() => handleSend(item.prompt)}
-                    className="p-3 rounded-xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/50 hover:bg-[#181C26] transition-all group"
+                    className="p-3.5 rounded-2xl bg-[#12151D] border border-[#1F2430] hover:border-[#8B5CF6]/50 hover:bg-[#181C26] transition-all group"
                   >
                     <div className="text-xs font-semibold text-[#F8FAFC] group-hover:text-[#A78BFA] transition-colors">
                       {item.title}
@@ -482,7 +500,7 @@ export function OrbitAiPage() {
                 className={`flex items-start gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.role === 'assistant' && (
-                  <div className="size-8 rounded-lg bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 mt-0.5 shadow-sm">
+                  <div className="size-8 rounded-xl bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 mt-0.5 shadow-sm">
                     <Bot className="size-4" />
                   </div>
                 )}
@@ -492,7 +510,7 @@ export function OrbitAiPage() {
                   {/* Assistant Engine Badge */}
                   {m.role === 'assistant' && (
                     <div className="flex items-center gap-2 text-[10px] font-mono">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${
                         m.isFallback 
                           ? 'bg-[#181C26] text-[#94A3B8] border-[#334155]' 
                           : 'bg-[#8B5CF6]/15 text-[#C4B5FD] border-[#8B5CF6]/30'
@@ -512,10 +530,10 @@ export function OrbitAiPage() {
                     </div>
                   )}
 
-                  {/* Message Bubble */}
+                  {/* Message Card */}
                   <div className={`p-4 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
                     m.role === 'user'
-                      ? 'bg-[#8B5CF6] text-white rounded-tr-none font-medium shadow-md shadow-[#8B5CF6]/20'
+                      ? 'bg-[#1A1E29] text-white border border-[#8B5CF6]/40 rounded-tr-none font-medium shadow-md shadow-[#8B5CF6]/10'
                       : 'bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] rounded-tl-none font-sans'
                   }`}>
                     {m.content}
@@ -535,7 +553,7 @@ export function OrbitAiPage() {
                 </div>
 
                 {m.role === 'user' && (
-                  <div className="size-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center text-white shrink-0 mt-0.5 font-bold font-mono text-xs">
+                  <div className="size-8 rounded-xl bg-[#EDE9FE] text-[#8B5CF6] flex items-center justify-center shrink-0 mt-0.5 font-bold font-mono text-xs">
                     {user?.username ? user.username.slice(0, 2).toUpperCase() : 'U'}
                   </div>
                 )}
@@ -545,10 +563,10 @@ export function OrbitAiPage() {
 
           {loading && (
             <div className="flex items-start gap-3">
-              <div className="size-8 rounded-lg bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 animate-pulse">
+              <div className="size-8 rounded-xl bg-[#181C26] border border-[#8B5CF6]/40 flex items-center justify-center text-[#8B5CF6] shrink-0 animate-pulse">
                 <Bot className="size-4" />
               </div>
-              <div className="p-3 rounded-2xl bg-[#12151D] border border-[#1F2430] text-xs text-[#686D79] flex items-center gap-2">
+              <div className="p-3.5 rounded-2xl bg-[#12151D] border border-[#1F2430] text-xs text-[#686D79] flex items-center gap-2">
                 <RefreshCw className="size-3 animate-spin text-[#8B5CF6]" />
                 <span>Generating developer intelligence...</span>
               </div>
@@ -560,7 +578,7 @@ export function OrbitAiPage() {
 
         {/* Composer Input Bar */}
         <div className="p-4 border-t border-[#1F2430] bg-[#12151D]/60 backdrop-blur-md shrink-0">
-          <div className="max-w-4xl mx-auto flex items-end gap-2 p-2 rounded-2xl bg-[#181C26] border border-[#1F2430] focus-within:border-[#8B5CF6]/60 transition-colors">
+          <div className="max-w-4xl mx-auto flex items-end gap-2 p-2.5 rounded-2xl bg-[#181C26] border border-[#1F2430] focus-within:border-[#8B5CF6]/60 transition-colors">
             <textarea
               ref={textareaRef}
               rows={2}
@@ -574,7 +592,7 @@ export function OrbitAiPage() {
             <button
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
-              className="size-8 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-50 text-white flex items-center justify-center shrink-0 transition-colors shadow-sm"
+              className="size-9 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors shadow-sm"
               title="Send Message"
             >
               <Send className="size-4" />

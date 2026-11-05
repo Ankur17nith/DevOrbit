@@ -16,6 +16,7 @@ import {
   TrendingUp,
   RefreshCw
 } from 'lucide-react';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 interface ImpactReport {
   targetFile: string;
@@ -144,67 +145,62 @@ export function OrbitSafeChangePage() {
   }, []);
 
   return (
-    <div className="p-6 md:p-8 max-w-[1500px] mx-auto space-y-6 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="size-6 text-[#8B5CF6]" />
-            <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
-              Orbit SafeChange & Quality Guardian
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] text-[11px] font-mono font-semibold">
-              Blast Radius & Migration Safety
-            </span>
+      <PageHeading
+        title="Orbit SafeChange & Quality Guardian"
+        description="Local-first change impact ripple analysis, non-destructive migration safety checker, and engineering quality guardian"
+        icon={ShieldCheck}
+        badge={
+          <>
+            <ShieldCheck className="size-3" />
+            <span>Blast Radius & Migration Safety</span>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#12151D] border border-[#1F2430]">
+            <button
+              onClick={() => setActiveTab('impact')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                activeTab === 'impact'
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
+                  : 'text-[#686D79] hover:text-[#C5C8D0]'
+              }`}
+            >
+              <GitPullRequest className="size-3.5" />
+              <span>Change Impact</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('migration')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                activeTab === 'migration'
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
+                  : 'text-[#686D79] hover:text-[#C5C8D0]'
+              }`}
+            >
+              <Database className="size-3.5" />
+              <span>Migration Safety</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('guardian');
+                if (!qualityReport) fetchQuality();
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                activeTab === 'guardian'
+                  ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
+                  : 'text-[#686D79] hover:text-[#C5C8D0]'
+              }`}
+            >
+              <Activity className="size-3.5" />
+              <span>Quality Guardian</span>
+            </button>
           </div>
-          <p className="text-xs text-[#686D79] mt-1">
-            Local-first change impact ripple analysis, non-destructive migration safety checker, and engineering quality guardian
-          </p>
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-[#12151D] border border-[#1F2430]">
-          <button
-            onClick={() => setActiveTab('impact')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              activeTab === 'impact'
-                ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                : 'text-[#686D79] hover:text-[#C5C8D0]'
-            }`}
-          >
-            <GitPullRequest className="size-3.5" />
-            <span>Change Impact</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('migration')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              activeTab === 'migration'
-                ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                : 'text-[#686D79] hover:text-[#C5C8D0]'
-            }`}
-          >
-            <Database className="size-3.5" />
-            <span>Migration Safety</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('guardian');
-              if (!qualityReport) fetchQuality();
-            }}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              activeTab === 'guardian'
-                ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
-                : 'text-[#686D79] hover:text-[#C5C8D0]'
-            }`}
-          >
-            <Activity className="size-3.5" />
-            <span>Quality Guardian</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* TAB 1: CHANGE IMPACT & BLAST RADIUS */}
       {activeTab === 'impact' && (
@@ -218,7 +214,7 @@ export function OrbitSafeChangePage() {
                 value={targetFile}
                 onChange={e => setTargetFile(e.target.value)}
                 placeholder="Relative file path..."
-                className="w-full px-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                className="w-full px-3 py-1.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
               />
             </div>
 
@@ -238,14 +234,14 @@ export function OrbitSafeChangePage() {
                 ))}
               </div>
 
-              <button
+              <Button
                 onClick={() => handleAnalyzeImpact()}
-                disabled={impactLoading}
-                className="px-3.5 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+                loading={impactLoading}
+                icon={Sparkles}
+                size="sm"
               >
-                <Sparkles className={`size-3.5 ${impactLoading ? 'animate-spin' : ''}`} />
-                <span>Analyze Blast Radius</span>
-              </button>
+                Analyze Blast Radius
+              </Button>
             </div>
           </div>
 
@@ -257,14 +253,16 @@ export function OrbitSafeChangePage() {
                 <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-[#686D79]">Blast Radius Risk Level</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase ${
-                      impactReport.riskLevel === 'CRITICAL' ? 'bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30' :
-                      impactReport.riskLevel === 'HIGH' ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30' :
-                      impactReport.riskLevel === 'MEDIUM' ? 'bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30' :
-                      'bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30'
-                    }`}>
+                    <StatusBadge
+                      variant={
+                        impactReport.riskLevel === 'CRITICAL' ? 'danger' :
+                        impactReport.riskLevel === 'HIGH' ? 'warning' :
+                        impactReport.riskLevel === 'MEDIUM' ? 'violet' : 'success'
+                      }
+                      size="md"
+                    >
                       {impactReport.riskLevel} Risk ({impactReport.riskScore}/100)
-                    </span>
+                    </StatusBadge>
                   </div>
 
                   <p className="text-xs text-[#C5C8D0] leading-relaxed">
@@ -300,9 +298,11 @@ export function OrbitSafeChangePage() {
                       </div>
                     ) : (
                       impactReport.directDownstreamFiles.map((file, idx) => (
-                        <div key={idx} className="p-2.5 rounded-lg bg-[#181C26] border border-[#1F2430] flex items-center justify-between text-xs font-mono">
+                        <div key={idx} className="p-2.5 rounded-xl bg-[#181C26] border border-[#1F2430] flex items-center justify-between text-xs font-mono">
                           <span className="text-[#C5C8D0] truncate">{file}</span>
-                          <span className="text-[10px] text-[#8B5CF6] bg-[#8B5CF6]/15 px-2 py-0.5 rounded">Imports Target</span>
+                          <StatusBadge variant="violet" size="sm">
+                            Imports Target
+                          </StatusBadge>
                         </div>
                       ))
                     )}
@@ -316,7 +316,7 @@ export function OrbitSafeChangePage() {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {impactReport.impactedTestFiles.map((testFile, idx) => (
-                          <span key={idx} className="px-2.5 py-1 rounded text-xs font-mono bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 flex items-center gap-1.5">
+                          <span key={idx} className="px-2.5 py-1 rounded-full text-xs font-mono bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 flex items-center gap-1.5">
                             <Check className="size-3" />
                             <span>{testFile.split('/').pop()}</span>
                           </span>
@@ -350,7 +350,7 @@ export function OrbitSafeChangePage() {
                         setSchemaText(badField);
                         handleCheckMigration(badField);
                       }}
-                      className="px-2 py-0.5 rounded bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[10px] text-[#EF4444]"
+                      className="px-2 py-0.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[10px] text-[#EF4444]"
                     >
                       Sample Risky Non-Null
                     </button>
@@ -360,7 +360,7 @@ export function OrbitSafeChangePage() {
                         setSchemaText(dropModel);
                         handleCheckMigration(dropModel);
                       }}
-                      className="px-2 py-0.5 rounded bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[10px] text-[#EF4444]"
+                      className="px-2 py-0.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-[10px] text-[#EF4444]"
                     >
                       Sample Drop Tables
                     </button>
@@ -374,14 +374,14 @@ export function OrbitSafeChangePage() {
                 />
 
                 <div className="pt-3 border-t border-[#1F2430] flex justify-end">
-                  <button
+                  <Button
                     onClick={() => handleCheckMigration()}
-                    disabled={migrationLoading}
-                    className="px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+                    loading={migrationLoading}
+                    icon={Sparkles}
+                    size="sm"
                   >
-                    <Sparkles className={`size-3.5 ${migrationLoading ? 'animate-spin' : ''}`} />
-                    <span>Audit Migration Safety</span>
-                  </button>
+                    Audit Migration Safety
+                  </Button>
                 </div>
               </div>
             </div>
@@ -396,15 +396,12 @@ export function OrbitSafeChangePage() {
               ) : (
                 <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-4 h-[460px] overflow-y-auto no-scrollbar">
                   <div className="flex items-center justify-between pb-3 border-b border-[#1F2430]">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase ${
-                        migrationReport.isDestructive
-                          ? 'bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30'
-                          : 'bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30'
-                      }`}>
-                        {migrationReport.isDestructive ? 'Destructive Migration' : 'Safe Non-Destructive'}
-                      </span>
-                    </div>
+                    <StatusBadge
+                      variant={migrationReport.isDestructive ? 'danger' : 'success'}
+                      size="md"
+                    >
+                      {migrationReport.isDestructive ? 'Destructive Migration' : 'Safe Non-Destructive'}
+                    </StatusBadge>
                     <span className="text-xs font-mono text-[#686D79]">
                       Safety Score: {migrationReport.score}/100
                     </span>
@@ -446,7 +443,7 @@ export function OrbitSafeChangePage() {
             <div className="space-y-5">
               {/* Metric Cards Row */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+                <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
                   <div>
                     <div className="text-xs text-[#686D79]">Health Grade</div>
                     <div className="text-2xl font-mono font-bold text-[#22C55E] mt-0.5">{qualityReport.healthGrade}</div>
@@ -454,7 +451,7 @@ export function OrbitSafeChangePage() {
                   <ShieldCheck className="size-8 text-[#22C55E]/40" />
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+                <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
                   <div>
                     <div className="text-xs text-[#686D79]">Test-to-Code Ratio</div>
                     <div className="text-2xl font-mono font-bold text-[#8B5CF6] mt-0.5">{qualityReport.testToCodeRatio}%</div>
@@ -462,7 +459,7 @@ export function OrbitSafeChangePage() {
                   <TrendingUp className="size-8 text-[#8B5CF6]/40" />
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+                <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
                   <div>
                     <div className="text-xs text-[#686D79]">Automated Tests</div>
                     <div className="text-2xl font-mono font-bold text-[#F8FAFC] mt-0.5">{qualityReport.totalAutomatedTests}</div>
@@ -470,7 +467,7 @@ export function OrbitSafeChangePage() {
                   <Activity className="size-8 text-[#686D79]/40" />
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+                <div className="p-5 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
                   <div>
                     <div className="text-xs text-[#686D79]">Tech Debt Index</div>
                     <div className="text-2xl font-mono font-bold text-[#A78BFA] mt-0.5">{qualityReport.techDebtScore}/100</div>
@@ -486,22 +483,24 @@ export function OrbitSafeChangePage() {
                     <Package className="size-4 text-[#8B5CF6]" />
                     <span>Workspace Dependency Inventory ({qualityReport.dependencies.length})</span>
                   </h3>
-                  <span className="text-[11px] font-mono text-[#22C55E]">100% Zero High-Risk Licenses</span>
+                  <StatusBadge variant="success" size="sm">
+                    100% Zero High-Risk Licenses
+                  </StatusBadge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
                   {qualityReport.dependencies.map((pkg, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/30 transition-colors flex items-center justify-between text-xs"
+                      className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/30 transition-colors flex items-center justify-between text-xs"
                     >
                       <div className="min-w-0 pr-2">
                         <div className="font-mono font-bold text-[#F8FAFC] truncate">{pkg.packageName}</div>
                         <div className="text-[11px] font-mono text-[#686D79]">v{pkg.currentVersion} • {pkg.license}</div>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30 shrink-0">
+                      <StatusBadge variant="success" size="sm">
                         {pkg.status}
-                      </span>
+                      </StatusBadge>
                     </div>
                   ))}
                 </div>
@@ -511,6 +510,6 @@ export function OrbitSafeChangePage() {
         </div>
       )}
 
-    </div>
+    </PageContainer>
   );
 }

@@ -10,9 +10,11 @@ import {
   Palette,
   ExternalLink,
   Zap,
-  Terminal
+  Terminal,
+  Scan
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { PageContainer, PageHeading, StatusBadge, Button, EmptyState } from '../components/ui/index.js';
 
 export function OrbitReconPage() {
   const { token } = useAuth();
@@ -55,23 +57,23 @@ export function OrbitReconPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <ScanSearch className="size-6 text-[#8B5CF6]" />
-          <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
-            Orbit Recon — UI Reverse Engineering & Vibe Coding
-          </h1>
-        </div>
-        <p className="text-xs text-[#686D79] mt-1">
-          Inspect any permitted website's visible interface to extract design tokens, DOM hierarchy, and generate clean React + Tailwind components
-        </p>
-      </div>
+      <PageHeading
+        title="Orbit Recon — UI Reverse Engineering & Vibe Coding"
+        description="Inspect permitted web interfaces to extract design tokens, DOM hierarchy, and generate clean React + Tailwind components"
+        icon={Scan}
+        badge={
+          <>
+            <Scan className="size-3" />
+            <span>UI Token Extraction</span>
+          </>
+        }
+      />
 
       {/* URL Input Form */}
-      <form onSubmit={handleInspect} className="flex gap-3 p-2 bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-sm">
+      <form onSubmit={handleInspect} className="flex flex-col sm:flex-row gap-3 p-3 bg-[#12151D] border border-[#1F2430] rounded-2xl shadow-sm">
         <div className="relative flex-1">
           <input
             type="url"
@@ -82,23 +84,14 @@ export function OrbitReconPage() {
             className="w-full px-4 py-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6] transition-colors"
           />
         </div>
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="px-6 py-2.5 rounded-xl bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-[#8B5CF6]/20 disabled:opacity-50"
+          loading={loading}
+          icon={Sparkles}
+          size="md"
         >
-          {loading ? (
-            <>
-              <div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Reconstructing UI...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="size-4" />
-              <span>Inspect & Reconstruct</span>
-            </>
-          )}
-        </button>
+          {loading ? 'Reconstructing UI...' : 'Inspect & Reconstruct'}
+        </Button>
       </form>
 
       {/* Main Recon Workspace */}
@@ -106,13 +99,13 @@ export function OrbitReconPage() {
         <div className="space-y-4">
           
           {/* View Toggles & Copy Bar */}
-          <div className="flex items-center justify-between border-b border-[#1F2430] pb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1F2430] pb-3">
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#12151D] border border-[#1F2430]">
               <button
                 onClick={() => setActiveView('preview')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeView === 'preview' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
                     : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
@@ -121,9 +114,9 @@ export function OrbitReconPage() {
               </button>
               <button
                 onClick={() => setActiveView('code')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeView === 'code' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
                     : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
@@ -132,9 +125,9 @@ export function OrbitReconPage() {
               </button>
               <button
                 onClick={() => setActiveView('tokens')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeView === 'tokens' 
-                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40' 
+                    ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm' 
                     : 'text-[#686D79] hover:text-[#F8FAFC]'
                 }`}
               >
@@ -144,13 +137,14 @@ export function OrbitReconPage() {
             </div>
 
             {activeView === 'code' && (
-              <button
+              <Button
                 onClick={handleCopyCode}
-                className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors"
+                variant="secondary"
+                size="sm"
+                icon={copied ? Check : Copy}
               >
-                {copied ? <Check className="size-3.5 text-[#22C55E]" /> : <Copy className="size-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy React Component'}</span>
-              </button>
+                {copied ? 'Copied Component' : 'Copy React Component'}
+              </Button>
             )}
           </div>
 
@@ -159,34 +153,36 @@ export function OrbitReconPage() {
             <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-6 shadow-2xl relative overflow-hidden">
               <div className="text-[10px] font-mono uppercase tracking-wider text-[#686D79] mb-4 flex items-center justify-between">
                 <span>Inspected Origin: {result.targetUrl}</span>
-                <span className="text-[#22C55E]">Component Render Complete</span>
+                <StatusBadge variant="success" size="sm" dot>
+                  Component Render Complete
+                </StatusBadge>
               </div>
 
               {/* Rendered Sandbox Simulation */}
-              <div className="p-6 rounded-xl bg-[#12151D] border border-[#1F2430] space-y-6">
+              <div className="p-6 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-6">
                 <div className="flex items-center justify-between border-b border-[#1F2430] pb-4">
                   <div className="flex items-center gap-2">
-                    <div className="size-6 rounded bg-[#8B5CF6] flex items-center justify-center font-bold text-xs text-white">
+                    <div className="size-6 rounded-lg bg-[#8B5CF6] flex items-center justify-center font-bold text-xs text-white">
                       D
                     </div>
                     <span className="font-bold text-[#F8FAFC] text-sm">Reconstructed Workstation Shell</span>
                   </div>
-                  <button className="px-3 py-1 rounded-lg bg-[#8B5CF6] hover:bg-[#A78BFA] text-white text-xs font-medium transition-colors">
+                  <Button variant="primary" size="sm">
                     Trigger Action
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#A78BFA] uppercase">Surface Card</span>
+                    <span className="text-xs font-mono text-[#A78BFA] uppercase font-semibold">Surface Card</span>
                     <p className="text-xs text-[#C5C8D0]">Clean room recreation adhering strictly to extracted geometry and color tokens.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#60A5FA] uppercase">Typography Scale</span>
+                    <span className="text-xs font-mono text-[#60A5FA] uppercase font-semibold">Typography Scale</span>
                     <p className="text-xs text-[#C5C8D0]">Manrope Display & Inter body fonts verified for high visual fidelity.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-[#0B0D12] border border-[#1F2430] space-y-2">
-                    <span className="text-xs font-mono text-[#F59E0B] uppercase">Micro-Interaction</span>
+                    <span className="text-xs font-mono text-[#F59E0B] uppercase font-semibold">Micro-Interaction</span>
                     <p className="text-xs text-[#C5C8D0]">Smooth hover states without jarring layout shifts.</p>
                   </div>
                 </div>
@@ -195,7 +191,7 @@ export function OrbitReconPage() {
           )}
 
           {activeView === 'code' && (
-            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-4 overflow-x-auto">
+            <div className="rounded-2xl border border-[#1F2430] bg-[#0B0D12] p-5 overflow-x-auto">
               <pre className="text-xs font-mono text-[#C5C8D0] leading-relaxed">
                 <code>{result.generatedCode}</code>
               </pre>
@@ -208,11 +204,11 @@ export function OrbitReconPage() {
                 <h3 className="text-sm font-semibold text-[#F8FAFC]">Extracted Color Palette</h3>
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                   {Object.entries(result.tokens || {}).filter(([k]) => k.includes('Bg') || k.includes('Color')).map(([k, v]) => (
-                    <div key={k} className="p-2.5 rounded-lg bg-[#0B0D12] border border-[#1F2430] flex items-center gap-2">
-                      <div className="size-4 rounded border border-[#2E364A]" style={{ backgroundColor: v as string }} />
+                    <div key={k} className="p-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-center gap-2">
+                      <div className="size-4 rounded-md border border-[#2E364A]" style={{ backgroundColor: v as string }} />
                       <div className="min-w-0">
                         <div className="text-[10px] text-[#686D79] uppercase">{k}</div>
-                        <div className="text-[#F8FAFC] truncate">{v as string}</div>
+                        <div className="text-[#F8FAFC] truncate font-medium">{v as string}</div>
                       </div>
                     </div>
                   ))}
@@ -223,9 +219,11 @@ export function OrbitReconPage() {
                 <h3 className="text-sm font-semibold text-[#F8FAFC]">Typography & Fonts</h3>
                 <div className="space-y-2 text-xs font-mono">
                   {result.tokens?.fonts?.map((f: string, i: number) => (
-                    <div key={i} className="p-2.5 rounded-lg bg-[#0B0D12] border border-[#1F2430] flex items-center justify-between">
-                      <span className="text-[#F8FAFC]">{f}</span>
-                      <span className="text-[10px] text-[#686D79] uppercase">Font Family</span>
+                    <div key={i} className="p-2.5 rounded-xl bg-[#0B0D12] border border-[#1F2430] flex items-center justify-between">
+                      <span className="text-[#F8FAFC] font-medium">{f}</span>
+                      <StatusBadge variant="neutral" size="sm">
+                        Font Family
+                      </StatusBadge>
                     </div>
                   ))}
                 </div>
@@ -235,15 +233,13 @@ export function OrbitReconPage() {
 
         </div>
       ) : (
-        <div className="text-center py-20 p-8 rounded-2xl bg-[#12151D] border border-[#1F2430] space-y-3">
-          <ScanSearch className="size-10 text-[#686D79] mx-auto" />
-          <h3 className="text-base font-bold text-[#F8FAFC] font-display">Enter a target URL above</h3>
-          <p className="text-xs text-[#686D79] max-w-md mx-auto">
-            Orbit Recon automatically launches inspection protocols to parse DOM layout, computed styles, and construct an original React component.
-          </p>
-        </div>
+        <EmptyState
+          icon={ScanSearch}
+          title="Enter a target URL above"
+          description="Orbit Recon automatically launches inspection protocols to parse DOM layout, computed styles, and construct an original React component."
+        />
       )}
 
-    </div>
+    </PageContainer>
   );
 }

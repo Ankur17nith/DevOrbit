@@ -19,6 +19,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import mermaid from 'mermaid';
+import { PageContainer, PageHeading, StatusBadge, Button } from '../components/ui/index.js';
 
 // Initialize mermaid with DevOrbit dark aesthetic
 mermaid.initialize({
@@ -182,41 +183,25 @@ export function CodebaseNavigatorPage() {
         } finally {
           setSearchLoading(false);
         }
-      }, 250);
+      }, 200);
+
       return () => clearTimeout(timeout);
     }
   }, [searchQuery, symbolFilter, activeView]);
 
-  // Fetch and render Mermaid Graph
+  // Fetch architecture graph
   const fetchGraph = async () => {
     setGraphLoading(true);
     try {
-      const res = await fetch('/api/v1/navigator/graph');
+      const res = await fetch('/api/v1/navigator/graph?direction=LR&focus=dependencies');
       const json = await res.json();
       if (json.success) {
-        setMermaidCode(json.data.mermaid);
-        renderMermaid(json.data.mermaid);
+        setMermaidCode(json.data.mermaidCode);
       }
     } catch (err) {
-      console.error('Failed to fetch dependency graph:', err);
+      console.error('Failed to load architecture graph:', err);
     } finally {
       setGraphLoading(false);
-    }
-  };
-
-  const renderMermaid = async (code: string) => {
-    if (!mermaidRef.current || !code) return;
-    try {
-      const id = `mermaid-graph-${Date.now()}`;
-      const { svg } = await mermaid.render(id, code);
-      if (mermaidRef.current) {
-        mermaidRef.current.innerHTML = svg;
-      }
-    } catch (err) {
-      console.error('Mermaid render error:', err);
-      if (mermaidRef.current) {
-        mermaidRef.current.innerHTML = `<pre class="text-xs text-rose-400 p-4 font-mono">${code}</pre>`;
-      }
     }
   };
 
@@ -226,17 +211,30 @@ export function CodebaseNavigatorPage() {
     }
   }, [activeView]);
 
-  // Toggle folder expansion
-  const toggleFolder = (path: string) => {
+  // Render mermaid
+  useEffect(() => {
+    if (activeView === 'graph' && mermaidCode && mermaidRef.current) {
+      try {
+        mermaid.render('mermaid-chart-' + Date.now(), mermaidCode).then(({ svg }) => {
+          if (mermaidRef.current) {
+            mermaidRef.current.innerHTML = svg;
+          }
+        });
+      } catch (err) {
+        console.error('Mermaid render error:', err);
+      }
+    }
+  }, [mermaidCode, activeView]);
+
+  const toggleFolder = (folderPath: string) => {
     setExpandedFolders(prev => {
       const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
+      if (next.has(folderPath)) next.delete(folderPath);
+      else next.add(folderPath);
       return next;
     });
   };
 
-  // Recursive Tree Node Renderer
   const renderTree = (node: TreeNode, depth = 0) => {
     if (node.type === 'directory') {
       const isExpanded = expandedFolders.has(node.path);
@@ -246,7 +244,7 @@ export function CodebaseNavigatorPage() {
             <button
               onClick={() => toggleFolder(node.path)}
               style={{ paddingLeft: `${depth * 12 + 8}px` }}
-              className="w-full flex items-center gap-1.5 py-1 px-2 text-xs font-mono text-[#C5C8D0] hover:bg-[#181C26] hover:text-[#F8FAFC] rounded-md transition-colors text-left"
+              className="w-full flex items-center gap-1.5 py-1 px-2 text-xs font-mono text-[#C5C8D0] hover:bg-[#181C26] hover:text-[#F8FAFC] rounded-lg transition-colors text-left"
             >
               {isExpanded ? (
                 <ChevronDown className="size-3 text-[#686D79]" />
@@ -277,7 +275,7 @@ export function CodebaseNavigatorPage() {
         key={node.path}
         onClick={() => handleSelectFile(node.path)}
         style={{ paddingLeft: `${depth * 12 + 18}px` }}
-        className={`w-full flex items-center justify-between py-1 px-2 text-xs font-mono rounded-md transition-colors text-left ${
+        className={`w-full flex items-center justify-between py-1 px-2 text-xs font-mono rounded-lg transition-colors text-left ${
           isSelected
             ? 'bg-[#8B5CF6]/20 text-[#A78BFA] font-medium border-l-2 border-[#8B5CF6]'
             : 'text-[#686D79] hover:bg-[#181C26] hover:text-[#C5C8D0]'
@@ -297,61 +295,56 @@ export function CodebaseNavigatorPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-200">
+    <PageContainer>
       
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <FolderTree className="size-6 text-[#8B5CF6]" />
-            <h1 className="text-2xl font-bold font-display text-[#F8FAFC] tracking-tight">
-              Orbit Codebase Navigator
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] text-[11px] font-mono font-semibold">
-              AST Indexer & Graphs
-            </span>
+      <PageHeading
+        title="Orbit Codebase Navigator"
+        description="Local-first AST symbol extraction, architectural dependency graphs, and source-grounded exploration"
+        icon={FolderTree}
+        badge={
+          <>
+            <FolderTree className="size-3" />
+            <span>AST Indexer & Graphs</span>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={repoPathInput}
+              onChange={e => setRepoPathInput(e.target.value)}
+              placeholder="Local repository path..."
+              className="w-64 md:w-80 px-3 py-1.5 rounded-xl bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            />
+            <Button
+              onClick={handleIndexRepository}
+              loading={indexing}
+              icon={RefreshCw}
+              size="sm"
+            >
+              {indexing ? 'Indexing...' : 'Index'}
+            </Button>
           </div>
-          <p className="text-xs text-[#686D79] mt-1">
-            Local-first AST symbol extraction, architectural dependency graphs, and source-grounded exploration
-          </p>
-        </div>
-
-        {/* Path Input & Index Trigger */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={repoPathInput}
-            onChange={e => setRepoPathInput(e.target.value)}
-            placeholder="Local repository path..."
-            className="w-72 md:w-96 px-3 py-1.5 rounded-lg bg-[#12151D] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
-          />
-          <button
-            onClick={handleIndexRepository}
-            disabled={indexing}
-            className="px-3.5 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`size-3.5 ${indexing ? 'animate-spin' : ''}`} />
-            <span>{indexing ? 'Indexing...' : 'Index'}</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Metrics Row */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3.5 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
             <span className="text-xs text-[#686D79]">Total Files</span>
             <span className="text-lg font-mono font-bold text-[#F8FAFC]">{summary.totalFiles}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
             <span className="text-xs text-[#686D79]">Lines of Code</span>
             <span className="text-lg font-mono font-bold text-[#A78BFA]">{summary.totalLines.toLocaleString()}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
             <span className="text-xs text-[#686D79]">AST Symbols</span>
             <span className="text-lg font-mono font-bold text-[#22C55E]">{summary.totalSymbols.toLocaleString()}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
             <span className="text-xs text-[#686D79]">Primary Stack</span>
             <span className="text-xs font-mono font-bold text-[#8B5CF6]">
               {Object.keys(summary.languages).slice(0, 3).join(', ')}
@@ -361,10 +354,10 @@ export function CodebaseNavigatorPage() {
       )}
 
       {/* Navigation View Switcher */}
-      <div className="flex items-center gap-2 p-1 rounded-xl bg-[#12151D] border border-[#1F2430] w-fit">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#12151D] border border-[#1F2430] w-fit">
         <button
           onClick={() => setActiveView('explorer')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
             activeView === 'explorer'
               ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
               : 'text-[#686D79] hover:text-[#C5C8D0]'
@@ -376,7 +369,7 @@ export function CodebaseNavigatorPage() {
 
         <button
           onClick={() => setActiveView('search')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
             activeView === 'search'
               ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
               : 'text-[#686D79] hover:text-[#C5C8D0]'
@@ -388,7 +381,7 @@ export function CodebaseNavigatorPage() {
 
         <button
           onClick={() => setActiveView('graph')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
             activeView === 'graph'
               ? 'bg-[#181C26] text-[#F8FAFC] border border-[#8B5CF6]/40 shadow-sm'
               : 'text-[#686D79] hover:text-[#C5C8D0]'
@@ -405,7 +398,7 @@ export function CodebaseNavigatorPage() {
           
           {/* Left: File Tree Explorer */}
           <div className="lg:col-span-3 rounded-2xl bg-[#12151D] border border-[#1F2430] p-3 flex flex-col h-[650px]">
-            <div className="pb-2 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
+            <div className="pb-2.5 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
               <span className="flex items-center gap-1.5">
                 <Folder className="size-3.5 text-[#8B5CF6]" />
                 <span>Files</span>
@@ -417,7 +410,7 @@ export function CodebaseNavigatorPage() {
               {loading ? (
                 <div className="space-y-2 p-2">
                   {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className="h-6 bg-[#181C26] rounded animate-pulse" />
+                    <div key={i} className="h-6 bg-[#181C26] rounded-lg animate-pulse" />
                   ))}
                 </div>
               ) : summary?.fileTree ? (
@@ -430,7 +423,7 @@ export function CodebaseNavigatorPage() {
 
           {/* Middle: Symbol Outline Panel */}
           <div className="lg:col-span-3 rounded-2xl bg-[#12151D] border border-[#1F2430] p-3 flex flex-col h-[650px]">
-            <div className="pb-2 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
+            <div className="pb-2.5 mb-2 border-b border-[#1F2430] flex items-center justify-between text-xs font-semibold text-[#C5C8D0] px-2">
               <span className="flex items-center gap-1.5">
                 <Code className="size-3.5 text-[#8B5CF6]" />
                 <span>Symbols Outline</span>
@@ -449,13 +442,13 @@ export function CodebaseNavigatorPage() {
                   <button
                     key={idx}
                     onClick={() => setHighlightLine(sym.startLine)}
-                    className="w-full p-2 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-left transition-colors space-y-1 text-xs"
+                    className="w-full p-2.5 rounded-xl bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] hover:border-[#8B5CF6]/40 text-left transition-colors space-y-1 text-xs"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-medium text-[#F8FAFC] truncate">{sym.name}</span>
-                      <span className="text-[10px] font-mono text-[#A78BFA] bg-[#8B5CF6]/15 px-1.5 py-0.2 rounded border border-[#8B5CF6]/30">
+                      <StatusBadge variant="violet" size="sm">
                         {sym.kind}
-                      </span>
+                      </StatusBadge>
                     </div>
                     <div className="text-[11px] font-mono text-[#686D79] flex items-center justify-between">
                       <span className="truncate max-w-[140px]">{sym.signature}</span>
@@ -499,10 +492,10 @@ export function CodebaseNavigatorPage() {
                             isHighlighted ? 'bg-[#8B5CF6]/20 text-white font-medium' : ''
                           }`}
                         >
-                          <td className="w-12 text-right pr-4 text-[#686D79] select-none align-top">
+                          <td className="w-10 pr-4 text-right text-[11px] text-[#686D79] select-none font-mono opacity-50">
                             {lineNum}
                           </td>
-                          <td className="whitespace-pre font-mono align-top text-[#F8FAFC]">
+                          <td className="font-mono text-xs whitespace-pre">
                             {line || ' '}
                           </td>
                         </tr>
@@ -511,8 +504,9 @@ export function CodebaseNavigatorPage() {
                   </tbody>
                 </table>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-[#686D79]">
-                  No file selected.
+                <div className="h-full flex flex-col items-center justify-center text-center text-[#686D79] gap-2">
+                  <FileText className="size-8 text-[#1F2430]" />
+                  <span>No file selected for preview</span>
                 </div>
               )}
             </div>
@@ -524,120 +518,109 @@ export function CodebaseNavigatorPage() {
       {/* VIEW 2: SYMBOL SEARCH */}
       {activeView === 'search' && (
         <div className="space-y-4">
-          {/* Search Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#12151D] border border-[#1F2430]">
-            <div className="relative flex-1 max-w-lg">
+          <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-2xl bg-[#12151D] border border-[#1F2430]">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 size-4 text-[#686D79]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search symbols by name (e.g. NavigatorService, parseFile)..."
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#181C26] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                placeholder="Search across all symbols (functions, classes, types, interfaces)..."
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono placeholder:text-[#686D79] focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              <span className="text-[11px] font-mono text-[#686D79] uppercase tracking-wider mr-1">Kind:</span>
-              {['all', 'function', 'class', 'interface', 'type', 'variable', 'struct'].map(k => (
-                <button
-                  key={k}
-                  onClick={() => setSymbolFilter(k)}
-                  className={`px-3 py-1 rounded-full text-xs font-mono capitalize transition-colors ${
-                    symbolFilter === k
-                      ? 'bg-[#181C26] text-[#A78BFA] border border-[#8B5CF6]/40 font-semibold'
-                      : 'text-[#686D79] hover:text-[#F8FAFC] border border-transparent'
-                  }`}
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
+            
+            <select
+              value={symbolFilter}
+              onChange={e => setSymbolFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-[#0B0D12] border border-[#1F2430] text-[#F8FAFC] text-xs font-mono focus:outline-none focus:border-[#8B5CF6]"
+            >
+              <option value="all">All Kinds</option>
+              <option value="FunctionDeclaration">Functions</option>
+              <option value="ClassDeclaration">Classes</option>
+              <option value="InterfaceDeclaration">Interfaces</option>
+              <option value="TypeAliasDeclaration">Type Aliases</option>
+            </select>
           </div>
 
-          {/* Results List */}
-          <div className="rounded-2xl bg-[#12151D] border border-[#1F2430] p-4">
-            <div className="text-xs font-mono text-[#686D79] mb-3 flex items-center justify-between">
-              <span>Matching Symbols: {searchResults.length}</span>
-              {searchLoading && <span className="text-[#8B5CF6] animate-pulse">Searching AST...</span>}
+          <div className="rounded-2xl bg-[#12151D] border border-[#1F2430] overflow-hidden">
+            <div className="p-3 border-b border-[#1F2430] flex items-center justify-between text-xs text-[#686D79]">
+              <span>Results ({searchResults.length})</span>
+              {searchLoading && <span className="text-[#8B5CF6] text-xs">Searching AST...</span>}
             </div>
 
-            {searchResults.length === 0 ? (
-              <div className="py-16 text-center text-xs text-[#686D79]">
-                <Search className="size-8 mx-auto text-[#1F2430] mb-2" />
-                <span>No symbols found matching your criteria.</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {searchResults.map((sym, idx) => (
+            <div className="divide-y divide-[#1F2430] max-h-[500px] overflow-y-auto">
+              {searchResults.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#686D79]">
+                  {searchLoading ? 'Scanning repository symbols...' : 'No symbols found matching your query.'}
+                </div>
+              ) : (
+                searchResults.map((sym, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl bg-[#181C26] border border-[#1F2430] hover:border-[#8B5CF6]/40 transition-all space-y-2"
+                    className="p-3.5 hover:bg-[#181C26] transition-colors flex items-center justify-between gap-4 cursor-pointer"
+                    onClick={() => {
+                      if (sym.filePath) {
+                        setActiveView('explorer');
+                        handleSelectFile(sym.filePath, sym.startLine);
+                      }
+                    }}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-[#F8FAFC] text-xs">{sym.name}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30 uppercase">
-                        {sym.kind}
-                      </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[#F8FAFC]">{sym.name}</span>
+                        <StatusBadge variant="violet" size="sm">
+                          {sym.kind}
+                        </StatusBadge>
+                        {sym.exported && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+                            exported
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono text-[11px] text-[#686D79] truncate mt-0.5">
+                        {sym.signature}
+                      </div>
                     </div>
 
-                    <div className="text-[11px] font-mono text-[#686D79] truncate">
-                      {sym.signature}
-                    </div>
-
-                    <div className="pt-2 border-t border-[#1F2430] flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-[#8B5CF6] truncate max-w-[180px]">{sym.filePath}</span>
-                      <button
-                        onClick={() => {
-                          if (sym.filePath) {
-                            handleSelectFile(sym.filePath, sym.startLine);
-                            setActiveView('explorer');
-                          }
-                        }}
-                        className="text-[#A78BFA] hover:text-white flex items-center gap-1 transition-colors"
-                      >
-                        <span>L{sym.startLine}-{sym.endLine}</span>
-                        <ExternalLink className="size-3" />
-                      </button>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-mono text-[#8B5CF6]">{sym.filePath}</span>
+                      <div className="text-[10px] text-[#686D79] font-mono">Line {sym.startLine}</div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 3: ARCHITECTURE & DEPENDENCY GRAPH */}
-      {activeView === 'graph' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#12151D] border border-[#1F2430] flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-[#F8FAFC]">Module Dependency Flowchart</h3>
-              <p className="text-xs text-[#686D79]">Generated live via AST imports resolution across project boundaries</p>
+                ))
+              )}
             </div>
-            <button
-              onClick={fetchGraph}
-              className="px-3 py-1.5 rounded-lg bg-[#181C26] hover:bg-[#202431] border border-[#1F2430] text-xs font-mono text-[#C5C8D0] flex items-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className={`size-3.5 ${graphLoading ? 'animate-spin' : ''}`} />
-              <span>Regenerate</span>
-            </button>
-          </div>
-
-          <div className="rounded-2xl bg-[#0B0D12] border border-[#1F2430] p-6 min-h-[500px] flex items-center justify-center overflow-auto">
-            {graphLoading ? (
-              <div className="flex flex-col items-center gap-2 text-xs text-[#686D79]">
-                <div className="size-8 rounded-full border-2 border-[#8B5CF6] border-t-transparent animate-spin" />
-                <span>Constructing dependency graph...</span>
-              </div>
-            ) : (
-              <div ref={mermaidRef} className="w-full flex justify-center overflow-x-auto" />
-            )}
           </div>
         </div>
       )}
 
-    </div>
+      {/* VIEW 3: ARCHITECTURE GRAPH */}
+      {activeView === 'graph' && (
+        <div className="rounded-2xl bg-[#0B0D12] border border-[#1F2430] p-6 flex flex-col items-center justify-center min-h-[550px] relative overflow-hidden">
+          <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+            <Button
+              onClick={fetchGraph}
+              loading={graphLoading}
+              icon={RefreshCw}
+              variant="secondary"
+              size="sm"
+            >
+              Regenerate Graph
+            </Button>
+          </div>
+
+          {graphLoading ? (
+            <div className="flex flex-col items-center justify-center gap-2 text-[#686D79]">
+              <div className="size-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs">Computing topological dependency tree...</span>
+            </div>
+          ) : (
+            <div ref={mermaidRef} className="w-full flex justify-center overflow-auto p-4" />
+          )}
+        </div>
+      )}
+
+    </PageContainer>
   );
 }
