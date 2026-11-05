@@ -10,6 +10,10 @@ opensourceRouter.get('/catalog', controller.getCatalog);
 opensourceRouter.get('/trending', controller.getTrending);
 opensourceRouter.get('/issues', controller.getIssues);
 opensourceRouter.get('/gsoc', controller.getGsocOrgs);
+opensourceRouter.get('/organizations', controller.getOrganizations);
+opensourceRouter.get('/organizations/saved/list', authenticate, controller.getUserSavedOrganizations);
+opensourceRouter.get('/organizations/:id', controller.getOrganizationDetail);
+opensourceRouter.post('/organizations/:id/save', authenticate, controller.toggleSaveOrganization);
 opensourceRouter.get('/bounties', controller.getBounties);
 opensourceRouter.get('/programs', controller.getPrograms);
 

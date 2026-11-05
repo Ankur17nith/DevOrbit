@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { OpenSourceService } from './opensource.service.js';
+import { organizationService } from './organization.service.js';
 import { AuthRequest } from '../../middleware/auth.js';
 
 const ossService = new OpenSourceService();
@@ -173,6 +174,62 @@ export class OpenSourceController {
       const userId = req.user!.id;
       const config = await ossService.updateSelfbotConfig(userId, req.body);
       res.json({ success: true, data: config });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Multi-Platform Organizations
+  async getOrganizations(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { platforms, technologies, techLogic, search, hasBeginnerIssues, year, page, limit, sortBy } = req.query;
+      const parsedPlatforms = typeof platforms === 'string' ? platforms.split(',').filter(Boolean) : (Array.isArray(platforms) ? (platforms as string[]) : undefined);
+      const parsedTechs = typeof technologies === 'string' ? technologies.split(',').filter(Boolean) : (Array.isArray(technologies) ? (technologies as string[]) : undefined);
+      
+      const data = await organizationService.getOrganizations({
+        platforms: parsedPlatforms,
+        technologies: parsedTechs,
+        techLogic: techLogic === 'AND' ? 'AND' : 'OR',
+        search: typeof search === 'string' ? search : undefined,
+        hasBeginnerIssues: hasBeginnerIssues === 'true' || hasBeginnerIssues === true,
+        year: year ? Number(year) : undefined,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        sortBy: (sortBy as any) || 'projects',
+      });
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getOrganizationDetail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const data = await organizationService.getOrganizationDetail(id);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async toggleSaveOrganization(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const { notes } = req.body;
+      const result = await organizationService.toggleSaveOrganization(userId, id, notes);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getUserSavedOrganizations(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const result = await organizationService.getUserSavedOrganizations(userId);
+      res.json({ success: true, data: result });
     } catch (err) {
       next(err);
     }

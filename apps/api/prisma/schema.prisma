@@ -42,6 +42,9 @@ model User {
   reconProjects   ReconProject[]
   notifications   Notification[]
   alertRules      AlertRule[]
+  developerProfile   DeveloperProfile?
+  savedOrganizations UserSavedOrganization[]
+  recommendations    Recommendation[]
 
   @@index([email])
   @@index([username])
@@ -284,10 +287,17 @@ model OssOrganization {
   participationYearsJson String?     // array of years e.g. [2022, 2023, 2024]
   totalProjects          Int         @default(0)
   programId              String?
+  platformsJson          String?     // JSON array e.g. ["GSOC", "OUTREACHY", "LFX", "MLH", "GITHUB"]
+  topicsJson             String?     // JSON array of topic categories
+  repositoriesJson       String?     // JSON array of key repos
+  sourceProvenance       String?     // gsoc_archive, outreachy_verified, lfx_index, mlh_fellowship, github_direct
+  hasBeginnerIssues      Boolean     @default(false)
+  openOpportunitiesCount Int         @default(0)
   createdAt              DateTime    @default(now())
 
   program                OssProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
   bookmarks              UserBookmark[]
+  savedByUsers           UserSavedOrganization[]
 
   @@index([slug])
   @@index([name])
@@ -601,5 +611,146 @@ model AlertRule {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+// -------------------------------------------------------------
+// DEVELOPER INTELLIGENCE PROFILE & README SIGNAL EXTRACTION
+// -------------------------------------------------------------
+
+model DeveloperProfile {
+  id                      String              @id @default(uuid())
+  userId                  String              @unique
+  headline                String?
+  bio                     String?
+  githubUsername          String?
+  codeforcesHandle        String?
+  leetcodeUsername        String?
+  preferredLanguagesJson  String?             // JSON array e.g. ["TypeScript", "Rust"]
+  domainsJson             String?             // JSON array e.g. ["web", "systems", "ai"]
+  experienceLevel         String              @default("INTERMEDIATE") // BEGINNER, INTERMEDIATE, ADVANCED
+  weeklyAvailabilityHours Int                 @default(10)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  user                    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills                  DeveloperSkill[]
+  interests               DeveloperInterest[]
+  readmeSnapshots         ReadmeSnapshot[]
+
+  @@index([userId])
+}
+
+model DeveloperSkill {
+  id               String           @id @default(uuid())
+  profileId        String
+  skillName        String
+  category         String           @default("LANGUAGE") // LANGUAGE, FRAMEWORK, TOOL, DATABASE, DOMAIN
+  confidenceScore  Int              @default(50) // 1-100
+  source           String           @default("MANUAL") // GITHUB_CODE, GITHUB_README, CODEFORCES, LEETCODE, MANUAL
+  evidenceCount    Int              @default(1)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  profile          DeveloperProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillName])
+  @@index([profileId])
+  @@index([skillName])
+}
+
+model DeveloperInterest {
+  id        String           @id @default(uuid())
+  profileId String
+  topic     String
+  weight    Float            @default(1.0)
+  createdAt DateTime         @default(now())
+
+  profile   DeveloperProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, topic])
+  @@index([profileId])
+}
+
+model ReadmeSnapshot {
+  id                 String                 @id @default(uuid())
+  profileId          String
+  sourceType         String                 // PROFILE_README, REPO_README
+  repositoryFullName String?
+  contentRaw         String
+  createdAt          DateTime               @default(now())
+
+  profile            DeveloperProfile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  extractedSignals   ReadmeExtractedSignal[]
+
+  @@index([profileId])
+}
+
+model ReadmeExtractedSignal {
+  id          String         @id @default(uuid())
+  snapshotId  String
+  signalType  String         // LANGUAGE, FRAMEWORK, TOOL, INTEREST, BADGE, STAT
+  signalKey   String
+  signalValue String
+  confidence  Float          @default(1.0)
+  createdAt   DateTime       @default(now())
+
+  snapshot    ReadmeSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId])
+  @@index([signalType])
+}
+
+model UserSavedOrganization {
+  id             String          @id @default(uuid())
+  userId         String
+  organizationId String
+  notes          String?
+  createdAt      DateTime        @default(now())
+
+  organization   OssOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// -------------------------------------------------------------
+// EVIDENCE-BASED RECOMMENDATIONS ENGINE
+// -------------------------------------------------------------
+
+model Recommendation {
+  id           String                   @id @default(uuid())
+  userId       String
+  targetType   String                   // ISSUE, OPPORTUNITY, ORGANIZATION, REPOSITORY
+  targetId     String
+  score        Float                    // 0.0 to 100.0
+  category     String                   // SKILL_ALIGNMENT, GOOD_FIRST_ISSUE, DOMAIN_FIT, TRENDING_HOT, SPONSORED_BOUNTY
+  factorsJson  String                   // Breakdown of techScore, repoScore, difficultyScore, etc.
+  explanation  String
+  status       String                   @default("ACTIVE") // ACTIVE, SAVED, DISMISSED, APPLIED, PR_SUBMITTED, MERGED
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback     RecommendationFeedback[]
+
+  @@index([userId])
+  @@index([targetType])
+  @@index([category])
+}
+
+model RecommendationFeedback {
+  id               String         @id @default(uuid())
+  recommendationId String
+  userId           String
+  action           String         // VIEWED, SAVED, DISMISSED, PR_SUBMITTED, MERGED
+  reason           String?
+  createdAt        DateTime       @default(now())
+
+  recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId])
   @@index([userId])
 }
