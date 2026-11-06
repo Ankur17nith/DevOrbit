@@ -172,7 +172,6 @@ const restoreBackupSchema = z.object({
       theme: z.string().max(20).nullable().optional(),
       ecoMode: z.boolean().nullable().optional(),
       notifyDesktop: z.boolean().nullable().optional(),
-      notifyTelegram: z.boolean().nullable().optional(),
     }).nullable().optional(),
   }).passthrough(),
 });
@@ -257,14 +256,12 @@ systemRouter.post('/restore', authenticate, async (req: AuthRequest, res: Respon
             theme: backup.preferences.theme ?? undefined,
             ecoMode: backup.preferences.ecoMode ?? undefined,
             notifyDesktop: backup.preferences.notifyDesktop ?? undefined,
-            notifyTelegram: backup.preferences.notifyTelegram ?? undefined,
           },
           create: {
             userId,
             theme: backup.preferences.theme || 'dark',
             ecoMode: backup.preferences.ecoMode ?? true,
             notifyDesktop: backup.preferences.notifyDesktop ?? true,
-            notifyTelegram: backup.preferences.notifyTelegram ?? false,
           },
         });
       }

@@ -22,20 +22,27 @@ build/
 *.db-journal
 *.sqlite
 *.sqlite-journal
-prisma/*.db
-prisma/*.db-journal
+prisma/*.db*
+apps/api/prisma/*.db*
 devorbit.db
 devorbit.db-journal
 
-# Logs
+# Logs & Coverage
 logs/
 *.log
+coverage/
 
 # Operating System
 .DS_Store
 Thumbs.db
 
+# TypeScript Build Info
+*.tsbuildinfo
+
+# Tauri desktop artifacts
+src-tauri/target/
+src-tauri/gen/
+
 # Scratch / Cache
 scratch/
-!scratch/ossium_recon/
 .cache/

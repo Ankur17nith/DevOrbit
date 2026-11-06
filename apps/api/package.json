@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "test": "vitest run --fileParallelism=false",
     "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx src/database/seed.ts"
   },

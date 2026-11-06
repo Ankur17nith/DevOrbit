@@ -31,8 +31,6 @@ CREATE TABLE "UserPreference" (
     "theme" TEXT NOT NULL DEFAULT 'dark',
     "ecoMode" BOOLEAN NOT NULL DEFAULT true,
     "notifyDesktop" BOOLEAN NOT NULL DEFAULT true,
-    "notifyTelegram" BOOLEAN NOT NULL DEFAULT false,
-    "telegramChatId" TEXT,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "UserPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -43,6 +41,9 @@ CREATE TABLE "IntegrationCredential" (
     "userId" TEXT NOT NULL,
     "provider" TEXT NOT NULL,
     "encryptedToken" TEXT,
+    "encryptedRefreshToken" TEXT,
+    "tokenExpiresAt" DATETIME,
+    "refreshTokenExpiresAt" DATETIME,
     "username" TEXT,
     "scopes" TEXT,
     "rateLimitRemaining" INTEGER,
@@ -53,6 +54,17 @@ CREATE TABLE "IntegrationCredential" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "IntegrationCredential_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GithubOAuthState" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "stateHash" TEXT NOT NULL,
+    "userId" TEXT,
+    "browserBinding" TEXT,
+    "expiresAt" DATETIME NOT NULL,
+    "consumedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
@@ -191,6 +203,12 @@ CREATE TABLE "OssOrganization" (
     "participationYearsJson" TEXT,
     "totalProjects" INTEGER NOT NULL DEFAULT 0,
     "programId" TEXT,
+    "platformsJson" TEXT,
+    "topicsJson" TEXT,
+    "repositoriesJson" TEXT,
+    "sourceProvenance" TEXT,
+    "hasBeginnerIssues" BOOLEAN NOT NULL DEFAULT false,
+    "openOpportunitiesCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "OssOrganization_programId_fkey" FOREIGN KEY ("programId") REFERENCES "OssProgram" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -256,18 +274,6 @@ CREATE TABLE "UserDsaProgress" (
 );
 
 -- CreateTable
-CREATE TABLE "DsaSheet" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "slug" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "category" TEXT NOT NULL,
-    "problemsCount" INTEGER NOT NULL DEFAULT 0,
-    "isOfficial" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- CreateTable
 CREATE TABLE "UserSkillProfile" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -284,7 +290,7 @@ CREATE TABLE "ContributionPipelineItem" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "issueId" TEXT NOT NULL,
-    "stage" TEXT NOT NULL DEFAULT 'DISCOVERED',
+    "stage" TEXT NOT NULL DEFAULT 'SHORTLISTED',
     "prUrl" TEXT,
     "priority" TEXT NOT NULL DEFAULT 'MEDIUM',
     "notes" TEXT,
@@ -309,18 +315,6 @@ CREATE TABLE "SelfbotConfig" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "SelfbotConfig_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "SelfbotLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "configId" TEXT NOT NULL,
-    "eventType" TEXT NOT NULL,
-    "triggeredBy" TEXT NOT NULL,
-    "actionTaken" TEXT NOT NULL,
-    "details" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "SelfbotLog_configId_fkey" FOREIGN KEY ("configId") REFERENCES "SelfbotConfig" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -350,21 +344,6 @@ CREATE TABLE "ForumReply" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "ForumReply_postId_fkey" FOREIGN KEY ("postId") REFERENCES "ForumPost" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "ForumReply_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "MarketplaceListing" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "category" TEXT NOT NULL,
-    "projectUrl" TEXT,
-    "compensation" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'OPEN',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "MarketplaceListing_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -418,16 +397,106 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateTable
-CREATE TABLE "AlertRule" (
+CREATE TABLE "DeveloperProfile" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "queryType" TEXT NOT NULL,
-    "filtersJson" TEXT NOT NULL,
-    "channel" TEXT NOT NULL DEFAULT 'DESKTOP',
-    "isEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "headline" TEXT,
+    "bio" TEXT,
+    "githubUsername" TEXT,
+    "codeforcesHandle" TEXT,
+    "leetcodeUsername" TEXT,
+    "preferredLanguagesJson" TEXT,
+    "domainsJson" TEXT,
+    "experienceLevel" TEXT NOT NULL DEFAULT 'INTERMEDIATE',
+    "weeklyAvailabilityHours" INTEGER DEFAULT 10,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "AlertRule_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "DeveloperProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "DeveloperSkill" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "profileId" TEXT NOT NULL,
+    "skillName" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'LANGUAGE',
+    "confidenceScore" INTEGER NOT NULL DEFAULT 50,
+    "source" TEXT NOT NULL DEFAULT 'MANUAL',
+    "evidenceCount" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "DeveloperSkill_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "DeveloperProfile" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "DeveloperInterest" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "profileId" TEXT NOT NULL,
+    "topic" TEXT NOT NULL,
+    "weight" REAL NOT NULL DEFAULT 1.0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "DeveloperInterest_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "DeveloperProfile" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "ReadmeSnapshot" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "profileId" TEXT NOT NULL,
+    "sourceType" TEXT NOT NULL,
+    "repositoryFullName" TEXT,
+    "contentRaw" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ReadmeSnapshot_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "DeveloperProfile" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "ReadmeExtractedSignal" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "snapshotId" TEXT NOT NULL,
+    "signalType" TEXT NOT NULL,
+    "signalKey" TEXT NOT NULL,
+    "signalValue" TEXT NOT NULL,
+    "confidence" REAL NOT NULL DEFAULT 1.0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ReadmeExtractedSignal_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "ReadmeSnapshot" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "UserSavedOrganization" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UserSavedOrganization_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "OssOrganization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "UserSavedOrganization_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Recommendation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "targetType" TEXT NOT NULL,
+    "targetId" TEXT NOT NULL,
+    "score" REAL NOT NULL,
+    "category" TEXT NOT NULL,
+    "factorsJson" TEXT NOT NULL,
+    "explanation" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Recommendation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RecommendationFeedback" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "recommendationId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "reason" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RecommendationFeedback_recommendationId_fkey" FOREIGN KEY ("recommendationId") REFERENCES "Recommendation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -437,19 +506,10 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
-
--- CreateIndex
-CREATE INDEX "User_username_idx" ON "User"("username");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
 
 -- CreateIndex
 CREATE INDEX "Session_userId_idx" ON "Session"("userId");
-
--- CreateIndex
-CREATE INDEX "Session_token_idx" ON "Session"("token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserPreference_userId_key" ON "UserPreference"("userId");
@@ -459,6 +519,12 @@ CREATE INDEX "IntegrationCredential_userId_idx" ON "IntegrationCredential"("user
 
 -- CreateIndex
 CREATE UNIQUE INDEX "IntegrationCredential_userId_provider_key" ON "IntegrationCredential"("userId", "provider");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GithubOAuthState_stateHash_key" ON "GithubOAuthState"("stateHash");
+
+-- CreateIndex
+CREATE INDEX "GithubOAuthState_userId_idx" ON "GithubOAuthState"("userId");
 
 -- CreateIndex
 CREATE INDEX "UserGithubRepo_userId_idx" ON "UserGithubRepo"("userId");
@@ -480,9 +546,6 @@ CREATE UNIQUE INDEX "Workspace_slug_key" ON "Workspace"("slug");
 
 -- CreateIndex
 CREATE INDEX "Workspace_ownerId_idx" ON "Workspace"("ownerId");
-
--- CreateIndex
-CREATE INDEX "Workspace_slug_idx" ON "Workspace"("slug");
 
 -- CreateIndex
 CREATE INDEX "WorkspaceMembership_workspaceId_idx" ON "WorkspaceMembership"("workspaceId");
@@ -521,16 +584,13 @@ CREATE INDEX "OssIssue_difficulty_idx" ON "OssIssue"("difficulty");
 CREATE INDEX "OssIssue_state_idx" ON "OssIssue"("state");
 
 -- CreateIndex
+CREATE INDEX "OssIssue_state_createdAt_idx" ON "OssIssue"("state", "createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "OssProgram_slug_key" ON "OssProgram"("slug");
 
 -- CreateIndex
-CREATE INDEX "OssProgram_slug_idx" ON "OssProgram"("slug");
-
--- CreateIndex
 CREATE UNIQUE INDEX "OssOrganization_slug_key" ON "OssOrganization"("slug");
-
--- CreateIndex
-CREATE INDEX "OssOrganization_slug_idx" ON "OssOrganization"("slug");
 
 -- CreateIndex
 CREATE INDEX "OssOrganization_name_idx" ON "OssOrganization"("name");
@@ -572,12 +632,6 @@ CREATE INDEX "UserDsaProgress_nextReviewDate_idx" ON "UserDsaProgress"("nextRevi
 CREATE UNIQUE INDEX "UserDsaProgress_userId_problemId_key" ON "UserDsaProgress"("userId", "problemId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DsaSheet_slug_key" ON "DsaSheet"("slug");
-
--- CreateIndex
-CREATE INDEX "DsaSheet_slug_idx" ON "DsaSheet"("slug");
-
--- CreateIndex
 CREATE INDEX "UserSkillProfile_userId_idx" ON "UserSkillProfile"("userId");
 
 -- CreateIndex
@@ -599,9 +653,6 @@ CREATE INDEX "SelfbotConfig_userId_idx" ON "SelfbotConfig"("userId");
 CREATE UNIQUE INDEX "SelfbotConfig_userId_repositoryFullName_key" ON "SelfbotConfig"("userId", "repositoryFullName");
 
 -- CreateIndex
-CREATE INDEX "SelfbotLog_configId_idx" ON "SelfbotLog"("configId");
-
--- CreateIndex
 CREATE INDEX "ForumPost_userId_idx" ON "ForumPost"("userId");
 
 -- CreateIndex
@@ -612,12 +663,6 @@ CREATE INDEX "ForumReply_postId_idx" ON "ForumReply"("postId");
 
 -- CreateIndex
 CREATE INDEX "ForumReply_userId_idx" ON "ForumReply"("userId");
-
--- CreateIndex
-CREATE INDEX "MarketplaceListing_userId_idx" ON "MarketplaceListing"("userId");
-
--- CreateIndex
-CREATE INDEX "MarketplaceListing_status_idx" ON "MarketplaceListing"("status");
 
 -- CreateIndex
 CREATE INDEX "AiConversation_userId_idx" ON "AiConversation"("userId");
@@ -635,5 +680,61 @@ CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
 CREATE INDEX "Notification_isRead_idx" ON "Notification"("isRead");
 
 -- CreateIndex
-CREATE INDEX "AlertRule_userId_idx" ON "AlertRule"("userId");
+CREATE INDEX "Notification_userId_isRead_createdAt_idx" ON "Notification"("userId", "isRead", "createdAt");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "DeveloperProfile_userId_key" ON "DeveloperProfile"("userId");
+
+-- CreateIndex
+CREATE INDEX "DeveloperProfile_userId_idx" ON "DeveloperProfile"("userId");
+
+-- CreateIndex
+CREATE INDEX "DeveloperSkill_profileId_idx" ON "DeveloperSkill"("profileId");
+
+-- CreateIndex
+CREATE INDEX "DeveloperSkill_skillName_idx" ON "DeveloperSkill"("skillName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DeveloperSkill_profileId_skillName_key" ON "DeveloperSkill"("profileId", "skillName");
+
+-- CreateIndex
+CREATE INDEX "DeveloperInterest_profileId_idx" ON "DeveloperInterest"("profileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DeveloperInterest_profileId_topic_key" ON "DeveloperInterest"("profileId", "topic");
+
+-- CreateIndex
+CREATE INDEX "ReadmeSnapshot_profileId_idx" ON "ReadmeSnapshot"("profileId");
+
+-- CreateIndex
+CREATE INDEX "ReadmeExtractedSignal_snapshotId_idx" ON "ReadmeExtractedSignal"("snapshotId");
+
+-- CreateIndex
+CREATE INDEX "ReadmeExtractedSignal_signalType_idx" ON "ReadmeExtractedSignal"("signalType");
+
+-- CreateIndex
+CREATE INDEX "UserSavedOrganization_userId_idx" ON "UserSavedOrganization"("userId");
+
+-- CreateIndex
+CREATE INDEX "UserSavedOrganization_organizationId_idx" ON "UserSavedOrganization"("organizationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserSavedOrganization_userId_organizationId_key" ON "UserSavedOrganization"("userId", "organizationId");
+
+-- CreateIndex
+CREATE INDEX "Recommendation_userId_idx" ON "Recommendation"("userId");
+
+-- CreateIndex
+CREATE INDEX "Recommendation_targetType_idx" ON "Recommendation"("targetType");
+
+-- CreateIndex
+CREATE INDEX "Recommendation_category_idx" ON "Recommendation"("category");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Recommendation_userId_targetId_key" ON "Recommendation"("userId", "targetId");
+
+-- CreateIndex
+CREATE INDEX "RecommendationFeedback_recommendationId_idx" ON "RecommendationFeedback"("recommendationId");
+
+-- CreateIndex
+CREATE INDEX "RecommendationFeedback_userId_idx" ON "RecommendationFeedback"("userId");

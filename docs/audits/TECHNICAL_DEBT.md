@@ -55,6 +55,12 @@
 - **Problem**: Automated tests cover only `apps/api` (69 tests). Frontend has zero unit or integration tests.
 - **Remediation**: Introduce Vitest tests for React authentication, form validation, and routing.
 
+### TD-13: Coexistence of UserSkillProfile and DeveloperSkill (Low Priority — Future Unification)
+- **Context & Roles**:
+  - `UserSkillProfile` (`userId`, `skillName`, `category`, `confidenceScore`, `verifiedEvidenceJson`): Automatically extracted by GitHub repository AST parsing and commit evidence scanning.
+  - `DeveloperSkill` (`profileId`, `skillName`, `category`, `confidenceScore`, `source`, `evidenceCount`): Associated with `DeveloperProfile` for user-declared skills, README extracted signals, and profile display.
+- **Remediation / Roadmap**: Unify into a single normalized `DeveloperSkill` table with explicit `source` enum (`GITHUB_CODE`, `GITHUB_README`, `LEETCODE`, `CODEFORCES`, `MANUAL`) and JSON evidence storage via a future database migration.
+
 ---
 
 ## 2. Remediation Priority Schedule
@@ -67,3 +73,5 @@
 | **Phase 7** | TD-08 | Prevent false LeetCode connected states; enforce genuine verification. |
 | **Phase 10** | TD-10, TD-11 | Versioned Prisma migrations and Tauri desktop crate completion. |
 | **Phase 11** | TD-12 | Comprehensive frontend test suites for authentication and forms. |
+| **Phase 12** | TD-13 | Unify UserSkillProfile and DeveloperSkill into single source-tracked skill model. |
+

@@ -8,37 +8,42 @@ import path from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Production guard
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ Refusing to run database seed in production environment!');
+    process.exit(1);
+  }
+
   console.log('🌱 Starting DevOrbit Database Seeding...');
 
-  // 1. Clean existing records in correct dependency order
-  await prisma.notification.deleteMany();
-  await prisma.alertRule.deleteMany();
-  await prisma.aiMessage.deleteMany();
-  await prisma.aiConversation.deleteMany();
-  await prisma.reconProject.deleteMany();
-  await prisma.marketplaceListing.deleteMany();
-  await prisma.forumReply.deleteMany();
-  await prisma.forumPost.deleteMany();
-  await prisma.selfbotLog.deleteMany();
-  await prisma.selfbotConfig.deleteMany();
-  await prisma.contributionPipelineItem.deleteMany();
-  await prisma.userSkillProfile.deleteMany();
-  await prisma.userDsaProgress.deleteMany();
-  await prisma.dsaProblem.deleteMany();
-  await prisma.dsaSheet.deleteMany();
-  await prisma.userBookmark.deleteMany();
-  await prisma.ossIssue.deleteMany();
-  await prisma.ossRepository.deleteMany();
-  await prisma.ossOrganization.deleteMany();
-  await prisma.ossProgram.deleteMany();
-  await prisma.workspaceMembership.deleteMany();
-  await prisma.workspace.deleteMany();
-  await prisma.integrationCredential.deleteMany();
-  await prisma.userPreference.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.user.deleteMany();
-
-  console.log('🧹 Cleaned existing records.');
+  // 1. Clean existing records in correct dependency order ONLY if SEED_RESET is true
+  if (process.env.SEED_RESET === 'true') {
+    console.log('🧹 Cleaning existing records (SEED_RESET=true)...');
+    await prisma.notification.deleteMany();
+    await prisma.aiMessage.deleteMany();
+    await prisma.aiConversation.deleteMany();
+    await prisma.reconProject.deleteMany();
+    await prisma.forumReply.deleteMany();
+    await prisma.forumPost.deleteMany();
+    await prisma.selfbotConfig.deleteMany();
+    await prisma.contributionPipelineItem.deleteMany();
+    await prisma.userSkillProfile.deleteMany();
+    await prisma.userDsaProgress.deleteMany();
+    await prisma.dsaProblem.deleteMany();
+    await prisma.userBookmark.deleteMany();
+    await prisma.ossIssue.deleteMany();
+    await prisma.ossRepository.deleteMany();
+    await prisma.userSavedOrganization.deleteMany();
+    await prisma.ossOrganization.deleteMany();
+    await prisma.ossProgram.deleteMany();
+    await prisma.workspaceMembership.deleteMany();
+    await prisma.workspace.deleteMany();
+    await prisma.integrationCredential.deleteMany();
+    await prisma.userPreference.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.user.deleteMany();
+    console.log('🧹 Cleaned existing records.');
+  }
 
   // 2. Create Default Users (Only when SEED_DEMO=true and NODE_ENV !== 'production')
   const shouldSeedDemo = process.env.SEED_DEMO === 'true' && process.env.NODE_ENV !== 'production';
@@ -48,8 +53,10 @@ async function main() {
   if (shouldSeedDemo) {
     const passwordHash = await bcrypt.hash('DevOrbit123!', 10);
 
-    userAlex = await prisma.user.create({
-      data: {
+    userAlex = await prisma.user.upsert({
+      where: { email: 'demo@devorbit.local' },
+      update: {},
+      create: {
         email: 'demo@devorbit.local',
         username: 'alex_developer',
         passwordHash,
@@ -62,14 +69,15 @@ async function main() {
             theme: 'dark',
             ecoMode: true,
             notifyDesktop: true,
-            notifyTelegram: false,
           },
         },
       },
     });
 
-    userSara = await prisma.user.create({
-      data: {
+    userSara = await prisma.user.upsert({
+      where: { email: 'collaborator@devorbit.local' },
+      update: {},
+      create: {
         email: 'collaborator@devorbit.local',
         username: 'sara_chen',
         passwordHash,
@@ -82,31 +90,35 @@ async function main() {
             theme: 'dark',
             ecoMode: true,
             notifyDesktop: true,
-            notifyTelegram: false,
           },
         },
       },
     });
 
-    console.log(`👤 Created Demo Users: ${userAlex.username} and ${userSara.username}`);
+    console.log(`👤 Seeded Demo Users: ${userAlex.username} and ${userSara.username}`);
 
     // 3. Create Shared Workspace
-    const workspace = await prisma.workspace.create({
-      data: {
-        name: 'DevOrbit Core Space',
-        slug: 'devorbit-core',
-        description: 'Primary engineering workspace for multi-user open source collaboration and DSA prep.',
-        ownerId: userAlex.id,
-        memberships: {
-          create: [
-            { userId: userAlex.id, role: 'OWNER' },
-            { userId: userSara.id, role: 'MEMBER' },
-          ],
-        },
-      },
+    const existingWorkspace = await prisma.workspace.findUnique({
+      where: { slug: 'devorbit-core' },
     });
 
-    console.log(`🏢 Created Workspace: ${workspace.name}`);
+    if (!existingWorkspace) {
+      const workspace = await prisma.workspace.create({
+        data: {
+          name: 'DevOrbit Core Space',
+          slug: 'devorbit-core',
+          description: 'Primary engineering workspace for multi-user open source collaboration and DSA prep.',
+          ownerId: userAlex.id,
+          memberships: {
+            create: [
+              { userId: userAlex.id, role: 'OWNER' },
+              { userId: userSara.id, role: 'MEMBER' },
+            ],
+          },
+        },
+      });
+      console.log(`🏢 Created Workspace: ${workspace.name}`);
+    }
   }
 
   // 4. Seed Canonical Programs & GSoC Organizations
@@ -281,12 +293,10 @@ async function main() {
     bountiesToSeed = rawBounties.issues || [];
   }
 
-  // Link issues to existing repos or primary fallback repo
   const defaultRepoId = Object.values(createdRepos)[0];
   if (defaultRepoId && bountiesToSeed.length > 0) {
     console.log(`💎 Seeding ${bountiesToSeed.length} Open Source Bounties / Issues...`);
     for (const b of bountiesToSeed) {
-      // Skip bounties without actual amount
       if (!b.bountyAmount) continue;
 
       const owner = b.repo_owner || b.repoOwner || (b.html_url ? b.html_url.split('/')[3] : 'angular');
@@ -315,37 +325,33 @@ async function main() {
         createdRepos[repoFullName] = targetRepoId;
       }
 
-      await prisma.ossIssue.create({
-        data: {
-          repositoryId: targetRepoId || defaultRepoId,
-          number: b.number || b.issueNumber || 1,
-          title: b.title,
-          body: (b.body || b.description || '').slice(0, 500),
-          state: b.state || 'open',
-          authorUsername: b.user?.login || 'contributor',
-          authorAvatarUrl: b.user?.avatar_url || null,
-          labelsJson: JSON.stringify(b.labels || b.tags || ['good first issue', 'bounty']),
-          difficulty: b.difficulty || 'intermediate',
-          bountyAmount: String(b.bountyAmount),
-          currency: b.currency || 'USD',
-          url: b.html_url || b.issueUrl || `https://github.com/${repoFullName}/issues/${b.number || 1}`,
-        },
+      const issueUrl = b.html_url || b.issueUrl || `https://github.com/${repoFullName}/issues/${b.number || 1}`;
+      const existingIssue = await prisma.ossIssue.findFirst({
+        where: { url: issueUrl },
       });
+
+      if (!existingIssue) {
+        await prisma.ossIssue.create({
+          data: {
+            repositoryId: targetRepoId || defaultRepoId,
+            number: b.number || b.issueNumber || 1,
+            title: b.title,
+            body: (b.body || b.description || '').slice(0, 500),
+            state: b.state || 'open',
+            authorUsername: b.user?.login || 'contributor',
+            authorAvatarUrl: b.user?.avatar_url || null,
+            labelsJson: JSON.stringify(b.labels || b.tags || ['good first issue', 'bounty']),
+            difficulty: b.difficulty || 'intermediate',
+            bountyAmount: String(b.bountyAmount),
+            currency: b.currency || 'USD',
+            url: issueUrl,
+          },
+        });
+      }
     }
   }
 
   // 7. Seed Striver A2Z & Curated DSA Problems
-  const dsaSheet = await prisma.dsaSheet.create({
-    data: {
-      slug: 'striver-a2z',
-      name: 'Striver A2Z DSA Sheet',
-      description: 'Comprehensive step-by-step roadmap from Learn the Basics to Advanced Algorithms.',
-      category: 'STRIVER_A2Z',
-      problemsCount: 15,
-      isOfficial: true,
-    },
-  });
-
   const coreProblems = [
     { title: 'Two Sum', slug: 'two-sum', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Hash Map', url: 'https://leetcode.com/problems/two-sum/', sheetCategory: 'STRIVER_A2Z' },
     { title: 'Best Time to Buy and Sell Stock', slug: 'best-time-to-buy-and-sell-stock', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Prefix/Suffix', url: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/', sheetCategory: 'STRIVER_A2Z' },
@@ -383,11 +389,17 @@ async function main() {
   // 8. Seed Private User DSA Progress (Multi-User Isolation Demonstration)
   if (shouldSeedDemo && userAlex && userSara) {
     console.log('📊 Seeding private DSA progress for Alex and Sara...');
-    // Alex solved Two Sum, 3Sum, Valid Parentheses, LRU Cache; needs revision on Coin Change
-    await prisma.userDsaProgress.create({
-      data: {
+    await prisma.userDsaProgress.upsert({
+      where: {
+        userId_problemId: {
+          userId: userAlex.id,
+          problemId: createdProblems[0].id, // Two Sum
+        },
+      },
+      update: {},
+      create: {
         userId: userAlex.id,
-        problemId: createdProblems[0].id, // Two Sum
+        problemId: createdProblems[0].id,
         status: 'SOLVED',
         attemptsCount: 1,
         timeSpentSeconds: 320,
@@ -397,24 +409,37 @@ async function main() {
       },
     });
 
-    await prisma.userDsaProgress.create({
-      data: {
+    await prisma.userDsaProgress.upsert({
+      where: {
+        userId_problemId: {
+          userId: userAlex.id,
+          problemId: createdProblems[10].id, // Coin Change
+        },
+      },
+      update: {},
+      create: {
         userId: userAlex.id,
-        problemId: createdProblems[10].id, // Coin Change
+        problemId: createdProblems[10].id,
         status: 'REVISE',
         attemptsCount: 3,
         timeSpentSeconds: 1800,
         hintUsed: true,
         notes: 'Remember unbounded knapsack bottom-up formulation. Base case dp[0] = 0.',
-        nextReviewDate: new Date(Date.now() + 86400000 * 2), // 2 days from now
+        nextReviewDate: new Date(Date.now() + 86400000 * 2),
       },
     });
 
-    // Sara solved Trapping Rain Water, Course Schedule, Alien Dictionary
-    await prisma.userDsaProgress.create({
-      data: {
+    await prisma.userDsaProgress.upsert({
+      where: {
+        userId_problemId: {
+          userId: userSara.id,
+          problemId: createdProblems[6].id, // Trapping Rain Water
+        },
+      },
+      update: {},
+      create: {
         userId: userSara.id,
-        problemId: createdProblems[6].id, // Trapping Rain Water
+        problemId: createdProblems[6].id,
         status: 'SOLVED',
         attemptsCount: 2,
         timeSpentSeconds: 840,
@@ -424,8 +449,15 @@ async function main() {
     });
 
     // 9. Seed Skill Profiles
-    await prisma.userSkillProfile.create({
-      data: {
+    await prisma.userSkillProfile.upsert({
+      where: {
+        userId_skillName: {
+          userId: userAlex.id,
+          skillName: 'TypeScript',
+        },
+      },
+      update: {},
+      create: {
         userId: userAlex.id,
         skillName: 'TypeScript',
         category: 'LANGUAGE',
@@ -437,8 +469,15 @@ async function main() {
       },
     });
 
-    await prisma.userSkillProfile.create({
-      data: {
+    await prisma.userSkillProfile.upsert({
+      where: {
+        userId_skillName: {
+          userId: userAlex.id,
+          skillName: 'Dynamic Programming',
+        },
+      },
+      update: {},
+      create: {
         userId: userAlex.id,
         skillName: 'Dynamic Programming',
         category: 'DSA',
@@ -449,8 +488,15 @@ async function main() {
       },
     });
 
-    await prisma.userSkillProfile.create({
-      data: {
+    await prisma.userSkillProfile.upsert({
+      where: {
+        userId_skillName: {
+          userId: userSara.id,
+          skillName: 'Rust',
+        },
+      },
+      update: {},
+      create: {
         userId: userSara.id,
         skillName: 'Rust',
         category: 'LANGUAGE',
@@ -462,27 +508,33 @@ async function main() {
     });
 
     // 10. Seed Forum Posts & Replies
-    const post1 = await prisma.forumPost.create({
-      data: {
-        userId: userAlex.id,
-        title: 'Best approach for submitting first PR to a large GSoC organization?',
-        content: 'When joining a new community like CNCF or Apache, what is the best strategy to get mentor visibility without overwhelming the issue tracker?',
-        tagsJson: JSON.stringify(['gsoc', 'open-source', 'mentorship']),
-        upvotes: 14,
-        views: 120,
-        isSolved: true,
-      },
+    const existingPost = await prisma.forumPost.findFirst({
+      where: { title: 'Best approach for submitting first PR to a large GSoC organization?' },
     });
 
-    await prisma.forumReply.create({
-      data: {
-        postId: post1.id,
-        userId: userSara.id,
-        content: 'Start by setting up the dev environment and running the test suite locally. Pick a documentation fix or flaky unit test before proposing structural changes. Join their Slack/Zulip channels first!',
-        isAcceptedAnswer: true,
-        upvotes: 9,
-      },
-    });
+    if (!existingPost) {
+      const post1 = await prisma.forumPost.create({
+        data: {
+          userId: userAlex.id,
+          title: 'Best approach for submitting first PR to a large GSoC organization?',
+          content: 'When joining a new community like CNCF or Apache, what is the best strategy to get mentor visibility without overwhelming the issue tracker?',
+          tagsJson: JSON.stringify(['gsoc', 'open-source', 'mentorship']),
+          upvotes: 14,
+          views: 120,
+          isSolved: true,
+        },
+      });
+
+      await prisma.forumReply.create({
+        data: {
+          postId: post1.id,
+          userId: userSara.id,
+          content: 'Start by setting up the dev environment and running the test suite locally. Pick a documentation fix or flaky unit test before proposing structural changes. Join their Slack/Zulip channels first!',
+          isAcceptedAnswer: true,
+          upvotes: 9,
+        },
+      });
+    }
   }
 
   console.log('✅ DevOrbit Database Seeding Complete!');

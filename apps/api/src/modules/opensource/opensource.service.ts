@@ -383,20 +383,19 @@ export class OpenSourceService {
 
   // GitHub Selfbot module
   async getSelfbotConfig(userId: string, repositoryFullName: string) {
-    return prisma.selfbotConfig.findUnique({
+    const config = await prisma.selfbotConfig.findUnique({
       where: {
         userId_repositoryFullName: {
           userId,
           repositoryFullName,
         },
       },
-      include: {
-        logs: {
-          take: 20,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
     });
+    if (!config) return null;
+    return {
+      ...config,
+      logs: [],
+    };
   }
 
   async updateSelfbotConfig(userId: string, data: {

@@ -37,17 +37,12 @@ model User {
   selfbotConfigs  SelfbotConfig[]
   forumPosts      ForumPost[]
   forumReplies    ForumReply[]
-  listings        MarketplaceListing[]
   conversations   AiConversation[]
   reconProjects   ReconProject[]
   notifications   Notification[]
-  alertRules      AlertRule[]
   developerProfile   DeveloperProfile?
   savedOrganizations UserSavedOrganization[]
   recommendations    Recommendation[]
-
-  @@index([email])
-  @@index([username])
 }
 
 model Session {
@@ -62,7 +57,6 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
 }
 
 model UserPreference {
@@ -71,8 +65,6 @@ model UserPreference {
   theme          String   @default("dark") // dark, light, system
   ecoMode        Boolean  @default(true)
   notifyDesktop  Boolean  @default(true)
-  notifyTelegram Boolean  @default(false)
-  telegramChatId String?
   updatedAt      DateTime @updatedAt
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -111,7 +103,6 @@ model GithubOAuthState {
   consumedAt     DateTime?
   createdAt      DateTime  @default(now())
 
-  @@index([stateHash])
   @@index([userId])
 }
 
@@ -181,7 +172,6 @@ model Workspace {
   memberships WorkspaceMembership[]
 
   @@index([ownerId])
-  @@index([slug])
 }
 
 model WorkspaceMembership {
@@ -257,6 +247,7 @@ model OssIssue {
   @@index([repositoryId])
   @@index([difficulty])
   @@index([state])
+  @@index([state, createdAt])
 }
 
 model OssProgram {
@@ -272,8 +263,6 @@ model OssProgram {
   createdAt    DateTime          @default(now())
 
   orgs         OssOrganization[]
-
-  @@index([slug])
 }
 
 model OssOrganization {
@@ -299,7 +288,6 @@ model OssOrganization {
   bookmarks              UserBookmark[]
   savedByUsers           UserSavedOrganization[]
 
-  @@index([slug])
   @@index([name])
 }
 
@@ -383,19 +371,6 @@ model UserDsaProgress {
   @@index([nextReviewDate])
 }
 
-model DsaSheet {
-  id            String   @id @default(uuid())
-  slug          String   @unique
-  name          String
-  description   String?
-  category      String   // STRIVER_A2Z, TLE_ELIMINATORS, TUF, CUSTOM
-  problemsCount Int      @default(0)
-  isOfficial    Boolean  @default(true)
-  createdAt     DateTime @default(now())
-
-  @@index([slug])
-}
-
 // -------------------------------------------------------------
 // DEVELOPER SKILL INTELLIGENCE
 // -------------------------------------------------------------
@@ -419,7 +394,7 @@ model ContributionPipelineItem {
   id          String    @id @default(uuid())
   userId      String
   issueId     String
-  stage       String    @default("DISCOVERED") // DISCOVERED, SHORTLISTED, EXPLORING, PREPARING, WORKING, PR_SUBMITTED, MERGED
+  stage       String    @default("SHORTLISTED") // SHORTLISTED, EXPLORING, PREPARING, WORKING, PR_SUBMITTED, MERGED
   prUrl       String?
   priority    String    @default("MEDIUM")     // LOW, MEDIUM, HIGH, URGENT
   notes       String?
@@ -453,24 +428,9 @@ model SelfbotConfig {
   updatedAt          DateTime     @updatedAt
 
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs               SelfbotLog[]
 
   @@unique([userId, repositoryFullName])
   @@index([userId])
-}
-
-model SelfbotLog {
-  id          String        @id @default(uuid())
-  configId    String
-  eventType   String        // ISSUE_OPENED, PR_OPENED, COMMAND_TRIGGERED
-  triggeredBy String
-  actionTaken String
-  details     String?
-  createdAt   DateTime      @default(now())
-
-  config      SelfbotConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-
-  @@index([configId])
 }
 
 // -------------------------------------------------------------
@@ -511,24 +471,6 @@ model ForumReply {
 
   @@index([postId])
   @@index([userId])
-}
-
-model MarketplaceListing {
-  id           String   @id @default(uuid())
-  userId       String
-  title        String
-  description  String
-  category     String   // COLLABORATION, HIRING, BOUNTY_PROJECT
-  projectUrl   String?
-  compensation String?
-  status       String   @default("OPEN")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
 }
 
 // -------------------------------------------------------------
@@ -597,21 +539,7 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
-}
-
-model AlertRule {
-  id          String   @id @default(uuid())
-  userId      String
-  name        String
-  queryType   String   // ISSUE_LABEL, REPO_TREND, BOUNTY_ALERT
-  filtersJson String   // language, label, minStars, minBounty
-  channel     String   @default("DESKTOP") // DESKTOP, TELEGRAM
-  isEnabled   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
+  @@index([userId, isRead, createdAt])
 }
 
 // -------------------------------------------------------------
@@ -736,6 +664,7 @@ model Recommendation {
   user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   feedback     RecommendationFeedback[]
 
+  @@unique([userId, targetId])
   @@index([userId])
   @@index([targetType])
   @@index([category])

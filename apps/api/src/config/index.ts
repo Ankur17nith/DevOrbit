@@ -47,3 +47,15 @@ export const prisma = global.prisma || new PrismaClient();
 if (config.nodeEnv !== 'production') {
   global.prisma = prisma;
 }
+
+export async function initPrismaSqlite() {
+  try {
+    await prisma.$queryRawUnsafe('PRAGMA journal_mode = WAL;');
+    await prisma.$queryRawUnsafe('PRAGMA foreign_keys = ON;');
+    await prisma.$queryRawUnsafe('PRAGMA busy_timeout = 5000;');
+  } catch {
+    // Graceful fallback for non-sqlite or read-only environments
+  }
+}
+
+initPrismaSqlite().catch(() => {});
