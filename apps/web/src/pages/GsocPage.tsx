@@ -123,7 +123,7 @@ export function GsocPage() {
   }, [selectedPlatforms, selectedTechs, techLogic, debouncedSearch, beginnerOnly, page, activeOrgId, activeTab]);
 
   // Fetch organizations
-  const fetchOrganizations = useCallback(() => {
+  const fetchOrganizations = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
 
@@ -151,7 +151,7 @@ export function GsocPage() {
 
     apiFetch<{ orgs: any[]; total: number; pagination: any }>(
       `/api/v1/opensource/organizations?${params.toString()}`,
-      { headers }
+      { headers, signal }
     )
       .then(res => {
         if (res.success && res.data) {
@@ -162,8 +162,10 @@ export function GsocPage() {
         }
       })
       .catch(err => {
-        console.error('Failed to load organizations:', err);
-        setError(err.message || 'Failed to fetch organizations.');
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to load organizations:', err);
+          setError(err.message || 'Failed to fetch organizations.');
+        }
       })
       .finally(() => setLoading(false));
   }, [page, selectedPlatforms, selectedTechs, techLogic, debouncedSearch, beginnerOnly, token]);
@@ -211,13 +213,15 @@ export function GsocPage() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (activeTab === 'orgs') {
-      fetchOrganizations();
+      fetchOrganizations(controller.signal);
     } else if (activeTab === 'saved') {
       fetchSavedOrganizations();
     } else if (activeTab === 'programs') {
       fetchPrograms();
     }
+    return () => controller.abort();
   }, [activeTab, fetchOrganizations, fetchSavedOrganizations, fetchPrograms]);
 
   const togglePlatform = (platId: string) => {

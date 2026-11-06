@@ -123,17 +123,27 @@ export function IssuesPage() {
 
   // Fetch explore issues
   useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (difficulty !== 'All') params.append('difficulty', difficulty);
-    if (search.trim()) params.append('search', search.trim());
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (difficulty !== 'All') params.append('difficulty', difficulty);
+      if (search.trim()) params.append('search', search.trim());
 
-    apiFetch(`/api/v1/opensource/issues?${params.toString()}`)
-      .then(json => {
-        if (json.success && json.data) setIssues(json.data.issues || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      apiFetch(`/api/v1/opensource/issues?${params.toString()}`, { signal: controller.signal })
+        .then(json => {
+          if (json.success && json.data) setIssues(json.data.issues || []);
+        })
+        .catch(err => {
+          if (err?.name !== 'AbortError') console.error(err);
+        })
+        .finally(() => setLoading(false));
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [difficulty, search]);
 
   // Fetch recommendations

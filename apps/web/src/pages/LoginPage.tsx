@@ -37,12 +37,12 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
 
     setLoading(true);
     try {
-      const success = await login(usernameOrEmail.trim(), password);
-      if (success) {
+      const result = await login(usernameOrEmail.trim(), password);
+      if (result.ok) {
         if (onSuccess) onSuccess();
         else onNavigate('dashboard');
       } else {
-        setError(authError || 'Invalid username or password. Please try again.');
+        setError(result.error || authError || 'Invalid username or password. Please try again.');
       }
     } catch (err: any) {
       setError(err?.message || 'Login failed. Please check your credentials.');
@@ -55,12 +55,12 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
     setError(null);
     setLoading(true);
     try {
-      const success = await demoLogin();
-      if (success) {
+      const result = await demoLogin();
+      if (result.ok) {
         if (onSuccess) onSuccess();
         else onNavigate('dashboard');
       } else {
-        setError('Could not initialize demo session.');
+        setError(result.error || authError || 'Could not initialize demo session.');
       }
     } catch (err: any) {
       setError('Failed to log in to demo mode.');

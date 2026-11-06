@@ -15,28 +15,9 @@ import {
   Sparkles,
   Plus
 } from 'lucide-react';
-import mermaid from 'mermaid';
 import { PageContainer } from '../components/ui/PageContainer.js';
 import { apiFetch } from '../lib/api.js';
 import { ENDPOINTS } from '../lib/endpoints.js';
-
-// Initialize mermaid
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  securityLevel: 'strict',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-  themeVariables: {
-    darkMode: true,
-    background: '#11141B',
-    primaryColor: '#8B5CF6',
-    primaryTextColor: '#F8FAFC',
-    primaryBorderColor: '#8B5CF6',
-    lineColor: '#686D79',
-    secondaryColor: '#181C26',
-    tertiaryColor: '#0B0D12',
-  },
-});
 
 interface TreeNode {
   name: string;
@@ -176,6 +157,24 @@ export function CodebaseNavigatorPage() {
     const renderGraph = async () => {
       if (contextTab === 'graph' && mermaidCode && mermaidRef.current) {
         try {
+          const mermaidModule = await import('mermaid');
+          const mermaid = mermaidModule.default;
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'strict',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            themeVariables: {
+              darkMode: true,
+              background: '#11141B',
+              primaryColor: '#8B5CF6',
+              primaryTextColor: '#F8FAFC',
+              primaryBorderColor: '#8B5CF6',
+              lineColor: '#686D79',
+              secondaryColor: '#181C26',
+              tertiaryColor: '#0B0D12',
+            },
+          });
           const { svg } = await mermaid.render('mermaid-nav-' + Date.now(), mermaidCode);
           if (!cancelled && mermaidRef.current) {
             mermaidRef.current.innerHTML = svg;

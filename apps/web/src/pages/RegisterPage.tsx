@@ -43,12 +43,12 @@ export function RegisterPage({ onNavigate, onSuccess }: RegisterPageProps) {
 
     setLoading(true);
     try {
-      const success = await register(email.trim(), username.trim(), password, name.trim());
-      if (success) {
+      const result = await register(email.trim(), username.trim(), password, name.trim());
+      if (result.ok) {
         if (onSuccess) onSuccess();
         else onNavigate('dashboard');
       } else {
-        setError(authError || 'Registration could not be completed. Please check your inputs.');
+        setError(result.error || authError || 'Registration could not be completed. Please check your inputs.');
       }
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Username or email may already be registered.');

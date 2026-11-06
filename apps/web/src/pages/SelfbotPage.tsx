@@ -7,10 +7,11 @@ import { apiFetch } from '../lib/api.js';
 export function SelfbotPage() {
   const { token } = useAuth();
   const [repo, setRepo] = useState('devorbit/core');
-  const [welcomeEnabled, setWelcomeEnabled] = useState(true);
+  const [welcomeEnabled, setWelcomeEnabled] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('👋 Welcome @contributor to the repository! Please read our CONTRIBUTING.md before opening PRs.');
   const [goodbyeEnabled, setGoodbyeEnabled] = useState(false);
   const [goodbyeMessage, setGoodbyeMessage] = useState('Thank you for contributing! Your PR has been closed.');
+  const [isEnabled, setIsEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -19,10 +20,11 @@ export function SelfbotPage() {
     apiFetch(`/api/v1/opensource/selfbot/config?repo=${encodeURIComponent(repo)}`)
       .then(json => {
         if (json.success && json.data) {
-          setWelcomeEnabled(json.data.welcomeEnabled ?? true);
+          setWelcomeEnabled(json.data.welcomeEnabled ?? false);
           setWelcomeMessage(json.data.welcomeMessage || '');
           setGoodbyeEnabled(json.data.goodbyeEnabled ?? false);
           setGoodbyeMessage(json.data.goodbyeMessage || '');
+          setIsEnabled(json.data.isEnabled ?? false);
         }
       })
       .catch(console.error);
@@ -46,7 +48,7 @@ export function SelfbotPage() {
           welcomeMessage,
           goodbyeEnabled,
           goodbyeMessage,
-          isEnabled: true,
+          isEnabled: welcomeEnabled || goodbyeEnabled,
         }),
       });
       if (json.success) {
@@ -65,8 +67,8 @@ export function SelfbotPage() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Contribution Pipeline</h2>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Repository Selfbot & Automation</h2>
           <p className="mt-2 text-xs leading-5 text-[#686D79]">
             Results require a connected source. DevOrbit does not fabricate issues, amounts, deadlines, or activity.
           </p>

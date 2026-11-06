@@ -100,32 +100,6 @@ export function DsaTrackerPage() {
 
   const topics = ['All', 'Array', 'String', 'Binary Tree', 'Graph', 'Dynamic Programming', 'Binary Search', 'Stack', 'Intervals'];
 
-  const fetchData = async () => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      page: '1',
-      limit: '50',
-    });
-    if (selectedDifficulty !== 'All') params.append('difficulty', selectedDifficulty);
-    if (selectedTopic !== 'All') params.append('topic', selectedTopic);
-    if (selectedSheet !== 'ALL') params.append('sheetCategory', selectedSheet);
-    if (search) params.append('search', search);
-
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    try {
-      const json = await apiFetch(`/api/v1/dsa/problems?${params.toString()}`, { headers });
-      if (json.success && json.data) {
-        setProblems(json.data.problems);
-      }
-    } catch (err) {
-      console.error('Failed to load problems', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchAnalytics = async () => {
     if (!token) return;
     try {
@@ -154,11 +128,48 @@ export function DsaTrackerPage() {
     }
   };
 
+  const fetchProblems = React.useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: '1',
+      limit: '50',
+    });
+    if (selectedDifficulty !== 'All') params.append('difficulty', selectedDifficulty);
+    if (selectedTopic !== 'All') params.append('topic', selectedTopic);
+    if (selectedSheet !== 'ALL') params.append('sheetCategory', selectedSheet);
+    if (search.trim()) params.append('search', search.trim());
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const json = await apiFetch(`/api/v1/dsa/problems?${params.toString()}`, { headers, signal });
+      if (json.success && json.data) {
+        setProblems(json.data.problems);
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') console.error('Failed to load problems', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSheet, selectedDifficulty, selectedTopic, search, token]);
+
+  const fetchData = fetchProblems;
+
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchProblems(controller.signal);
+    }, 300);
+
     fetchAnalytics();
     fetchRevisionQueue();
-  }, [selectedSheet, selectedDifficulty, selectedTopic, search, token]);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [fetchProblems]);
 
   const openSolveModal = (prob: Problem) => {
     setSolveModalProblem(prob);

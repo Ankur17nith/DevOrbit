@@ -11,6 +11,7 @@ import {
   Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { APP_ROUTES } from '../routes.js';
 
 interface TopBarProps {
   currentTab: string;
@@ -36,38 +37,24 @@ export function TopBar({
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Tab Breadcrumb labels mapping
+  // Tab Breadcrumb labels mapping derived from central routes table
   const breadcrumbMap: Record<string, { section: string; title: string }> = {
-    dashboard: { section: 'Overview', title: 'Command Center' },
     app: { section: 'Overview', title: 'Command Center' },
-    navigator: { section: 'Development', title: 'Codebase Navigator' },
     codebase: { section: 'Development', title: 'Codebase Navigator' },
-    fix: { section: 'Development', title: 'Orbit Fix' },
-    safechange: { section: 'Development', title: 'SafeChange' },
     'safe-change': { section: 'Development', title: 'SafeChange' },
-    recon: { section: 'Development', title: 'Orbit Recon' },
-    ai: { section: 'Development', title: 'Orbit AI' },
-    dsa: { section: 'Learning', title: 'DSA Dashboard' },
-    problems: { section: 'Learning', title: 'Problem Tracker' },
-    revisions: { section: 'Learning', title: 'Revision Schedule' },
-    skills: { section: 'Learning', title: 'Orbit Skills' },
-    learning: { section: 'Learning', title: 'Learning Progress' },
-    catalog: { section: 'Open Source', title: 'Discover' },
     oss: { section: 'Open Source', title: 'Discover' },
-    trending: { section: 'Open Source', title: 'Trending' },
-    gsoc: { section: 'Open Source', title: 'Organizations' },
     organizations: { section: 'Open Source', title: 'Organizations' },
-    issues: { section: 'Open Source', title: 'Issues' },
-    bounties: { section: 'Open Source', title: 'Bounties' },
-    contributions: { section: 'Open Source', title: 'Contributions' },
-    workspaces: { section: 'Collaboration', title: 'Workspaces' },
-    forum: { section: 'Collaboration', title: 'Community' },
     community: { section: 'Collaboration', title: 'Community' },
-    integrations: { section: 'System', title: 'Integrations' },
-    pulse: { section: 'System', title: 'Orbit Pulse' },
-    profile: { section: 'Account', title: 'Profile' },
-    settings: { section: 'Account', title: 'Settings' },
   };
+
+  for (const r of APP_ROUTES) {
+    const rawGroup = r.navGroup || 'OVERVIEW';
+    const section = rawGroup === 'OPEN SOURCE' 
+      ? 'Open Source' 
+      : rawGroup.charAt(0) + rawGroup.slice(1).toLowerCase();
+    breadcrumbMap[r.id] = { section, title: r.label };
+    breadcrumbMap[r.path] = { section, title: r.label };
+  }
 
   const currentInfo = breadcrumbMap[currentTab] || {
     section: 'Overview',

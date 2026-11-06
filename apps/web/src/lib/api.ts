@@ -71,7 +71,11 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 export function getAuthToken(): string | null {
-  return localStorage.getItem('devorbit_token') || localStorage.getItem('token') || null;
+  try {
+    return sessionStorage.getItem('devorbit_token') || localStorage.getItem('devorbit_token') || sessionStorage.getItem('token') || localStorage.getItem('token') || null;
+  } catch {
+    return null;
+  }
 }
 
 /**

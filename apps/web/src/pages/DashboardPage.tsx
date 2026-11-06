@@ -89,64 +89,72 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
       {/* 2. 4 KPI Cards */}
       <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {/* KPI 1: Connected platforms */}
-        <div 
+        <button 
+          type="button"
+          aria-label="View connected platforms"
           onClick={() => onNavigate('integrations')} 
-          className="rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors"
+          className="text-left w-full rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Connected platforms</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#686D79]">Connected platforms</span>
             <Plug className="size-3.5 text-[#8B5CF6]" />
           </div>
           <p className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[#0B0D12]">{connectedCount}</p>
-          <p className="mt-1 text-[9px] text-[#858993]">
+          <p className="mt-1 text-xs text-[#686D79]">
             {connectedCount === 0 ? 'No connections yet' : `${connectedCount} active connection${connectedCount === 1 ? '' : 's'}`}
           </p>
-        </div>
+        </button>
 
         {/* KPI 2: Solved problems */}
-        <div 
+        <button 
+          type="button"
+          aria-label="View solved DSA problems"
           onClick={() => onNavigate('dsa')} 
-          className="rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors"
+          className="text-left w-full rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Solved problems</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#686D79]">Solved problems</span>
             <BookOpen className="size-3.5 text-[#8B5CF6]" />
           </div>
           <p className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[#0B0D12]">{solvedCount}</p>
-          <p className="mt-1 text-[9px] text-[#858993]">
+          <p className="mt-1 text-xs text-[#686D79]">
             {solvedCount === 0 ? 'Add your first problem' : `${stats?.dsaRevisionsDue || 0} revisions due`}
           </p>
-        </div>
+        </button>
 
         {/* KPI 3: Saved opportunities */}
-        <div 
+        <button 
+          type="button"
+          aria-label="View saved opportunities"
           onClick={() => onNavigate('catalog')} 
-          className="rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors"
+          className="text-left w-full rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Saved opportunities</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#686D79]">Saved opportunities</span>
             <Compass className="size-3.5 text-[#8B5CF6]" />
           </div>
           <p className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[#0B0D12]">{savedOppsCount}</p>
-          <p className="mt-1 text-[9px] text-[#858993]">
+          <p className="mt-1 text-xs text-[#686D79]">
             {savedOppsCount === 0 ? 'Explore open source' : `${savedOppsCount} saved in pipeline`}
           </p>
-        </div>
+        </button>
 
         {/* KPI 4: Indexed projects */}
-        <div 
+        <button 
+          type="button"
+          aria-label="View indexed codebase projects"
           onClick={() => onNavigate('navigator')} 
-          className="rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors"
+          className="text-left w-full rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Indexed projects</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#686D79]">Indexed projects</span>
             <Code2 className="size-3.5 text-[#8B5CF6]" />
           </div>
           <p className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[#0B0D12]">{indexedCount}</p>
-          <p className="mt-1 text-[9px] text-[#858993]">
+          <p className="mt-1 text-xs text-[#686D79]">
             {indexedCount === 0 ? 'Add a repository' : `${indexedCount} repository indexed`}
           </p>
-        </div>
+        </button>
       </div>
 
       {/* 3. Main Split Grid */}

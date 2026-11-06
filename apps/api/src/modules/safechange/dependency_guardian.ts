@@ -155,7 +155,8 @@ export class DependencyGuardian {
 
     // Technical Debt Score (0 - 100, lower is better)
     let techDebtScore = 12; // Baseline low tech debt
-    if (testToCodeRatio < 20) techDebtScore += 30;
+    if (testToCodeRatio < 10) techDebtScore += 20;
+    else if (testToCodeRatio < 15) techDebtScore += 10;
     if (dependencies.length > 50) techDebtScore += 10;
     techDebtScore = Math.min(100, Math.max(5, techDebtScore));
 

@@ -95,7 +95,7 @@ export const figmaNavGroups: NavGroup[] = [
     items: [
       { id: 'workspaces', label: 'Workspaces', icon: Users, path: '/app/workspaces' },
       { id: 'forum', label: 'Community', icon: MessageSquare, path: '/app/community' },
-      // Configuration only — hidden until background worker active: { id: 'selfbot', label: 'Maintainer Bot', icon: Bot, path: '/app/selfbot' },
+      { id: 'selfbot', label: 'Maintainer Bot', icon: Bot, path: '/app/selfbot' },
     ],
   },
   {
@@ -119,13 +119,14 @@ export function Sidebar({
   const { user, logout } = useAuth();
 
   const isItemActive = (item: NavItem): boolean => {
-    if (currentTab === item.id) return true;
+    if (currentTab === item.id || currentTab === item.path) return true;
     if (item.id === 'gsoc' && currentTab === 'organizations') return true;
-    if (item.id === 'dashboard' && currentTab === 'app') return true;
-    if (item.id === 'navigator' && currentTab === 'codebase') return true;
-    if (item.id === 'catalog' && currentTab === 'oss') return true;
-    if (item.id === 'forum' && currentTab === 'community') return true;
-    if (item.id === 'safechange' && (currentTab === 'safe-change' || currentTab === 'safechange')) return true;
+    if (item.id === 'gsoc' && currentTab === '/app/organizations') return true;
+    if (item.id === 'dashboard' && (currentTab === 'app' || currentTab === '/app')) return true;
+    if (item.id === 'navigator' && (currentTab === 'codebase' || currentTab === '/app/codebase')) return true;
+    if (item.id === 'catalog' && (currentTab === 'oss' || currentTab === '/app/oss')) return true;
+    if (item.id === 'forum' && (currentTab === 'community' || currentTab === '/app/community')) return true;
+    if (item.id === 'safechange' && (currentTab === 'safe-change' || currentTab === 'safechange' || currentTab === '/app/safe-change')) return true;
     return false;
   };
 

@@ -1,8 +1,19 @@
 import { execSync } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 
 export async function setup() {
-  process.env.DATABASE_URL = 'file:./test.db';
+  const testDbPath = path.resolve(__dirname, '../../prisma/test.db');
+  const databaseUrl = `file:${testDbPath}`;
+
+  for (const suffix of ['', '-wal', '-shm']) {
+    const f = `${testDbPath}${suffix}`;
+    if (fs.existsSync(f)) {
+      try { fs.unlinkSync(f); } catch {}
+    }
+  }
+
+  process.env.DATABASE_URL = databaseUrl;
   process.env.RATE_LIMIT_AUTH_MAX = '500';
   process.env.RATE_LIMIT_SYNC_MAX = '500';
   process.env.RATE_LIMIT_AI_MAX = '500';
@@ -14,7 +25,7 @@ export async function setup() {
     stdio: 'inherit',
     env: {
       ...process.env,
-      DATABASE_URL: 'file:./test.db',
+      DATABASE_URL: databaseUrl,
     },
   });
 
@@ -23,7 +34,7 @@ export async function setup() {
     stdio: 'inherit',
     env: {
       ...process.env,
-      DATABASE_URL: 'file:./test.db',
+      DATABASE_URL: databaseUrl,
       SEED_DEMO: 'false',
     },
   });

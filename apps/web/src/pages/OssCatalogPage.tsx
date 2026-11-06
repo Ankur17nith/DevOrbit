@@ -27,27 +27,32 @@ export function OssCatalogPage() {
 
   const languages = ['All', 'TypeScript', 'JavaScript', 'Python', 'Rust', 'Go', 'C', 'C++'];
 
-  const fetchCatalog = () => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      page: '1',
-      limit: '30',
-      sortBy,
-    });
-    if (search.trim()) params.append('search', search.trim());
-    if (selectedLanguage !== 'All') params.append('language', selectedLanguage);
-
-    apiFetch(`/api/v1/opensource/catalog?${params.toString()}`)
-      .then(json => {
-        if (json.success && json.data) setRepos(json.data.repos || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
   useEffect(() => {
-    const timeout = setTimeout(fetchCatalog, 200);
-    return () => clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '30',
+        sortBy,
+      });
+      if (search.trim()) params.append('search', search.trim());
+      if (selectedLanguage !== 'All') params.append('language', selectedLanguage);
+
+      apiFetch(`/api/v1/opensource/catalog?${params.toString()}`, { signal: controller.signal })
+        .then(json => {
+          if (json.success && json.data) setRepos(json.data.repos || []);
+        })
+        .catch(err => {
+          if (err?.name !== 'AbortError') console.error(err);
+        })
+        .finally(() => setLoading(false));
+    }, 300);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [search, selectedLanguage, sortBy]);
 
   // Load user bookmarks

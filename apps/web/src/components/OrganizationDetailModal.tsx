@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import {
   X,
   Building2,
@@ -88,16 +89,15 @@ export function OrganizationDetailModal({
     }
   };
 
-  if (!organizationIdOrSlug) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
-      <div 
-        className="relative w-full max-w-3xl rounded-2xl border border-black/8 bg-white shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-black/7 p-6 bg-white">
+    <Dialog.Root open={Boolean(organizationIdOrSlug)} onOpenChange={open => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150" />
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-3xl translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-black/8 bg-white shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 focus:outline-none">
+          <Dialog.Title className="sr-only">{data?.name || organizationIdOrSlug || 'Organization Details'}</Dialog.Title>
+          <Dialog.Description className="sr-only">{data?.description || 'Organization Overview'}</Dialog.Description>
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-black/7 p-6 bg-white">
           <div className="flex items-start gap-4 min-w-0">
             {data?.logoUrl ? (
               <img
@@ -383,11 +383,14 @@ export function OrganizationDetailModal({
         {/* Modal Footer */}
         <div className="border-t border-black/7 p-4 bg-[#F7F7F8] flex items-center justify-between text-xs font-mono text-[#686D79]">
           <span>Provenance: {data?.sourceProvenance || 'verified_platform_archive'}</span>
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            Close
-          </Button>
+          <Dialog.Close asChild>
+            <Button variant="secondary" size="sm">
+              Close
+            </Button>
+          </Dialog.Close>
         </div>
-      </div>
-    </div>
-  );
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
+);
 }
