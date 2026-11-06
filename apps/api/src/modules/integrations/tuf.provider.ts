@@ -1,3 +1,5 @@
+import { prisma } from '../../config/index.js';
+
 export interface TufStats {
   username: string;
   totalCompleted: number;
@@ -10,7 +12,7 @@ export interface TufStats {
     topic: string;
     completedAt: string;
   }[];
-  source: 'provider_sync' | 'manual_import';
+  source: 'manual';
   lastSyncedAt: string;
 }
 
@@ -24,7 +26,7 @@ export interface TufImportPayload {
 
 export class TufProvider {
   /**
-   * Initializes genuine Take U Forward profile tracking without fabricated statistics
+   * Initializes genuine Take U Forward manual tracking without claiming provider sync
    */
   async verifyProfile(username: string): Promise<TufStats> {
     const cleanUser = username.trim();
@@ -32,29 +34,35 @@ export class TufProvider {
       throw new Error('Take U Forward username cannot be empty');
     }
 
-    // Honest baseline initialization: zero progress until real problems are tracked or imported
+    const totalProblems = await prisma.dsaProblem.count({
+      where: { sheetCategory: 'STRIVER_A2Z' },
+    });
+
     return {
       username: cleanUser,
       totalCompleted: 0,
-      totalProblems: 455,
+      totalProblems,
       completionPercentage: 0,
       activeSheet: 'Striver A2Z DSA Sheet',
       currentStep: 'Step 1: Learn the basics',
       recentActivity: [],
-      source: 'provider_sync',
+      source: 'manual',
       lastSyncedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * Process genuine manual progress update or sheet import
+   * Process genuine manual progress update
    */
-  processImport(payload: TufImportPayload): TufStats {
+  async processImport(payload: TufImportPayload): Promise<TufStats> {
     if (!payload.username) {
       throw new Error('TUF data must include a valid username');
     }
 
-    const totalProblems = Number(payload.totalProblems) || 455;
+    const totalProblems = payload.totalProblems !== undefined && payload.totalProblems !== null
+      ? Number(payload.totalProblems)
+      : await prisma.dsaProblem.count({ where: { sheetCategory: 'STRIVER_A2Z' } });
+
     const totalCompleted = Number(payload.totalCompleted) || 0;
     const percentage = totalProblems > 0 ? Math.round((totalCompleted / totalProblems) * 100) : 0;
 
@@ -65,7 +73,7 @@ export class TufProvider {
       completionPercentage: percentage,
       activeSheet: payload.activeSheet || 'Striver A2Z DSA Sheet',
       currentStep: payload.currentStep || 'Step 1: Learn the basics',
-      source: 'manual_import',
+      source: 'manual',
       lastSyncedAt: new Date().toISOString(),
     };
   }

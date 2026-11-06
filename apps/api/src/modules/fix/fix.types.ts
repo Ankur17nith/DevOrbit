@@ -55,6 +55,18 @@ export interface PatchProposal {
   confidence: number;
 }
 
+export interface PatchResult {
+  patch: PatchProposal | null;
+  reason?: string;
+  id?: string;
+  filePath?: string;
+  unifiedDiff?: string;
+  originalSnippet?: string;
+  patchedSnippet?: string;
+  explanation?: string;
+  confidence?: number;
+}
+
 export interface VerificationResult {
   verified: boolean;
   status: 'PASSED' | 'FAILED' | 'SYNTAX_ERROR';

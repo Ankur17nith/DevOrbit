@@ -13,6 +13,8 @@ router.delete('/token', githubController.disconnectToken);
 router.get('/status', githubController.getStatus);
 router.post('/sync', syncRateLimiter, githubController.triggerSync);
 router.get('/profile', githubController.getProfileIntelligence);
+router.get('/metrics', githubController.getMetrics);
+router.get('/heatmap', githubController.getHeatmap);
 router.get('/repositories', githubController.getRepositories);
 
 export const githubRouter = router;

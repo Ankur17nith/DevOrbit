@@ -95,7 +95,7 @@ export const figmaNavGroups: NavGroup[] = [
     items: [
       { id: 'workspaces', label: 'Workspaces', icon: Users, path: '/app/workspaces' },
       { id: 'forum', label: 'Community', icon: MessageSquare, path: '/app/community' },
-      { id: 'selfbot', label: 'Maintainer Bot', icon: Bot, path: '/app/selfbot' },
+      // Configuration only — hidden until background worker active: { id: 'selfbot', label: 'Maintainer Bot', icon: Bot, path: '/app/selfbot' },
     ],
   },
   {

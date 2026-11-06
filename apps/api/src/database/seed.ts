@@ -109,9 +109,9 @@ async function main() {
     console.log(`🏢 Created Workspace: ${workspace.name}`);
   }
 
-  // 4. Seed GSoC Programs & 606+ Organizations
-  const gsocProgram = await prisma.ossProgram.create({
-    data: {
+  // 4. Seed Canonical Programs & GSoC Organizations
+  const canonicalPrograms = [
+    {
       slug: 'gsoc-2026',
       name: 'Google Summer of Code 2026',
       description: 'Global program focused on bringing new contributors into open source software development.',
@@ -127,7 +127,50 @@ async function main() {
       ]),
       deadlineDate: new Date('2026-04-08T18:00:00Z'),
     },
-  });
+    {
+      slug: 'lfx-mentorship-2026',
+      name: 'Linux Foundation (LFX) Mentorship',
+      category: 'MENTORSHIP',
+      description: 'Paid open source mentorships on CNCF, Linux Kernel, Kubernetes, GraphQL, Hyperledger, and PyTorch.',
+      website: 'https://lfx.linuxfoundation.org/tools/mentorship/',
+      status: 'ACTIVE',
+      deadlineDate: new Date('2026-05-15T23:59:00Z'),
+      timelineJson: JSON.stringify([
+        { stage: 'Term 1 Spring', date: 'March 1 - May 31, 2026' },
+        { stage: 'Term 2 Summer', date: 'June 1 - August 31, 2026' },
+      ]),
+    },
+    {
+      slug: 'outreachy-2026',
+      name: 'Outreachy Diversity Internships',
+      category: 'MENTORSHIP',
+      description: 'Internships supporting diversity in free and open-source software with dedicated stipends.',
+      website: 'https://www.outreachy.org/',
+      status: 'ACTIVE',
+      deadlineDate: new Date('2026-06-01T16:00:00Z'),
+    },
+    {
+      slug: 'hacktoberfest-2026',
+      name: 'Hacktoberfest 2026',
+      category: 'HACKATHON',
+      description: 'Annual month-long celebration of open-source software with pull request challenges.',
+      website: 'https://hacktoberfest.com/',
+      status: 'SCHEDULED',
+      deadlineDate: new Date('2026-10-31T23:59:00Z'),
+    },
+  ];
+
+  let gsocProgram: any = null;
+  for (const prog of canonicalPrograms) {
+    const created = await prisma.ossProgram.upsert({
+      where: { slug: prog.slug },
+      update: {},
+      create: prog,
+    });
+    if (prog.slug === 'gsoc-2026') {
+      gsocProgram = created;
+    }
+  }
 
   const gsocDataPath = path.join(__dirname, 'data', 'gsoc_orgs.json');
   if (fs.existsSync(gsocDataPath)) {
@@ -224,7 +267,7 @@ async function main() {
         openIssuesCount: r.open_issues_count || 0,
         topicsJson: JSON.stringify(r.topics || []),
         license: typeof r.license === 'object' ? r.license?.spdx_id || r.license?.name : r.license || 'MIT',
-        isVerified: true,
+        isVerified: (r.stargazers_count || 0) > 50000,
       },
     });
     createdRepos[fullName] = created.id;
@@ -243,6 +286,9 @@ async function main() {
   if (defaultRepoId && bountiesToSeed.length > 0) {
     console.log(`💎 Seeding ${bountiesToSeed.length} Open Source Bounties / Issues...`);
     for (const b of bountiesToSeed) {
+      // Skip bounties without actual amount
+      if (!b.bountyAmount) continue;
+
       const owner = b.repo_owner || b.repoOwner || (b.html_url ? b.html_url.split('/')[3] : 'angular');
       const name = b.repo_name || b.repoName || (b.html_url ? b.html_url.split('/')[4] : 'angular');
       const repoFullName = `${owner}/${name}`;
@@ -258,11 +304,11 @@ async function main() {
             name,
             description: `Repository for ${repoFullName}`,
             language: b.language || 'TypeScript',
-            stargazersCount: 1500,
-            forksCount: 400,
+            stargazersCount: b.stargazers_count || 0,
+            forksCount: b.forks_count || 0,
             openIssuesCount: 20,
             topicsJson: JSON.stringify(['open-source', 'bounty']),
-            isVerified: true,
+            isVerified: false,
           },
         });
         targetRepoId = repoRecord.id;
@@ -272,7 +318,7 @@ async function main() {
       await prisma.ossIssue.create({
         data: {
           repositoryId: targetRepoId || defaultRepoId,
-          number: b.number || b.issueNumber || Math.floor(Math.random() * 1000),
+          number: b.number || b.issueNumber || 1,
           title: b.title,
           body: (b.body || b.description || '').slice(0, 500),
           state: b.state || 'open',
@@ -280,7 +326,7 @@ async function main() {
           authorAvatarUrl: b.user?.avatar_url || null,
           labelsJson: JSON.stringify(b.labels || b.tags || ['good first issue', 'bounty']),
           difficulty: b.difficulty || 'intermediate',
-          bountyAmount: b.bountyAmount || '500',
+          bountyAmount: String(b.bountyAmount),
           currency: b.currency || 'USD',
           url: b.html_url || b.issueUrl || `https://github.com/${repoFullName}/issues/${b.number || 1}`,
         },
@@ -301,21 +347,21 @@ async function main() {
   });
 
   const coreProblems = [
-    { title: 'Two Sum', slug: 'two-sum', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Hash Map', url: 'https://leetcode.com/problems/two-sum/' },
-    { title: 'Best Time to Buy and Sell Stock', slug: 'best-time-to-buy-and-sell-stock', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Prefix/Suffix', url: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/' },
-    { title: '3Sum', slug: '3sum', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Array', subtopic: 'Two Pointers', url: 'https://leetcode.com/problems/3sum/' },
-    { title: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating-characters', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'String', subtopic: 'Sliding Window', url: 'https://leetcode.com/problems/longest-substring-without-repeating-characters/' },
-    { title: 'Valid Parentheses', slug: 'valid-parentheses', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Stack', subtopic: 'Standard', url: 'https://leetcode.com/problems/valid-parentheses/' },
-    { title: 'Merge Intervals', slug: 'merge-intervals', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Intervals', subtopic: 'Sorting', url: 'https://leetcode.com/problems/merge-intervals/' },
-    { title: 'Trapping Rain Water', slug: 'trapping-rain-water', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Array', subtopic: 'Two Pointers', url: 'https://leetcode.com/problems/trapping-rain-water/' },
-    { title: 'LRU Cache', slug: 'lru-cache', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Design', subtopic: 'Hash Map + Doubly Linked List', url: 'https://leetcode.com/problems/lru-cache/' },
-    { title: 'Binary Tree Maximum Path Sum', slug: 'binary-tree-maximum-path-sum', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Binary Tree', subtopic: 'DFS', url: 'https://leetcode.com/problems/binary-tree-maximum-path-sum/' },
-    { title: 'Course Schedule', slug: 'course-schedule', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Graph', subtopic: 'Topological Sort', url: 'https://leetcode.com/problems/course-schedule/' },
-    { title: 'Coin Change', slug: 'coin-change', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Dynamic Programming', subtopic: '1D DP', url: 'https://leetcode.com/problems/coin-change/' },
-    { title: 'Edit Distance', slug: 'edit-distance', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Dynamic Programming', subtopic: '2D DP', url: 'https://leetcode.com/problems/edit-distance/' },
-    { title: 'Alien Dictionary', slug: 'alien-dictionary', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Graph', subtopic: 'BFS/Kahn Algorithm', url: 'https://leetcode.com/problems/alien-dictionary/' },
-    { title: 'Median of Two Sorted Arrays', slug: 'median-of-two-sorted-arrays', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Binary Search', subtopic: 'Partitioning', url: 'https://leetcode.com/problems/median-of-two-sorted-arrays/' },
-    { title: 'Word Ladder', slug: 'word-ladder', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Graph', subtopic: 'BFS Shortest Path', url: 'https://leetcode.com/problems/word-ladder/' },
+    { title: 'Two Sum', slug: 'two-sum', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Hash Map', url: 'https://leetcode.com/problems/two-sum/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Best Time to Buy and Sell Stock', slug: 'best-time-to-buy-and-sell-stock', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Array', subtopic: 'Prefix/Suffix', url: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/', sheetCategory: 'STRIVER_A2Z' },
+    { title: '3Sum', slug: '3sum', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Array', subtopic: 'Two Pointers', url: 'https://leetcode.com/problems/3sum/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating-characters', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'String', subtopic: 'Sliding Window', url: 'https://leetcode.com/problems/longest-substring-without-repeating-characters/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Valid Parentheses', slug: 'valid-parentheses', platform: 'LEETCODE', difficulty: 'EASY', topic: 'Stack', subtopic: 'Standard', url: 'https://leetcode.com/problems/valid-parentheses/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Merge Intervals', slug: 'merge-intervals', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Intervals', subtopic: 'Sorting', url: 'https://leetcode.com/problems/merge-intervals/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Trapping Rain Water', slug: 'trapping-rain-water', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Array', subtopic: 'Two Pointers', url: 'https://leetcode.com/problems/trapping-rain-water/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'LRU Cache', slug: 'lru-cache', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Design', subtopic: 'Hash Map + Doubly Linked List', url: 'https://leetcode.com/problems/lru-cache/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Binary Tree Maximum Path Sum', slug: 'binary-tree-maximum-path-sum', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Binary Tree', subtopic: 'DFS', url: 'https://leetcode.com/problems/binary-tree-maximum-path-sum/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Course Schedule', slug: 'course-schedule', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Graph', subtopic: 'Topological Sort', url: 'https://leetcode.com/problems/course-schedule/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Coin Change', slug: 'coin-change', platform: 'LEETCODE', difficulty: 'MEDIUM', topic: 'Dynamic Programming', subtopic: '1D DP', url: 'https://leetcode.com/problems/coin-change/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Edit Distance', slug: 'edit-distance', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Dynamic Programming', subtopic: '2D DP', url: 'https://leetcode.com/problems/edit-distance/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Alien Dictionary', slug: 'alien-dictionary', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Graph', subtopic: 'BFS/Kahn Algorithm', url: 'https://leetcode.com/problems/alien-dictionary/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Median of Two Sorted Arrays', slug: 'median-of-two-sorted-arrays', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Binary Search', subtopic: 'Partitioning', url: 'https://leetcode.com/problems/median-of-two-sorted-arrays/', sheetCategory: 'STRIVER_A2Z' },
+    { title: 'Word Ladder', slug: 'word-ladder', platform: 'LEETCODE', difficulty: 'HARD', topic: 'Graph', subtopic: 'BFS Shortest Path', url: 'https://leetcode.com/problems/word-ladder/', sheetCategory: 'STRIVER_A2Z' },
   ];
 
   console.log(`🧠 Seeding ${coreProblems.length} Core DSA Problems...`);
@@ -384,11 +430,10 @@ async function main() {
         skillName: 'TypeScript',
         category: 'LANGUAGE',
         confidenceScore: 92.5,
-        verifiedEvidenceJson: JSON.stringify({
-          repos: ['devorbit/core', 'facebook/react'],
-          mergedPRs: 14,
-          confidenceBand: 'High',
-        }),
+        verifiedEvidenceJson: JSON.stringify([
+          { repoFullName: 'devorbit/core', prCount: 14, confidenceBand: 'High' },
+          { repoFullName: 'facebook/react', prCount: 2, confidenceBand: 'Medium' },
+        ]),
       },
     });
 
@@ -398,10 +443,9 @@ async function main() {
         skillName: 'Dynamic Programming',
         category: 'DSA',
         confidenceScore: 48.0,
-        verifiedEvidenceJson: JSON.stringify({
-          weaknesses: ['Unbounded knapsack', 'State compression DP'],
-          recommendedActions: ['Solve Coin Change II', 'Target Sum'],
-        }),
+        verifiedEvidenceJson: JSON.stringify([
+          { repoFullName: 'leetcode/coin-change', prCount: 1, confidenceBand: 'Learning' },
+        ]),
       },
     });
 
@@ -411,11 +455,9 @@ async function main() {
         skillName: 'Rust',
         category: 'LANGUAGE',
         confidenceScore: 96.0,
-        verifiedEvidenceJson: JSON.stringify({
-          cratesPublished: 3,
-          mergedPRs: 28,
-          confidenceBand: 'Expert',
-        }),
+        verifiedEvidenceJson: JSON.stringify([
+          { repoFullName: 'tokio-rs/tokio', prCount: 28, confidenceBand: 'Expert' },
+        ]),
       },
     });
 

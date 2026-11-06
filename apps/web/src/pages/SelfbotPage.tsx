@@ -76,6 +76,14 @@ export function SelfbotPage() {
         </div>
       </div>
 
+      {/* Inactive Notice Banner */}
+      <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-800 flex items-center gap-2.5">
+        <ShieldAlert className="size-4 shrink-0 text-amber-600" />
+        <p className="font-medium">
+          Configuration only — not yet active. Automated background execution is currently disabled.
+        </p>
+      </div>
+
       {/* 2-Column Grid */}
       <div className="mt-6 grid gap-4 lg:grid-cols-[250px_1fr]">
         

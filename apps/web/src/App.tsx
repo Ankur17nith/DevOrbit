@@ -99,6 +99,33 @@ function AppContent() {
     }
   });
 
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const checkDb = async () => {
+      try {
+        const res = await fetch('/api/v1/system/health');
+        if (res.ok) {
+          const json = await res.json();
+          if (mounted) {
+            setDbConnected(json?.database?.status === 'connected');
+          }
+        } else {
+          if (mounted) setDbConnected(false);
+        }
+      } catch {
+        if (mounted) setDbConnected(false);
+      }
+    };
+    checkDb();
+    const interval = setInterval(checkDb, 30000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const toggleSidebarCollapse = () => {
     setSidebarCollapsed(prev => {
       const next = !prev;
@@ -281,10 +308,12 @@ function AppContent() {
         {/* Global DevOrbit Telemetry Bottom Bar (Figma Clean Footer) */}
         <footer className="h-7 bg-white border-t border-black/8 px-6 text-[10px] font-mono text-[#858993] flex items-center justify-between shrink-0 select-none z-20">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-emerald-600">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <Database className="size-3 text-emerald-600" />
-              <span className="font-sans font-medium text-[11px] text-[#0B0D12]">SQLite Connected</span>
+            <div className={`flex items-center gap-1.5 ${dbConnected === false ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <span className={`size-1.5 rounded-full ${dbConnected === false ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+              <Database className={`size-3 ${dbConnected === false ? 'text-rose-600' : 'text-emerald-600'}`} />
+              <span className="font-sans font-medium text-[11px] text-[#0B0D12]">
+                {dbConnected === null ? 'SQLite Connecting...' : dbConnected ? 'SQLite Connected' : 'SQLite Disconnected'}
+              </span>
             </div>
             <span className="text-black/10 hidden sm:inline">|</span>
             <div className="hidden sm:flex items-center gap-1 text-[#686D79]">
@@ -296,7 +325,7 @@ function AppContent() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 text-[#686D79]">
               <RefreshCw className="size-3 text-[#8B5CF6]" />
-              <span className="hidden sm:inline">Sync: Local First (Up to date)</span>
+              <span className="hidden sm:inline">Sync: Local First</span>
             </div>
             <span className="text-black/10 hidden lg:inline">|</span>
             <span className="hidden lg:inline text-[#858993]">DevOrbit OS v0.1.0</span>

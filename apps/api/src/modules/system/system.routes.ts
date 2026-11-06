@@ -10,27 +10,34 @@ let prevCpuUsage = process.cpuUsage();
 let prevCpuTime = Date.now();
 
 // Telemetry & Live Resource Status
-systemRouter.get('/status', (_req, res) => {
+systemRouter.get('/status', async (_req, res) => {
   const mem = process.memoryUsage();
   const currentCpuUsage = process.cpuUsage(prevCpuUsage);
   const now = Date.now();
   const timeDelta = (now - prevCpuTime) * 1000;
   const totalCpuTime = currentCpuUsage.user + currentCpuUsage.system;
   const cpuCores = Math.max(1, os.cpus().length);
-  const cpuPercent = timeDelta > 0 ? Math.min(100, Math.round((totalCpuTime / (timeDelta * cpuCores)) * 1000) / 10) : 0.8;
+  const cpuPercent = timeDelta > 0 ? Math.min(100, Math.round((totalCpuTime / (timeDelta * cpuCores)) * 1000) / 10) : 0;
 
   prevCpuUsage = process.cpuUsage();
   prevCpuTime = now;
 
+  let dbConnected = false;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbConnected = true;
+  } catch {
+    dbConnected = false;
+  }
+
   res.json({
     success: true,
     data: {
-      cpuPercent: Math.max(0.2, cpuPercent),
+      cpuPercent,
       memoryRssMb: Math.round((mem.rss / 1024 / 1024) * 10) / 10,
       memoryHeapMb: Math.round((mem.heapUsed / 1024 / 1024) * 10) / 10,
       uptimeSeconds: Math.round(process.uptime()),
-      dbConnected: true,
-      ecoMode: true,
+      dbConnected,
       platform: process.platform,
     },
   });

@@ -144,12 +144,6 @@ export class RecommendationEngine {
       }
     }
 
-    // Baseline fallback if user hasn't configured skills or preferred languages yet
-    if (skillConfidenceMap.size === 0) {
-      skillConfidenceMap.set('typescript', { confidence: 70, evidenceCount: 1, source: 'starter preference' });
-      skillConfidenceMap.set('javascript', { confidence: 70, evidenceCount: 1, source: 'starter preference' });
-    }
-
     const scoredList: ScoredOpportunity[] = [];
 
     for (const issue of candidateIssues) {

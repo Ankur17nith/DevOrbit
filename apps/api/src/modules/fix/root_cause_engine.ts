@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import fs from 'fs';
 import path from 'path';
 import { 
@@ -5,6 +6,7 @@ import {
   CodeContextLine, 
   ParsedError, 
   PatchProposal, 
+  PatchResult,
   RootCauseAnalysis, 
   StackFrame 
 } from './fix.types.js';
@@ -17,7 +19,6 @@ export class RootCauseEngine {
   public static analyze(parsed: ParsedError, workspaceRoot: string = NAVIGATOR_ROOT): RootCauseAnalysis {
     const frame = parsed.primaryFrame;
     const category = this.categorizeBug(parsed);
-    const confidence = this.computeConfidence(parsed, category);
 
     let codeContext: CodeContextLine[] = [];
     let affectedSymbol: string | undefined = frame?.functionName;
@@ -47,6 +48,7 @@ export class RootCauseEngine {
       }
     }
 
+    const confidence = this.computeConfidence(parsed, category, Boolean(safePath), codeContext.length);
     const { summary, explanation, recommendedAction } = this.generateExplanation(parsed, category, frame, codeContext);
 
     return {
@@ -64,42 +66,72 @@ export class RootCauseEngine {
   }
 
   /**
-   * Generate unified diff patch proposal
+   * Generate AST-based unified diff patch proposal.
+   * Modifies only the matching property access node for null dereferences.
+   * Returns { patch: null, reason } when no safe automatic patch exists.
    */
   public static proposePatch(
     analysis: RootCauseAnalysis,
     workspaceRoot: string = NAVIGATOR_ROOT
-  ): PatchProposal {
+  ): PatchResult {
     const filePath = analysis.filePath || 'src/index.ts';
     const lineNumber = analysis.lineNumber || 1;
-    const errorLineObj = analysis.codeContext.find(l => l.isErrorLine);
-    const originalLine = errorLineObj ? errorLineObj.content : '  const result = data.value;';
+    if (analysis.category !== 'NULL_UNDEFINED') {
+      return {
+        patch: null,
+        reason: `Automated patch generation is not safely applicable for category '${analysis.category}' without domain-level invariant knowledge.`,
+      };
+    }
 
+    // Extract target property from summary or explanation: e.g. "reading 'fullName'" or "reading 'name'"
+    const propMatch = (analysis.summary + ' ' + analysis.explanation).match(/reading ['"]([^'"]+)['"]/i) ||
+                      (analysis.summary + ' ' + analysis.explanation).match(/property ['"]([^'"]+)['"]/i);
+    const targetProperty = propMatch ? propMatch[1] : null;
+
+    if (!targetProperty) {
+      return {
+        patch: null,
+        reason: 'Cannot safely infer dereferenced property name from error diagnostic.',
+      };
+    }
+
+    const errorLineObj = analysis.codeContext.find(l => l.isErrorLine);
+    const originalLine = errorLineObj ? errorLineObj.content : `    const result = obj.${targetProperty};`;
     let patchedLine = originalLine;
     let explanation = '';
 
-    if (analysis.category === 'NULL_UNDEFINED') {
-      // Apply safe navigation / optional chaining or nullish coalescing
-      if (originalLine.includes('.') && !originalLine.includes('?.')) {
-        // e.g. foo.bar -> foo?.bar
-        patchedLine = originalLine.replace(/([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)/g, '$1?.$2');
-        explanation = 'Added optional chaining (?.) to prevent undefined dereference.';
-      } else {
-        patchedLine = `${originalLine.trimEnd()} ?? defaultValue;`;
-        explanation = 'Added nullish coalescing fallback default.';
+    // Parse with TypeScript AST
+    const sourceFile = ts.createSourceFile('snippet.ts', originalLine, ts.ScriptTarget.Latest, true);
+    let matchedNode: ts.PropertyAccessExpression | null = null;
+
+    const visit = (node: ts.Node) => {
+      if (ts.isPropertyAccessExpression(node) && node.name.text === targetProperty) {
+        if (node.questionDotToken === undefined) {
+          matchedNode = node;
+        }
       }
-    } else if (analysis.category === 'ASSERTION_FAILURE') {
-      if (originalLine.includes('toBe(') || originalLine.includes('toEqual(')) {
-        explanation = 'Aligned assertion condition with updated state or schema expectation.';
-      } else {
-        explanation = 'Safeguarded test condition.';
-      }
-    } else if (analysis.category === 'OUT_OF_BOUNDS') {
-      const leadingSpace = originalLine.match(/^\s*/)?.[0] || '';
-      patchedLine = `${leadingSpace}if (index >= 0 && index < items.length) {\n${originalLine}\n${leadingSpace}}`;
-      explanation = 'Added bounds checking guard before array/slice access.';
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    if (!matchedNode) {
+      return {
+        patch: null,
+        reason: `No matching property access node found for property '${targetProperty}' on error line.`,
+      };
+    }
+
+    // Safe modification: insert ?. before the property name
+    const exprEnd = (matchedNode as ts.PropertyAccessExpression).expression.end;
+    const dotAndName = originalLine.slice(exprEnd, (matchedNode as ts.PropertyAccessExpression).end);
+    if (dotAndName.startsWith('.')) {
+      patchedLine = originalLine.slice(0, exprEnd) + '?.' + dotAndName.slice(1) + originalLine.slice((matchedNode as ts.PropertyAccessExpression).end);
+      explanation = `Added optional chaining (?.) to '${targetProperty}' to prevent null or undefined dereference.`;
     } else {
-      explanation = 'Applied defensive typing and runtime validation check.';
+      return {
+        patch: null,
+        reason: `Property access syntax for '${targetProperty}' is not standard dot access.`,
+      };
     }
 
     // Build unified diff
@@ -112,7 +144,7 @@ export class RootCauseEngine {
       `+${patchedLine}`,
     ].join('\n');
 
-    return {
+    const patch: PatchProposal = {
       id: `patch-${Date.now()}`,
       filePath: relativePath,
       unifiedDiff: diff,
@@ -120,6 +152,11 @@ export class RootCauseEngine {
       patchedSnippet: patchedLine,
       explanation,
       confidence: analysis.confidence,
+    };
+
+    return {
+      patch,
+      ...patch,
     };
   }
 
@@ -177,15 +214,41 @@ export class RootCauseEngine {
   }
 
   /**
-   * Compute diagnosis confidence
+   * Compute diagnosis confidence using documented heuristic factors:
+   * Factor 1: Error category specificity (0 - 30)
+   * Factor 2: Stack frame accuracy & line location (0 - 25)
+   * Factor 3: Workspace source file presence on disk (0 - 25)
+   * Factor 4: Extracted surrounding source context (0 - 20)
    */
-  private static computeConfidence(parsed: ParsedError, category: BugCategory): number {
-    if (category === 'NULL_UNDEFINED') return 95;
-    if (category === 'ASSERTION_FAILURE') return 92;
-    if (category === 'OUT_OF_BOUNDS') return 90;
-    if (category === 'TYPE_MISMATCH') return 88;
-    if (category === 'SYNTAX_OR_IMPORT') return 85;
-    return 65;
+  private static computeConfidence(
+    parsed: ParsedError,
+    category: BugCategory,
+    hasFileOnDisk: boolean,
+    contextLineCount: number
+  ): number {
+    let score = 0;
+
+    // Factor 1: Category specificity
+    if (category === 'NULL_UNDEFINED') score += 40;
+    else if (category === 'TYPE_MISMATCH' || category === 'SYNTAX_OR_IMPORT') score += 30;
+    else if (category === 'ASSERTION_FAILURE' || category === 'OUT_OF_BOUNDS') score += 25;
+    else score += 15;
+
+    // Factor 2: Stack frame accuracy
+    if (parsed.primaryFrame) {
+      if (parsed.primaryFrame.lineNumber > 0) score += 25;
+      if (parsed.primaryFrame.columnNumber > 0) score += 15;
+      if (parsed.primaryFrame.functionName) score += 10;
+    }
+
+    // Factor 3: Workspace file presence
+    if (hasFileOnDisk) score += 10;
+
+    // Factor 4: Surrounding code context lines
+    if (contextLineCount >= 3) score += 10;
+    else if (contextLineCount > 0) score += 5;
+
+    return Math.min(100, Math.max(20, score));
   }
 
   /**
@@ -234,8 +297,8 @@ export class RootCauseEngine {
     switch (category) {
       case 'NULL_UNDEFINED':
         return {
-          summary: `Null/Undefined dereference at ${loc}`,
-          explanation: `The property or method was accessed on an object that evaluates to null or undefined at runtime${errorLineContent ? `: \`${errorLineContent}\`` : ''}.`,
+          summary: `Null/Undefined dereference at ${loc}: ${parsed.message}`,
+          explanation: `The property or method was accessed on an object that evaluates to null or undefined at runtime${errorLineContent ? `: \`${errorLineContent}\`` : ''}. Diagnostic: ${parsed.message}.`,
           recommendedAction: `Apply optional chaining (?.) or verify that the value is populated before accessing nested members.`,
         };
       case 'ASSERTION_FAILURE':

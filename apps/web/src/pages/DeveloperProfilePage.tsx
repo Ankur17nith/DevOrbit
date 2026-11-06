@@ -44,6 +44,7 @@ interface ContributionMetrics {
   activeStreak: number;
   longestStreak: number;
   lastCalculatedAt: string;
+  source?: string;
 }
 
 interface HeatmapPoint {
@@ -495,7 +496,9 @@ export function DeveloperProfilePage() {
             <span>Verified Commits</span>
             <GitCommit className="size-3.5 text-[#8B5CF6]" />
           </div>
-          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">{metrics?.totalCommits || 0}</p>
+          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Not available' : metrics.totalCommits}
+          </p>
           <p className="mt-1 text-[9px] text-[#858993]">Across {repositories.length} repositories</p>
         </div>
 
@@ -504,8 +507,12 @@ export function DeveloperProfilePage() {
             <span>Pull Requests</span>
             <GitPullRequest className="size-3.5 text-[#8B5CF6]" />
           </div>
-          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">{metrics?.totalPullRequests || 0}</p>
-          <p className="mt-1 text-[9px] text-[#858993]">{metrics?.mergedPullRequests || 0} merged into main</p>
+          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Not available' : metrics.totalPullRequests}
+          </p>
+          <p className="mt-1 text-[9px] text-[#858993]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Requires GitHub connection' : `${metrics.mergedPullRequests || 0} merged into main`}
+          </p>
         </div>
 
         <div className="rounded-xl border border-black/7 bg-white p-4">
@@ -513,7 +520,9 @@ export function DeveloperProfilePage() {
             <span>PR Merge Velocity</span>
             <GitBranch className="size-3.5 text-[#8B5CF6]" />
           </div>
-          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">{metrics?.mergeRate || 0}%</p>
+          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Not available' : `${metrics.mergeRate}%`}
+          </p>
           <p className="mt-1 text-[9px] text-[#858993]">Acceptance efficiency</p>
         </div>
 
@@ -522,8 +531,12 @@ export function DeveloperProfilePage() {
             <span>Continuous Streak</span>
             <Flame className="size-3.5 text-[#8B5CF6]" />
           </div>
-          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">{metrics?.activeStreak || 0}d</p>
-          <p className="mt-1 text-[9px] text-[#858993]">Longest: {metrics?.longestStreak || 0} days</p>
+          <p className="mt-5 text-2xl font-semibold text-[#0B0D12]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Not available' : `${metrics.activeStreak}d`}
+          </p>
+          <p className="mt-1 text-[9px] text-[#858993]">
+            {metrics?.source === 'unavailable' || !metrics ? 'Requires GitHub connection' : `Longest: ${metrics.longestStreak || 0} days`}
+          </p>
         </div>
       </div>
 
@@ -547,17 +560,23 @@ export function DeveloperProfilePage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto pt-4 [scrollbar-width:none]">
-          <div className="inline-grid grid-rows-7 grid-flow-col gap-1 min-w-[760px]">
-            {heatmap.map((pt, i) => (
-              <div
-                key={pt.date || i}
-                title={`${pt.date}: ${pt.count} verified contributions`}
-                className={`size-2.5 rounded-xs border transition-transform hover:scale-125 cursor-pointer ${getHeatmapColor(pt.level)}`}
-              />
-            ))}
+        {heatmap && heatmap.length > 0 ? (
+          <div className="overflow-x-auto pt-4 [scrollbar-width:none]">
+            <div className="inline-grid grid-rows-7 grid-flow-col gap-1 min-w-[760px]">
+              {heatmap.map((pt, i) => (
+                <div
+                  key={pt.date || i}
+                  title={`${pt.date}: ${pt.count} verified contributions`}
+                  className={`size-2.5 rounded-xs border transition-transform hover:scale-125 cursor-pointer ${getHeatmapColor(pt.level)}`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="py-8 text-center text-xs text-[#858993]">
+            Contribution calendar not available. Connect your GitHub account with read:user scope to view activity.
+          </div>
+        )}
       </section>
 
       {/* 6. Multi-Source Evidence Skills & Repositories */}

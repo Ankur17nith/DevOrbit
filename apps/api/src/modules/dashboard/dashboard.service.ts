@@ -121,6 +121,8 @@ export class DashboardService {
         independentSolves,
         assistedSolves,
         totalReposCount: topRepos.length,
+        connectedIntegrations: credentials.length,
+        indexedProjects: topRepos.length,
         totalCommits: contributionMetric?.totalCommits || 0,
         mergeRate: contributionMetric?.mergeRate || 0,
         activeStreak: contributionMetric?.activeStreak || 0,

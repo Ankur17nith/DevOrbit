@@ -48,6 +48,21 @@ export class GSoCProvider implements PlatformProvider {
       }),
     ]);
 
+    // Query real repositories matching these orgs
+    const orgSlugs = orgs.map(o => o.slug);
+    const realRepos = await prisma.ossRepository.findMany({
+      where: {
+        owner: { in: orgSlugs },
+      },
+    });
+
+    const reposByOwner = new Map<string, typeof realRepos>();
+    for (const r of realRepos) {
+      const list = reposByOwner.get(r.owner) || [];
+      list.push(r);
+      reposByOwner.set(r.owner, list);
+    }
+
     const mappedOrgs: NormalizedOrganization[] = orgs.map(o => {
       let technologies: string[] = [];
       let participationYears: number[] = [];
@@ -58,8 +73,8 @@ export class GSoCProvider implements PlatformProvider {
         if (o.participationYearsJson) participationYears = JSON.parse(o.participationYearsJson);
       } catch {}
 
-      // Verified website check - never guess broken summerofcode archive links
       const websiteUrl = o.website && o.website.startsWith('http') ? o.website : null;
+      const orgRepos = reposByOwner.get(o.slug) || [];
 
       return {
         id: o.id,
@@ -71,17 +86,19 @@ export class GSoCProvider implements PlatformProvider {
         verifiedPlatforms: ['GSOC'],
         technologies,
         topics: technologies.slice(0, 5),
-        openOpportunitiesCount: Math.max(1, Math.min(15, Math.ceil(o.totalProjects / 3))),
-        repositories: [
-          {
-            fullName: `${o.slug}/${o.slug}`,
-            description: `Primary codebase for ${o.name}`,
-            primaryLanguage: technologies[0] || 'TypeScript',
-          },
-        ],
+        openOpportunitiesCount: 0,
+        repositories: orgRepos.map(r => ({
+          fullName: r.fullName,
+          name: r.name,
+          owner: r.owner,
+          description: r.description || undefined,
+          primaryLanguage: r.language || undefined,
+          stars: r.stargazersCount,
+          forks: r.forksCount,
+        })),
         recentActivitySummary: `${o.totalProjects} open source mentorship projects completed.`,
         sourceProvenance: 'gsoc_archive',
-        hasBeginnerIssues: true,
+        hasBeginnerIssues: false,
         participationYears,
         totalProjects: o.totalProjects,
       };
@@ -110,6 +127,20 @@ export class GSoCProvider implements PlatformProvider {
 
     const websiteUrl = org.website && org.website.startsWith('http') ? org.website : null;
 
+    // Find real repositories
+    const realRepos = await prisma.ossRepository.findMany({
+      where: { owner: org.slug },
+    });
+
+    // Check if beginner issues exist
+    const beginnerIssuesCount = await prisma.ossIssue.count({
+      where: {
+        state: 'open',
+        repository: { owner: org.slug },
+        labelsJson: { contains: 'good first issue' },
+      },
+    });
+
     return {
       id: org.id,
       slug: org.slug,
@@ -120,17 +151,19 @@ export class GSoCProvider implements PlatformProvider {
       verifiedPlatforms: ['GSOC'],
       technologies,
       topics: technologies.slice(0, 5),
-      openOpportunitiesCount: Math.max(1, Math.min(15, Math.ceil(org.totalProjects / 3))),
-      repositories: [
-        {
-          fullName: `${org.slug}/${org.slug}`,
-          description: `Primary codebase for ${org.name}`,
-          primaryLanguage: technologies[0] || 'TypeScript',
-        },
-      ],
+      openOpportunitiesCount: beginnerIssuesCount,
+      repositories: realRepos.map(r => ({
+        fullName: r.fullName,
+        name: r.name,
+        owner: r.owner,
+        description: r.description || undefined,
+        primaryLanguage: r.language || undefined,
+        stars: r.stargazersCount,
+        forks: r.forksCount,
+      })),
       recentActivitySummary: `${org.totalProjects} open source mentorship projects completed.`,
       sourceProvenance: 'gsoc_archive',
-      hasBeginnerIssues: true,
+      hasBeginnerIssues: beginnerIssuesCount > 0,
       participationYears,
       totalProjects: org.totalProjects,
     };

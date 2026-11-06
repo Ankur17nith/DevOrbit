@@ -4,7 +4,7 @@ import { DependencyAuditItem, EngineeringQualityReport } from './safechange.type
 
 export class DependencyGuardian {
   /**
-   * Audit workspace dependencies and compute test-to-code quality metrics
+   * Audit workspace dependencies and compute test-to-code quality metrics across apps/api and apps/web
    */
   public static audit(workspaceRoot?: string): EngineeringQualityReport {
     const dependencies: DependencyAuditItem[] = [];
@@ -23,7 +23,7 @@ export class DependencyGuardian {
       path.resolve(process.cwd(), 'package.json'),
     ];
 
-    const seenPackages = new Set<string>();
+    const seenPackages = new Map<string, { version: string; category: 'production' | 'development' }>();
 
     packageFiles.forEach(pkgPath => {
       if (fs.existsSync(pkgPath)) {
@@ -33,13 +33,9 @@ export class DependencyGuardian {
           if (pkg.dependencies) {
             Object.entries(pkg.dependencies).forEach(([name, version]) => {
               if (!seenPackages.has(name)) {
-                seenPackages.add(name);
-                dependencies.push({
-                  packageName: name,
-                  currentVersion: String(version).replace(/[\^~]/, ''),
+                seenPackages.set(name, {
+                  version: String(version).replace(/[\^~]/, ''),
                   category: 'production',
-                  license: 'MIT',
-                  status: 'STABLE',
                 });
               }
             });
@@ -48,13 +44,9 @@ export class DependencyGuardian {
           if (pkg.devDependencies) {
             Object.entries(pkg.devDependencies).forEach(([name, version]) => {
               if (!seenPackages.has(name)) {
-                seenPackages.add(name);
-                dependencies.push({
-                  packageName: name,
-                  currentVersion: String(version).replace(/[\^~]/, ''),
+                seenPackages.set(name, {
+                  version: String(version).replace(/[\^~]/, ''),
                   category: 'development',
-                  license: 'MIT',
-                  status: 'STABLE',
                 });
               }
             });
@@ -65,56 +57,101 @@ export class DependencyGuardian {
       }
     });
 
-    // 2. Measure Test Volume vs Source Volume
-    let totalSourceLines = 0;
-    let totalTestLines = 0;
-    let totalTestSuites = 0;
+    // Inspect real licenses from node_modules
+    for (const [name, meta] of seenPackages.entries()) {
+      let license = 'UNKNOWN';
+      const candidatePaths = [
+        path.join(root, 'node_modules', name, 'package.json'),
+        path.join(root, 'apps/api/node_modules', name, 'package.json'),
+        path.join(root, 'apps/web/node_modules', name, 'package.json'),
+      ];
 
-    const candidateTestDirs = [
-      path.join(root, 'apps/api/src/tests'),
-      path.join(root, 'src/tests'),
-      path.resolve(process.cwd(), 'src/tests'),
-    ];
-    const testDir = candidateTestDirs.find(d => fs.existsSync(d)) || '';
-
-    if (testDir) {
-      const files = fs.readdirSync(testDir);
-      files.forEach(f => {
-        if (f.endsWith('.test.ts')) {
-          totalTestSuites++;
-          const content = fs.readFileSync(path.join(testDir, f), 'utf8');
-          totalTestLines += content.split('\n').length;
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const installedPkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (typeof installedPkg.license === 'string') {
+              license = installedPkg.license;
+            } else if (installedPkg.license && typeof installedPkg.license.type === 'string') {
+              license = installedPkg.license.type;
+            } else if (Array.isArray(installedPkg.licenses) && installedPkg.licenses[0]?.type) {
+              license = installedPkg.licenses[0].type;
+            }
+            break;
+          } catch {}
         }
+      }
+
+      dependencies.push({
+        packageName: name,
+        currentVersion: meta.version,
+        category: meta.category,
+        license,
+        status: 'UNKNOWN',
       });
     }
 
-    // Estimate total source lines
-    const candidateSrcDirs = [
-      path.join(root, 'apps/api/src'),
-      path.join(root, 'src'),
-      path.resolve(process.cwd(), 'src'),
+    // 2. Measure Test Volume & Count Tests across both API and Web
+    let totalSourceLines = 0;
+    let totalTestLines = 0;
+    let totalTestSuites = 0;
+    let totalAutomatedTests = 0;
+
+    const testDirs = [
+      path.join(root, 'apps/api/src/tests'),
+      path.join(root, 'apps/web/src/tests'),
     ];
-    const apiSrcDir = candidateSrcDirs.find(d => fs.existsSync(d)) || '';
-    const scanLines = (dir: string) => {
+
+    const scanTestFiles = (dir: string) => {
       if (!fs.existsSync(dir)) return;
       const entries = fs.readdirSync(dir, { withFileTypes: true });
-      entries.forEach(e => {
-        const full = path.join(dir, e.name);
-        if (e.isDirectory() && e.name !== 'tests' && !e.name.startsWith('.')) {
-          scanLines(full);
-        } else if (e.isFile() && (e.name.endsWith('.ts') || e.name.endsWith('.tsx'))) {
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          scanTestFiles(full);
+        } else if (entry.isFile() && (entry.name.endsWith('.test.ts') || entry.name.endsWith('.test.tsx') || entry.name.endsWith('.spec.ts') || entry.name.endsWith('.spec.tsx'))) {
+          totalTestSuites++;
+          try {
+            const content = fs.readFileSync(full, 'utf8');
+            totalTestLines += content.split('\n').length;
+            const matches = content.match(/\b(it|test)\s*\(/g);
+            if (matches) {
+              totalAutomatedTests += matches.length;
+            }
+          } catch {}
+        }
+      }
+    };
+
+    testDirs.forEach(d => scanTestFiles(d));
+
+    // 3. Estimate Total Source Lines across both API and Web
+    const srcDirs = [
+      path.join(root, 'apps/api/src'),
+      path.join(root, 'apps/web/src'),
+    ];
+
+    const scanSourceLines = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory() && entry.name !== 'tests' && !entry.name.startsWith('.')) {
+          scanSourceLines(full);
+        } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
           try {
             const content = fs.readFileSync(full, 'utf8');
             totalSourceLines += content.split('\n').length;
           } catch {}
         }
-      });
+      }
     };
-    scanLines(apiSrcDir);
+
+    srcDirs.forEach(d => scanSourceLines(d));
 
     const testToCodeRatio = totalSourceLines > 0
       ? Math.round((totalTestLines / totalSourceLines) * 100)
-      : 35;
+      : 0;
 
     // Technical Debt Score (0 - 100, lower is better)
     let techDebtScore = 12; // Baseline low tech debt
@@ -129,7 +166,7 @@ export class DependencyGuardian {
       totalTestLines,
       testToCodeRatio,
       totalTestSuites,
-      totalAutomatedTests: 50,
+      totalAutomatedTests,
       techDebtScore,
       healthGrade,
       dependencies: dependencies.slice(0, 30),

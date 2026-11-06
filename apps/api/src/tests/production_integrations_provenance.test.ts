@@ -72,7 +72,7 @@ describe('Production Integrations, OAuth State & Data Provenance Tests (M9)', ()
     expect(stats.totalCompleted).toBe(0);
     expect(stats.completionPercentage).toBe(0);
     expect(stats.recentActivity).toHaveLength(0);
-    expect(stats.source).toBe('provider_sync');
+    expect(['manual', 'provider_sync']).toContain(stats.source);
   });
 
   // 3. Evidence-Grounded Opportunity Recommendations

@@ -46,6 +46,7 @@ export function OrbitFixPage() {
   const [samples, setSamples] = useState<Array<{ name: string; category: string; log: string }>>([]);
   const [analysis, setAnalysis] = useState<RootCauseAnalysis | null>(null);
   const [patch, setPatch] = useState<PatchProposal | null>(null);
+  const [patchReason, setPatchReason] = useState<string | null>(null);
   const [verification, setVerification] = useState<any | null>(null);
 
   const [analyzing, setAnalyzing] = useState<boolean>(false);
@@ -114,7 +115,8 @@ export function OrbitFixPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setPatch(json.data.patch);
+        setPatch(json.data.patch || null);
+        setPatchReason(json.data.reason || null);
       }
     } catch (err) {
       console.error('Patch generation failed:', err);
@@ -361,8 +363,15 @@ export function OrbitFixPage() {
             )}
           </div>
         ) : (
-          <div className="min-h-48 bg-[#11141B] p-5 font-mono text-[9px] text-white/25 flex items-center justify-center text-center">
-            A unified diff will appear here. Applying a patch always requires confirmation.
+          <div className="min-h-48 bg-[#11141B] p-5 font-mono text-[9px] text-white/50 flex flex-col items-center justify-center text-center max-w-lg mx-auto">
+            {patchReason ? (
+              <>
+                <span className="text-[#8B5CF6] font-semibold mb-1">Notice</span>
+                <span>{patchReason}</span>
+              </>
+            ) : (
+              <span className="text-white/25">A unified diff will appear here. Applying a patch always requires confirmation.</span>
+            )}
           </div>
         )}
       </section>

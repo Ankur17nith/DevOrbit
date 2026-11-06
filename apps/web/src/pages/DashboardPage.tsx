@@ -78,7 +78,11 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Workspace overview</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#0B0D12]">
-            Good morning, {user?.name || user?.username || 'Developer'}.
+            {(() => {
+              const hour = new Date().getHours();
+              const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+              return `${greeting}, ${user?.name || user?.username || 'Developer'}.`;
+            })()}
           </h2>
           <p className="mt-2 text-xs leading-5 text-[#686D79]">Your developer workspace at a glance.</p>
         </div>
@@ -101,13 +105,13 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
           </p>
         </div>
 
-        {/* KPI 2: Tracked problems */}
+        {/* KPI 2: Solved problems */}
         <div 
           onClick={() => onNavigate('dsa')} 
           className="rounded-xl border border-black/7 bg-white p-4 cursor-pointer hover:border-black/20 transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Tracked problems</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#9699A1]">Solved problems</span>
             <BookOpen className="size-3.5 text-[#8B5CF6]" />
           </div>
           <p className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[#0B0D12]">{solvedCount}</p>

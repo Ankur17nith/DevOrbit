@@ -154,13 +154,11 @@ export class OrganizationService {
       throw new NotFoundError(`Organization '${idOrSlug}' not found across verified platforms`);
     }
 
-    // Construct authentic mentorship history
-    const mentorshipHistory = (matchedOrg.participationYears || [2024]).map(year => ({
+    // Construct authentic mentorship history from real participation years
+    const mentorshipHistory = (matchedOrg.participationYears || []).map(year => ({
       platform: matchedOrg!.verifiedPlatforms[0] || 'GSOC',
       programName: `${matchedOrg!.verifiedPlatforms[0] || 'Open Source'} ${year}`,
       year,
-      projectCount: Math.max(1, Math.ceil(matchedOrg!.totalProjects / Math.max(1, matchedOrg!.participationYears.length))),
-      stipendEligible: true,
     }));
 
     // Find real issues linked to this organization or its repositories

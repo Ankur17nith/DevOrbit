@@ -210,6 +210,83 @@ export class GitHubClient {
       return {};
     }
   }
+
+  /**
+   * Fetches genuine contribution calendar and counts via GitHub GraphQL API.
+   * Requires token with read:user or public access.
+   */
+  async fetchContributionCalendar(
+    token: string,
+    username: string
+  ): Promise<{
+    totalContributions: number;
+    totalCommitContributions: number;
+    totalPullRequestContributions: number;
+    totalPullRequestReviewContributions: number;
+    weeks: Array<{
+      contributionDays: Array<{
+        date: string;
+        contributionCount: number;
+        weekday: number;
+      }>;
+    }>;
+  } | null> {
+    try {
+      const query = `
+        query($login: String!) {
+          user(login: $login) {
+            contributionsCollection {
+              totalCommitContributions
+              totalPullRequestContributions
+              totalPullRequestReviewContributions
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                    weekday
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const res = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'DevOrbit-Platform/1.0',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, variables: { login: username } }),
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const body = (await res.json()) as any;
+      const collection = body?.data?.user?.contributionsCollection;
+      if (!collection || !collection.contributionCalendar) {
+        return null;
+      }
+
+      return {
+        totalContributions: collection.contributionCalendar.totalContributions ?? 0,
+        totalCommitContributions: collection.totalCommitContributions ?? 0,
+        totalPullRequestContributions: collection.totalPullRequestContributions ?? 0,
+        totalPullRequestReviewContributions: collection.totalPullRequestReviewContributions ?? 0,
+        weeks: collection.contributionCalendar.weeks ?? [],
+      };
+    } catch {
+      return null;
+    }
+  }
 }
 
 export const githubClient = new GitHubClient();
+

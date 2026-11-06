@@ -376,7 +376,7 @@ export function IntegrationCenterPage() {
       methodLabel: 'Progress Import',
       description: "Striver's A2Z DSA sheet progress and curriculum checkpoints",
       detail: integrationsData?.tuf?.connected
-        ? `Completed: ${integrationsData.tuf.completedProblems ?? 0}/455 problems • ${integrationsData.tuf.currentStep || 'In progress'}`
+        ? `Completed: ${integrationsData.tuf.completedProblems ?? 0}/${integrationsData.tuf.totalProblems || 0} problems • ${integrationsData.tuf.currentStep || 'In progress'}`
         : 'Zero baseline verification: progress begins at zero until explicitly imported.',
       isConnected: Boolean(integrationsData?.tuf?.connected),
       icon: (
@@ -390,6 +390,23 @@ export function IntegrationCenterPage() {
       },
       onSync: () => handleSyncService('tuf'),
       onDisconnect: () => handleDisconnectService('tuf'),
+    },
+    {
+      id: 'dsa-sheets',
+      name: 'DSA Curriculums',
+      category: 'Curriculum Tracking',
+      methodLabel: 'Curriculum Tracking',
+      description: 'Canonical problem sets from NeetCode 150 and Striver SDE',
+      detail: 'Manual problem tracking for canonical curriculum manifests.',
+      isConnected: false,
+      icon: (
+        <span className="flex size-10 items-center justify-center rounded-lg bg-[#F0EDFA] text-[#8B5CF6]">
+          <Database className="size-5" />
+        </span>
+      ),
+      onConnect: undefined,
+      onSync: undefined,
+      onDisconnect: undefined,
     },
     {
       id: 'ollama',
@@ -408,23 +425,6 @@ export function IntegrationCenterPage() {
       ),
       onConnect: copyOllamaCmd,
       onSync: fetchIntegrations,
-      onDisconnect: undefined,
-    },
-    {
-      id: 'dsa-sheets',
-      name: 'DSA Curriculums',
-      category: 'Import',
-      methodLabel: 'Import',
-      description: 'Canonical problem sets from NeetCode 150 and Striver SDE',
-      detail: 'Imports structured problem manifests with difficulty and platform IDs.',
-      isConnected: true,
-      icon: (
-        <span className="flex size-10 items-center justify-center rounded-lg bg-[#F0EDFA] text-[#8B5CF6]">
-          <Database className="size-5" />
-        </span>
-      ),
-      onConnect: () => setActiveModal('dsa-sheets'),
-      onSync: undefined,
       onDisconnect: undefined,
     },
   ];
@@ -752,11 +752,13 @@ export function IntegrationCenterPage() {
 
             <div className="space-y-3">
               <label className="block">
-                <span className="text-xs font-medium text-[#11141B] block mb-1">Completed Problems (out of 455)</span>
+                <span className="text-xs font-medium text-[#11141B] block mb-1">
+                  Completed Problems (out of {integrationsData?.tuf?.totalProblems || 0})
+                </span>
                 <input
                   type="number"
                   min="0"
-                  max="455"
+                  max={String(integrationsData?.tuf?.totalProblems || 1000)}
                   value={tufCompleted}
                   onChange={e => setTufCompleted(Number(e.target.value))}
                   className="h-9 w-full rounded-md border border-black/8 bg-[#F7F7F8] px-3 text-xs text-[#11141B] focus:border-[#8B5CF6] focus:bg-white focus:outline-none"
@@ -791,48 +793,6 @@ export function IntegrationCenterPage() {
               <Button variant="primary" size="sm" disabled={modalLoading} onClick={handleSaveTufProgress}>
                 {modalLoading ? 'Saving...' : 'Save Progress'}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* DSA Sheets Modal */}
-      {activeModal === 'dsa-sheets' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-start justify-between border-b border-black/7 pb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-[#11141B]">Import DSA Sheet</h3>
-                <p className="text-xs text-[#686D79] mt-0.5">Load canonical problem sets into your tracker</p>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="p-1 rounded-md text-[#999CA3] hover:text-[#11141B]">
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                { name: 'NeetCode 150', count: '150 problems', desc: 'Core patterns covering all interview essentials' },
-                { name: "Striver's SDE Sheet", count: '191 problems', desc: 'Top product-based company interview questions' },
-                { name: 'Blind 75', count: '75 problems', desc: 'High-frequency classic coding interview problems' },
-              ].map(sheet => (
-                <div key={sheet.name} className="p-3 rounded-xl border border-black/7 bg-[#F7F7F8] flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold text-[#11141B]">{sheet.name}</h4>
-                    <p className="text-[10px] text-[#686D79] mt-0.5">{sheet.desc}</p>
-                  </div>
-                  <Button variant="secondary" size="sm" onClick={() => {
-                    alert(`${sheet.name} manifest loaded into your DSA tracker!`);
-                    setActiveModal(null);
-                  }}>
-                    Import
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-black/7 flex items-center justify-end">
-              <Button variant="secondary" size="sm" onClick={() => setActiveModal(null)}>Close</Button>
             </div>
           </div>
         </div>

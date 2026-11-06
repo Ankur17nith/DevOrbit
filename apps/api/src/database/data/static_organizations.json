@@ -1,0 +1,976 @@
+{
+  "OUTREACHY": {
+    "source": "OUTREACHY Curated Directory",
+    "retrievedAt": "2026-03-01T00:00:00.000Z",
+    "organizations": [
+      {
+        "id": "outreachy-mozilla",
+        "slug": "mozilla",
+        "name": "Mozilla",
+        "description": "Mozilla is a global non-profit dedicated to keeping the Internet open and accessible to all.",
+        "websiteUrl": "https://www.mozilla.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/131524?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY",
+          "GSOC"
+        ],
+        "technologies": [
+          "Rust",
+          "JavaScript",
+          "C++",
+          "Python",
+          "WebAssembly"
+        ],
+        "topics": [
+          "web",
+          "browsers",
+          "privacy",
+          "standards",
+          "security"
+        ],
+        "openOpportunitiesCount": 6,
+        "repositories": [
+          {
+            "fullName": "mozilla/gecko-dev",
+            "description": "Firefox source code mirror",
+            "stars": 7400,
+            "primaryLanguage": "C++"
+          },
+          {
+            "fullName": "mozilla/pdf.js",
+            "description": "PDF Reader in JavaScript",
+            "stars": 46000,
+            "primaryLanguage": "JavaScript"
+          }
+        ],
+        "recentActivitySummary": "Active mentorship rounds for Firefox internals, DevTools, and privacy modules.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 18
+      },
+      {
+        "id": "outreachy-wikimedia",
+        "slug": "wikimedia",
+        "name": "Wikimedia Foundation",
+        "description": "Empowers free knowledge projects including Wikipedia, Wikidata, and MediaWiki.",
+        "websiteUrl": "https://www.wikimedia.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/566087?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY",
+          "GSOC"
+        ],
+        "technologies": [
+          "PHP",
+          "Python",
+          "JavaScript",
+          "Vue",
+          "MediaWiki"
+        ],
+        "topics": [
+          "education",
+          "knowledge",
+          "distributed-data",
+          "i18n"
+        ],
+        "openOpportunitiesCount": 4,
+        "repositories": [
+          {
+            "fullName": "wikimedia/mediawiki",
+            "description": "Core software behind Wikipedia",
+            "stars": 3900,
+            "primaryLanguage": "PHP"
+          }
+        ],
+        "recentActivitySummary": "Mentoring contributors across MediaWiki extensions and internationalization tooling.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 22
+      },
+      {
+        "id": "outreachy-gnome",
+        "slug": "gnome",
+        "name": "GNOME Project",
+        "description": "An open-source desktop environment and application suite for UNIX-like systems.",
+        "websiteUrl": "https://www.gnome.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/23579?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY",
+          "GSOC"
+        ],
+        "technologies": [
+          "C",
+          "Rust",
+          "Python",
+          "GTK",
+          "Vala"
+        ],
+        "topics": [
+          "desktop",
+          "linux",
+          "ui",
+          "accessibility"
+        ],
+        "openOpportunitiesCount": 5,
+        "repositories": [
+          {
+            "fullName": "GNOME/gnome-shell",
+            "description": "Core user interface of GNOME",
+            "stars": 2200,
+            "primaryLanguage": "C"
+          },
+          {
+            "fullName": "GNOME/gtk",
+            "description": "Multi-platform toolkit for graphical user interfaces",
+            "stars": 5100,
+            "primaryLanguage": "C"
+          }
+        ],
+        "recentActivitySummary": "Mentorship in GTK4 application modernizations and accessibility features.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2019,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 14
+      },
+      {
+        "id": "outreachy-tor",
+        "slug": "tor-project",
+        "name": "The Tor Project",
+        "description": "Defending human rights and privacy through free and open source anonymity technologies.",
+        "websiteUrl": "https://www.torproject.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/29729?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY",
+          "GSOC"
+        ],
+        "technologies": [
+          "Rust",
+          "C",
+          "Python",
+          "Android"
+        ],
+        "topics": [
+          "security",
+          "privacy",
+          "cryptography",
+          "networking"
+        ],
+        "openOpportunitiesCount": 3,
+        "repositories": [
+          {
+            "fullName": "torproject/arti",
+            "description": "Next-generation Tor client in Rust",
+            "stars": 2100,
+            "primaryLanguage": "Rust"
+          }
+        ],
+        "recentActivitySummary": "Arti Rust core development and anti-censorship metrics.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 11
+      },
+      {
+        "id": "outreachy-wagtail",
+        "slug": "wagtail",
+        "name": "Wagtail CMS",
+        "description": "The powerful open source Django Content Management System built for accessibility and scale.",
+        "websiteUrl": "https://wagtail.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/6045981?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY"
+        ],
+        "technologies": [
+          "Python",
+          "Django",
+          "TypeScript",
+          "React"
+        ],
+        "topics": [
+          "cms",
+          "web",
+          "accessibility",
+          "publishing"
+        ],
+        "openOpportunitiesCount": 4,
+        "repositories": [
+          {
+            "fullName": "wagtail/wagtail",
+            "description": "A Django content management system",
+            "stars": 18200,
+            "primaryLanguage": "Python"
+          }
+        ],
+        "recentActivitySummary": "Accessibility audits, rich text editor modernization, and dark theme UI.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 8
+      },
+      {
+        "id": "outreachy-oppia",
+        "slug": "oppia",
+        "name": "Oppia Foundation",
+        "description": "Making education accessible through effective interactive learning experiences.",
+        "websiteUrl": "https://www.oppia.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/1049902?v=4",
+        "verifiedPlatforms": [
+          "OUTREACHY",
+          "GSOC"
+        ],
+        "technologies": [
+          "Python",
+          "TypeScript",
+          "Angular",
+          "Android"
+        ],
+        "topics": [
+          "education",
+          "mobile",
+          "frontend",
+          "interactive"
+        ],
+        "openOpportunitiesCount": 5,
+        "repositories": [
+          {
+            "fullName": "oppia/oppia",
+            "description": "Free online interactive education tool",
+            "stars": 6200,
+            "primaryLanguage": "TypeScript"
+          },
+          {
+            "fullName": "oppia/oppia-android",
+            "description": "Oppia Android mobile client",
+            "stars": 1500,
+            "primaryLanguage": "Kotlin"
+          }
+        ],
+        "recentActivitySummary": "Educational simulation player and offline Android learning features.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 16
+      }
+    ]
+  },
+  "LFX": {
+    "source": "LFX Curated Directory",
+    "retrievedAt": "2026-03-01T00:00:00.000Z",
+    "organizations": [
+      {
+        "id": "lfx-cncf",
+        "slug": "cncf",
+        "name": "Cloud Native Computing Foundation (CNCF)",
+        "description": "The open source foundation building cloud native computing platforms: Kubernetes, Prometheus, Envoy, and Helm.",
+        "websiteUrl": "https://www.cncf.io",
+        "logoUrl": "https://avatars.githubusercontent.com/u/13434793?v=4",
+        "verifiedPlatforms": [
+          "LFX",
+          "GSOC"
+        ],
+        "technologies": [
+          "Go",
+          "Rust",
+          "Kubernetes",
+          "eBPF",
+          "Docker"
+        ],
+        "topics": [
+          "cloud-native",
+          "containers",
+          "observability",
+          "networking"
+        ],
+        "openOpportunitiesCount": 12,
+        "repositories": [
+          {
+            "fullName": "kubernetes/kubernetes",
+            "description": "Production-Grade Container Scheduling and Management",
+            "stars": 114000,
+            "primaryLanguage": "Go"
+          },
+          {
+            "fullName": "prometheus/prometheus",
+            "description": "The Prometheus monitoring system and time series database",
+            "stars": 57000,
+            "primaryLanguage": "Go"
+          }
+        ],
+        "recentActivitySummary": "Spring & Fall mentorship terms across Kubernetes SIGs, Envoy WASM, and Cilium eBPF.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 36
+      },
+      {
+        "id": "lfx-hyperledger",
+        "slug": "hyperledger",
+        "name": "Hyperledger Foundation",
+        "description": "Open source enterprise blockchain technologies hosted by The Linux Foundation.",
+        "websiteUrl": "https://www.hyperledger.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/16142750?v=4",
+        "verifiedPlatforms": [
+          "LFX"
+        ],
+        "technologies": [
+          "Go",
+          "Java",
+          "Rust",
+          "TypeScript",
+          "Solidity"
+        ],
+        "topics": [
+          "blockchain",
+          "cryptography",
+          "distributed-ledger",
+          "enterprise"
+        ],
+        "openOpportunitiesCount": 6,
+        "repositories": [
+          {
+            "fullName": "hyperledger/fabric",
+            "description": "Hyperledger Fabric enterprise blockchain platform",
+            "stars": 15400,
+            "primaryLanguage": "Go"
+          },
+          {
+            "fullName": "hyperledger/besu",
+            "description": "An enterprise-grade Ethereum client in Java",
+            "stars": 2200,
+            "primaryLanguage": "Java"
+          }
+        ],
+        "recentActivitySummary": "Mentorship in zero-knowledge proofs, smart contract tooling, and identity management.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 14
+      },
+      {
+        "id": "lfx-openssf",
+        "slug": "openssf",
+        "name": "Open Source Security Foundation (OpenSSF)",
+        "description": "Securing the open source software supply chain through automated tools and best practices.",
+        "websiteUrl": "https://openssf.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/69792612?v=4",
+        "verifiedPlatforms": [
+          "LFX"
+        ],
+        "technologies": [
+          "Go",
+          "Python",
+          "Rust",
+          "GitHub Actions",
+          "Security"
+        ],
+        "topics": [
+          "security",
+          "supply-chain",
+          "sbom",
+          "vulnerability-management"
+        ],
+        "openOpportunitiesCount": 5,
+        "repositories": [
+          {
+            "fullName": "ossf/scorecard",
+            "description": "Automated security tool to evaluate open source security postures",
+            "stars": 5800,
+            "primaryLanguage": "Go"
+          },
+          {
+            "fullName": "sigstore/cosign",
+            "description": "Code signing and transparency for software artifacts",
+            "stars": 4500,
+            "primaryLanguage": "Go"
+          }
+        ],
+        "recentActivitySummary": "Supply chain provenance tooling, automated security linter extensions, and SLSA compliance.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 10
+      },
+      {
+        "id": "lfx-zephyr",
+        "slug": "zephyr-project",
+        "name": "Zephyr Project",
+        "description": "A scalable real-time operating system (RTOS) supporting multiple hardware architectures for IoT.",
+        "websiteUrl": "https://www.zephyrproject.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/15006622?v=4",
+        "verifiedPlatforms": [
+          "LFX"
+        ],
+        "technologies": [
+          "C",
+          "Python",
+          "Assembly",
+          "CMake",
+          "Embedded"
+        ],
+        "topics": [
+          "iot",
+          "rtos",
+          "hardware",
+          "embedded",
+          "microcontrollers"
+        ],
+        "openOpportunitiesCount": 4,
+        "repositories": [
+          {
+            "fullName": "zephyrproject-rtos/zephyr",
+            "description": "Primary Zephyr RTOS source tree",
+            "stars": 10800,
+            "primaryLanguage": "C"
+          }
+        ],
+        "recentActivitySummary": "Hardware peripheral drivers, BLE Bluetooth mesh stack optimizations, and POSIX compliance.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 12
+      },
+      {
+        "id": "lfx-graphql",
+        "slug": "graphql-foundation",
+        "name": "GraphQL Foundation",
+        "description": "Driving the ecosystem of GraphQL specifications, reference implementations, and tooling.",
+        "websiteUrl": "https://graphql.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/12972006?v=4",
+        "verifiedPlatforms": [
+          "LFX"
+        ],
+        "technologies": [
+          "TypeScript",
+          "JavaScript",
+          "Rust",
+          "Python",
+          "GraphQL"
+        ],
+        "topics": [
+          "api",
+          "specifications",
+          "query-language",
+          "developer-tools"
+        ],
+        "openOpportunitiesCount": 4,
+        "repositories": [
+          {
+            "fullName": "graphql/graphql-js",
+            "description": "Reference implementation of GraphQL for JavaScript",
+            "stars": 20100,
+            "primaryLanguage": "TypeScript"
+          }
+        ],
+        "recentActivitySummary": "Composite schema validation, client code generators, and streaming parser improvements.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 8
+      }
+    ]
+  },
+  "MLH": {
+    "source": "MLH Curated Directory",
+    "retrievedAt": "2026-03-01T00:00:00.000Z",
+    "organizations": [
+      {
+        "id": "mlh-meta",
+        "slug": "meta-open-source",
+        "name": "Meta Open Source",
+        "description": "Premier open-source frameworks powering the modern web and AI: React, PyTorch, and Docusaurus.",
+        "websiteUrl": "https://opensource.fb.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/69631?v=4",
+        "verifiedPlatforms": [
+          "MLH",
+          "GITHUB"
+        ],
+        "technologies": [
+          "JavaScript",
+          "TypeScript",
+          "Python",
+          "C++",
+          "React"
+        ],
+        "topics": [
+          "frontend",
+          "ai",
+          "machine-learning",
+          "ui-libraries"
+        ],
+        "openOpportunitiesCount": 8,
+        "repositories": [
+          {
+            "fullName": "facebook/react",
+            "description": "The library for web and native user interfaces",
+            "stars": 231000,
+            "primaryLanguage": "JavaScript"
+          },
+          {
+            "fullName": "pytorch/pytorch",
+            "description": "Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+            "stars": 87000,
+            "primaryLanguage": "C++"
+          }
+        ],
+        "recentActivitySummary": "Fellows contributing to React Server Components and PyTorch distributed training documentation.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 25
+      },
+      {
+        "id": "mlh-pallets",
+        "slug": "pallets",
+        "name": "Pallets Projects",
+        "description": "The Python web ecosystem standards: Flask, Jinja, Click, Werkzeug, and ItsDangerous.",
+        "websiteUrl": "https://palletsprojects.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/16748442?v=4",
+        "verifiedPlatforms": [
+          "MLH"
+        ],
+        "technologies": [
+          "Python",
+          "Flask",
+          "Jinja",
+          "AsyncIO"
+        ],
+        "topics": [
+          "web-frameworks",
+          "python",
+          "cli",
+          "templates"
+        ],
+        "openOpportunitiesCount": 4,
+        "repositories": [
+          {
+            "fullName": "pallets/flask",
+            "description": "The Python micro framework for building web applications",
+            "stars": 68000,
+            "primaryLanguage": "Python"
+          },
+          {
+            "fullName": "pallets/click",
+            "description": "Python composable command line interface toolkit",
+            "stars": 16000,
+            "primaryLanguage": "Python"
+          }
+        ],
+        "recentActivitySummary": "Type hints completion across Flask core and async test fixture tooling.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 9
+      },
+      {
+        "id": "mlh-solana",
+        "slug": "solana-labs",
+        "name": "Solana Foundation",
+        "description": "Decentralized blockchain built for fast, composable, high-throughput global applications.",
+        "websiteUrl": "https://solana.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/35608259?v=4",
+        "verifiedPlatforms": [
+          "MLH"
+        ],
+        "technologies": [
+          "Rust",
+          "TypeScript",
+          "Solidity",
+          "C",
+          "Web3"
+        ],
+        "topics": [
+          "blockchain",
+          "cryptography",
+          "smart-contracts",
+          "high-throughput"
+        ],
+        "openOpportunitiesCount": 6,
+        "repositories": [
+          {
+            "fullName": "solana-labs/solana",
+            "description": "Web-Scale Blockchain for fast, secure, scalable, decentralized apps and marketplaces",
+            "stars": 13000,
+            "primaryLanguage": "Rust"
+          },
+          {
+            "fullName": "solana-labs/solana-web3.js",
+            "description": "Solana JavaScript SDK",
+            "stars": 3400,
+            "primaryLanguage": "TypeScript"
+          }
+        ],
+        "recentActivitySummary": "Client SDK improvements, developer documentation tutorials, and test validator tooling.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 15
+      },
+      {
+        "id": "mlh-julia",
+        "slug": "julia-lang",
+        "name": "The Julia Language",
+        "description": "High-level, high-performance dynamic programming language for scientific computing.",
+        "websiteUrl": "https://julialang.org",
+        "logoUrl": "https://avatars.githubusercontent.com/u/1644196?v=4",
+        "verifiedPlatforms": [
+          "MLH",
+          "GSOC"
+        ],
+        "technologies": [
+          "Julia",
+          "C",
+          "C++",
+          "LLVM",
+          "Python"
+        ],
+        "topics": [
+          "scientific-computing",
+          "compiler",
+          "mathematics",
+          "data-science"
+        ],
+        "openOpportunitiesCount": 5,
+        "repositories": [
+          {
+            "fullName": "JuliaLang/julia",
+            "description": "The Julia Programming Language",
+            "stars": 45000,
+            "primaryLanguage": "Julia"
+          }
+        ],
+        "recentActivitySummary": "Compiler code generation passes, standard library modernization, and package manager speed.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 18
+      }
+    ]
+  },
+  "GITHUB_DIRECT": {
+    "source": "GITHUB Curated Directory",
+    "retrievedAt": "2026-03-01T00:00:00.000Z",
+    "organizations": [
+      {
+        "id": "gh-vercel",
+        "slug": "vercel",
+        "name": "Vercel",
+        "description": "Enables frontend developers to build fast, delightful web experiences: Next.js, Turbopack, and AI SDK.",
+        "websiteUrl": "https://vercel.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/14985020?v=4",
+        "verifiedPlatforms": [
+          "GITHUB"
+        ],
+        "technologies": [
+          "TypeScript",
+          "Rust",
+          "React",
+          "Next.js",
+          "Node.js"
+        ],
+        "topics": [
+          "web",
+          "frontend",
+          "serverless",
+          "edge",
+          "developer-tools"
+        ],
+        "openOpportunitiesCount": 15,
+        "repositories": [
+          {
+            "fullName": "vercel/next.js",
+            "description": "The React Framework for the Web",
+            "stars": 128000,
+            "primaryLanguage": "JavaScript"
+          },
+          {
+            "fullName": "vercel/turbo",
+            "description": "Incremental bundler and build system for JavaScript and TypeScript",
+            "stars": 26000,
+            "primaryLanguage": "Rust"
+          },
+          {
+            "fullName": "vercel/ai",
+            "description": "Build AI-powered applications with React, Svelte, Vue, and Solid",
+            "stars": 14000,
+            "primaryLanguage": "TypeScript"
+          }
+        ],
+        "recentActivitySummary": "Next.js 15 canary releases, Turbopack memory optimizations, and AI SDK tool calling.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 40
+      },
+      {
+        "id": "gh-supabase",
+        "slug": "supabase",
+        "name": "Supabase",
+        "description": "The open source Firebase alternative: Postgres database, Authentication, instant APIs, Edge Functions, and Realtime.",
+        "websiteUrl": "https://supabase.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/54469796?v=4",
+        "verifiedPlatforms": [
+          "GITHUB"
+        ],
+        "technologies": [
+          "TypeScript",
+          "Go",
+          "Elixir",
+          "PostgreSQL",
+          "Rust"
+        ],
+        "topics": [
+          "database",
+          "backend",
+          "realtime",
+          "auth",
+          "postgres"
+        ],
+        "openOpportunitiesCount": 11,
+        "repositories": [
+          {
+            "fullName": "supabase/supabase",
+            "description": "The open source Firebase alternative",
+            "stars": 74000,
+            "primaryLanguage": "TypeScript"
+          },
+          {
+            "fullName": "supabase/realtime",
+            "description": "Broadcast, Presence, and Postgres CDC over WebSockets",
+            "stars": 6200,
+            "primaryLanguage": "Elixir"
+          }
+        ],
+        "recentActivitySummary": "Database branch preview workflows, pgvector indexing enhancements, and edge runtime support.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 28
+      },
+      {
+        "id": "gh-tailwindlabs",
+        "slug": "tailwindlabs",
+        "name": "Tailwind Labs",
+        "description": "Creators of Tailwind CSS: utility-first CSS framework for rapid modern UI development.",
+        "websiteUrl": "https://tailwindcss.com",
+        "logoUrl": "https://avatars.githubusercontent.com/u/67104415?v=4",
+        "verifiedPlatforms": [
+          "GITHUB"
+        ],
+        "technologies": [
+          "Rust",
+          "TypeScript",
+          "CSS",
+          "JavaScript"
+        ],
+        "topics": [
+          "css",
+          "design-systems",
+          "compiler",
+          "frontend"
+        ],
+        "openOpportunitiesCount": 7,
+        "repositories": [
+          {
+            "fullName": "tailwindlabs/tailwindcss",
+            "description": "A utility-first CSS framework for rapid UI development",
+            "stars": 84000,
+            "primaryLanguage": "Rust"
+          },
+          {
+            "fullName": "tailwindlabs/headlessui",
+            "description": "Completely unstyled, fully accessible UI components",
+            "stars": 24000,
+            "primaryLanguage": "TypeScript"
+          }
+        ],
+        "recentActivitySummary": "Tailwind CSS v4 Oxide engine written in Rust with lightning-fast rebuild speeds.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 16
+      },
+      {
+        "id": "gh-oven-sh",
+        "slug": "oven-sh",
+        "name": "Bun (Oven)",
+        "description": "Incredibly fast all-in-one JavaScript runtime, bundler, test runner, and package manager.",
+        "websiteUrl": "https://bun.sh",
+        "logoUrl": "https://avatars.githubusercontent.com/u/98482436?v=4",
+        "verifiedPlatforms": [
+          "GITHUB"
+        ],
+        "technologies": [
+          "Zig",
+          "C++",
+          "JavaScript",
+          "WebKit"
+        ],
+        "topics": [
+          "runtime",
+          "javascript",
+          "compiler",
+          "bundler",
+          "high-performance"
+        ],
+        "openOpportunitiesCount": 9,
+        "repositories": [
+          {
+            "fullName": "oven-sh/bun",
+            "description": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager",
+            "stars": 76000,
+            "primaryLanguage": "Zig"
+          }
+        ],
+        "recentActivitySummary": "Node.js API compatibility improvements, Windows stability, and standalone executable bundling.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "totalProjects": 22
+      },
+      {
+        "id": "gh-prisma",
+        "slug": "prisma",
+        "name": "Prisma",
+        "description": "Next-generation ORM for Node.js and TypeScript, making database workflows productive and intuitive.",
+        "websiteUrl": "https://www.prisma.io",
+        "logoUrl": "https://avatars.githubusercontent.com/u/17219288?v=4",
+        "verifiedPlatforms": [
+          "GITHUB"
+        ],
+        "technologies": [
+          "TypeScript",
+          "Rust",
+          "SQL",
+          "GraphQL"
+        ],
+        "topics": [
+          "orm",
+          "database",
+          "typescript",
+          "sql",
+          "backend"
+        ],
+        "openOpportunitiesCount": 8,
+        "repositories": [
+          {
+            "fullName": "prisma/prisma",
+            "description": "Next-generation ORM for Node.js & TypeScript",
+            "stars": 40000,
+            "primaryLanguage": "TypeScript"
+          }
+        ],
+        "recentActivitySummary": "Prisma Optimize query analytics, typed client generation, and driver adapter performance.",
+        "sourceProvenance": "curated_snapshot",
+        "hasBeginnerIssues": true,
+        "participationYears": [
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "totalProjects": 20
+      }
+    ]
+  }
+}

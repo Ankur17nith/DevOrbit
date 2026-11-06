@@ -65,6 +65,33 @@ export class GitHubController {
     }
   }
 
+  async getMetrics(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const profile = await githubService.getProfileIntelligence(req.user!.id);
+      res.status(200).json({
+        success: true,
+        data: profile.metrics,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getHeatmap(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const profile = await githubService.getProfileIntelligence(req.user!.id);
+      res.status(200).json({
+        success: true,
+        data: {
+          source: profile.metrics?.source || 'unavailable',
+          points: profile.heatmap,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getRepositories(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { search, language } = req.query;

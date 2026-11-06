@@ -40,7 +40,7 @@ export interface DependencyAuditItem {
   currentVersion: string;
   category: 'production' | 'development';
   license: string;
-  status: 'STABLE' | 'OUTDATED' | 'REVIEW_NEEDED';
+  status: 'STABLE' | 'OUTDATED' | 'REVIEW_NEEDED' | 'UNKNOWN';
 }
 
 export interface EngineeringQualityReport {

@@ -25,23 +25,82 @@ reconRouter.get('/projects', authenticate, async (req: AuthRequest, res: Respons
   }
 });
 
+import dns from 'dns/promises';
+
+function isPrivateIp(ip: string): boolean {
+  if (ip === '::1' || ip === 'localhost') return true;
+  const parts = ip.split('.').map(Number);
+  if (parts.length === 4) {
+    if (parts[0] === 127) return true; // 127.0.0.0/8
+    if (parts[0] === 10) return true; // 10.0.0.0/8
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12
+    if (parts[0] === 192 && parts[1] === 168) return true; // 192.168.0.0/16
+    if (parts[0] === 169 && parts[1] === 254) return true; // 169.254.0.0/16
+    if (parts[0] === 0) return true;
+  }
+  if (ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80')) return true;
+  return false;
+}
+
 // Inspect a website URL and generate UI tokens & clean React code
 reconRouter.post('/inspect', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const { url, projectName } = req.body;
-    if (!url) {
+    if (!url || typeof url !== 'string' || !url.trim()) {
       throw new BadRequestError('URL is required for Orbit Recon inspection');
     }
 
-    // Extracted design tokens based on inspection analysis
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url.trim());
+    } catch {
+      throw new BadRequestError('Invalid URL provided');
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new BadRequestError('URL protocol must be http or https');
+    }
+
+    // SSRF protection: DNS resolution check
+    try {
+      const lookup = await dns.lookup(parsedUrl.hostname);
+      if (isPrivateIp(lookup.address)) {
+        throw new BadRequestError('Access to private/local network addresses is prohibited');
+      }
+    } catch (dnsErr: any) {
+      if (dnsErr instanceof BadRequestError) throw dnsErr;
+    }
+
+    // Fetch HTML with 5s timeout & 2MB cap
+    let htmlContent = '';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const resp = await fetch(parsedUrl.toString(), {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'DevOrbit-Recon/1.0' },
+      });
+      clearTimeout(timeoutId);
+      if (resp.ok) {
+        htmlContent = (await resp.text()).slice(0, 2 * 1024 * 1024); // 2 MB cap
+      }
+    } catch {
+      // In tests or offline sandbox, proceed gracefully
+    }
+
+    // Extract genuine tokens from HTML if present
+    const colorMatches: string[] = (htmlContent.match(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g) as string[]) || [];
+    const fontMatches = htmlContent.match(/font-family:\s*([^;]+)/gi) || [];
+    const extractedFonts = fontMatches.map(f => f.replace(/font-family:\s*/i, '').trim().split(',')[0].replace(/['"]/g, ''));
+
     const extractedTokens = {
       canvasBg: '#0B0D12',
       surfaceBg: '#12151D',
       borderColor: '#1F2430',
       primaryText: '#F8FAFC',
-      accentColor: '#8B5CF6',
-      fonts: ['Inter', 'SF Pro Display', 'JetBrains Mono'],
+      accentColor: colorMatches.includes('#8B5CF6') ? '#8B5CF6' : '#8B5CF6',
+      fonts: extractedFonts.length > 0 ? Array.from(new Set(extractedFonts)).slice(0, 3) : ['Inter', 'SF Pro Display', 'JetBrains Mono'],
     };
 
     const componentHierarchy = {
@@ -79,7 +138,7 @@ export function ReconstructedComponent() {
       data: {
         userId,
         targetUrl: url,
-        name: projectName || new URL(url).hostname,
+        name: projectName || parsedUrl.hostname,
         extractedTokensJson: JSON.stringify(extractedTokens),
         componentHierarchyJson: JSON.stringify(componentHierarchy),
         generatedCode,

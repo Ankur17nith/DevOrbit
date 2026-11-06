@@ -48,7 +48,7 @@ export function TrendingPage() {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B5CF6]">Open source</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Trending Repositories</h2>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-[#11141B]">Trending Repositories (Most Starred)</h2>
           <p className="mt-2 text-xs leading-5 text-[#686D79]">
             Results require a connected source. DevOrbit does not fabricate issues, amounts, deadlines, or activity.
           </p>

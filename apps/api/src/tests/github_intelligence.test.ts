@@ -156,6 +156,34 @@ describe('GitHub Intelligence & Repository Sync Tests (Milestone M2)', () => {
       return { TypeScript: 50000 };
     });
 
+    vi.spyOn(GitHubClient.prototype, 'fetchContributionCalendar').mockImplementation(async () => {
+      const weeks = [];
+      const now = Date.now();
+      let dayIndex = 0;
+      for (let w = 0; w < 53; w++) {
+        const days = [];
+        for (let d = 0; d < 7; d++) {
+          if (dayIndex >= 365) break;
+          days.push({
+            date: new Date(now - (365 - dayIndex) * 86400000).toISOString().split('T')[0],
+            contributionCount: (w + d) % 4,
+            weekday: d,
+          });
+          dayIndex++;
+        }
+        if (days.length > 0) {
+          weeks.push({ contributionDays: days });
+        }
+      }
+      return {
+        totalContributions: 120,
+        totalCommitContributions: 105,
+        totalPullRequestContributions: 15,
+        totalPullRequestReviewContributions: 8,
+        weeks,
+      };
+    });
+
     // Authenticate User A
     const userA = await createTestUser();
     userAToken = userA.token;

@@ -34,8 +34,14 @@ export class FixController {
         throw new BadRequestError('analysis object is required');
       }
 
-      const patch = this.service.proposePatch(analysis);
-      res.json({ success: true, data: { patch } });
+      const patchResult = this.service.proposePatch(analysis);
+      res.json({
+        success: true,
+        data: {
+          patch: patchResult.patch,
+          reason: patchResult.reason,
+        },
+      });
     } catch (err: any) {
       next(err);
     }

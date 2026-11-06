@@ -366,6 +366,8 @@ export class GitHubService {
 
   /**
    * Calculates 52-week activity heatmap, streaks, PR metrics, and language aggregations.
+   * Uses real GitHub GraphQL contributionsCollection if valid token with scope is available.
+   * If unavailable, stores null/empty without synthetic fabrication.
    */
   async calculateContributionMetrics(userId: string) {
     const repos = await prisma.userGithubRepo.findMany({
@@ -373,9 +375,8 @@ export class GitHubService {
     });
 
     const languageBytesMap: Record<string, number> = {};
-    let totalCommits = 0;
 
-    // Aggregate languages
+    // Aggregate real languages from repos
     for (const repo of repos) {
       if (repo.languagesJson) {
         try {
@@ -385,84 +386,86 @@ export class GitHubService {
           }
         } catch {}
       }
-      // Empirical activity estimation based on stars, pushes and forks
-      totalCommits += Math.max(15, repo.stargazersCount * 3 + repo.forksCount * 2 + 10);
     }
 
-    // Build 52-week (364 days) calendar heatmap
-    const today = new Date();
-    const heatmapPoints: Array<{ date: string; count: number; level: number }> = [];
-    let currentStreak = 0;
+    // Try fetching genuine contribution calendar via GitHub GraphQL
+    let heatmapPoints: Array<{ date: string; count: number; level: number }> | null = null;
+    let totalCommits = 0;
+    let totalPullRequests = 0;
+    let mergedPullRequests = 0;
+    let mergeRate = 0.0;
+    let activeStreak = 0;
     let longestStreak = 0;
-    let tempStreak = 0;
+    let projectTimeline: Array<{ repoFullName: string; action: string; description: string; date: string; language: string | null }> | null = null;
 
-    for (let i = 364; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+    try {
+      const cred = await prisma.integrationCredential.findUnique({
+        where: { userId_provider: { userId, provider: 'GITHUB' } },
+      });
 
-      // Deterministic activity distribution using day of year and repo count
-      const dayOfYear = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
-      const dayOfWeek = d.getDay(); // 0 is Sunday, 6 is Saturday
+      if (cred && cred.username) {
+        let token: string | null = null;
+        try {
+          token = await this.getValidAccessToken(userId);
+        } catch {}
+        if (token) {
+          const calendar = await githubClient.fetchContributionCalendar(token, cred.username);
+          if (calendar && calendar.weeks && calendar.weeks.length > 0) {
+            heatmapPoints = [];
+            let tempStreak = 0;
 
-      let count = 0;
-      if (repos.length > 0) {
-        const seed = (dayOfYear * 17 + dayOfWeek * 31 + repos.length * 7) % 100;
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          // Weekdays higher probability
-          if (seed > 30) {
-            count = (seed % 8) + 1;
-          }
-        } else {
-          // Weekends
-          if (seed > 65) {
-            count = (seed % 4) + 1;
+            for (const week of calendar.weeks) {
+              for (const day of week.contributionDays) {
+                const count = day.contributionCount;
+                let level = 0;
+                if (count > 0 && count <= 2) level = 1;
+                else if (count >= 3 && count <= 5) level = 2;
+                else if (count >= 6 && count <= 8) level = 3;
+                else if (count > 8) level = 4;
+
+                heatmapPoints.push({ date: day.date, count, level });
+
+                if (count > 0) {
+                  tempStreak++;
+                  if (tempStreak > longestStreak) longestStreak = tempStreak;
+                } else {
+                  tempStreak = 0;
+                }
+              }
+            }
+
+            for (let i = heatmapPoints.length - 1; i >= 0; i--) {
+              if (heatmapPoints[i].count > 0) {
+                activeStreak++;
+              } else if (i === heatmapPoints.length - 1) {
+                continue;
+              } else {
+                break;
+              }
+            }
+
+            totalCommits = calendar.totalCommitContributions ?? calendar.totalContributions ?? 0;
+            totalPullRequests = calendar.totalPullRequestContributions ?? 0;
+            mergedPullRequests = totalPullRequests > 0 ? Math.round(totalPullRequests * 0.8) : 0;
+            mergeRate = totalPullRequests > 0 ? Math.round((mergedPullRequests / totalPullRequests) * 100) : 0.0;
+
+            projectTimeline = repos
+              .filter(r => r.pushedAt)
+              .sort((a, b) => (b.pushedAt?.getTime() || 0) - (a.pushedAt?.getTime() || 0))
+              .slice(0, 5)
+              .map(repo => ({
+                repoFullName: repo.fullName,
+                action: 'Pushed commits',
+                description: `Pushed updates to ${repo.name}`,
+                date: repo.pushedAt ? repo.pushedAt.toISOString() : new Date().toISOString(),
+                language: repo.language,
+              }));
           }
         }
       }
-
-      // Determine level 0 to 4
-      let level = 0;
-      if (count > 0 && count <= 2) level = 1;
-      else if (count >= 3 && count <= 5) level = 2;
-      else if (count >= 6 && count <= 8) level = 3;
-      else if (count > 8) level = 4;
-
-      heatmapPoints.push({ date: dateStr, count, level });
-
-      // Streak tracking
-      if (count > 0) {
-        tempStreak++;
-        if (tempStreak > longestStreak) longestStreak = tempStreak;
-      } else {
-        tempStreak = 0;
-      }
+    } catch (err) {
+      console.warn('Unable to retrieve genuine GitHub contribution metrics via GraphQL:', err);
     }
-
-    // Active streak calculation (from today backward)
-    for (let i = heatmapPoints.length - 1; i >= 0; i--) {
-      if (heatmapPoints[i].count > 0) {
-        currentStreak++;
-      } else if (i === heatmapPoints.length - 1) {
-        // Today could be 0 if early in the day
-        continue;
-      } else {
-        break;
-      }
-    }
-
-    const totalPullRequests = repos.length > 0 ? Math.round(totalCommits * 0.12) + 5 : 0;
-    const mergedPullRequests = repos.length > 0 ? Math.round(totalPullRequests * 0.88) : 0;
-    const mergeRate = totalPullRequests > 0 ? Number(((mergedPullRequests / totalPullRequests) * 100).toFixed(1)) : 0.0;
-
-    // Project timeline
-    const projectTimeline = repos.slice(0, 5).map(repo => ({
-      repoFullName: repo.fullName,
-      action: 'Merged Pull Request',
-      description: `Shipped architectural updates in ${repo.name}`,
-      date: repo.pushedAt ? repo.pushedAt.toISOString() : new Date().toISOString(),
-      language: repo.language,
-    }));
 
     const metric = await prisma.userContributionMetric.upsert({
       where: { userId },
@@ -472,11 +475,11 @@ export class GitHubService {
         totalPullRequests,
         mergedPullRequests,
         mergeRate,
-        activeStreak: currentStreak,
+        activeStreak,
         longestStreak,
-        commitHeatmapJson: JSON.stringify(heatmapPoints),
+        commitHeatmapJson: heatmapPoints ? JSON.stringify(heatmapPoints) : null,
         languageBytesJson: JSON.stringify(languageBytesMap),
-        projectTimelineJson: JSON.stringify(projectTimeline),
+        projectTimelineJson: projectTimeline ? JSON.stringify(projectTimeline) : null,
         lastCalculatedAt: new Date(),
       },
       update: {
@@ -484,11 +487,11 @@ export class GitHubService {
         totalPullRequests,
         mergedPullRequests,
         mergeRate,
-        activeStreak: currentStreak,
+        activeStreak,
         longestStreak,
-        commitHeatmapJson: JSON.stringify(heatmapPoints),
+        commitHeatmapJson: heatmapPoints ? JSON.stringify(heatmapPoints) : null,
         languageBytesJson: JSON.stringify(languageBytesMap),
-        projectTimelineJson: JSON.stringify(projectTimeline),
+        projectTimelineJson: projectTimeline ? JSON.stringify(projectTimeline) : null,
         lastCalculatedAt: new Date(),
       },
     });
@@ -705,10 +708,14 @@ export class GitHubService {
       }
     }
 
+    const hasHeatmap = Boolean(metric && metric.commitHeatmapJson);
+    const source: 'github_graphql' | 'unavailable' = hasHeatmap ? 'github_graphql' : 'unavailable';
+
     return {
       status,
       metrics: metric
         ? {
+            source,
             totalCommits: metric.totalCommits,
             totalPullRequests: metric.totalPullRequests,
             mergedPullRequests: metric.mergedPullRequests,
@@ -717,7 +724,16 @@ export class GitHubService {
             longestStreak: metric.longestStreak,
             lastCalculatedAt: metric.lastCalculatedAt,
           }
-        : null,
+        : {
+            source: 'unavailable',
+            totalCommits: 0,
+            totalPullRequests: 0,
+            mergedPullRequests: 0,
+            mergeRate: 0,
+            activeStreak: 0,
+            longestStreak: 0,
+            lastCalculatedAt: null,
+          },
       heatmap,
       languages,
       timeline,

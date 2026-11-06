@@ -656,75 +656,29 @@ export class OpenSourceService {
   // -----------------------------------------------------------
 
   async getPrograms() {
-    const canonicalPrograms = [
-      {
-        slug: 'gsoc-2026',
-        name: 'Google Summer of Code (GSoC 2026)',
-        category: 'GSOC',
-        description: 'Global program connecting students and open-source beginners with mentorship and stipends across 606+ participating organizations.',
-        website: 'https://summerofcode.withgoogle.com/',
-        status: 'ACTIVE',
-        deadlineDate: new Date('2026-04-08T18:00:00Z'),
-        timelineJson: JSON.stringify([
-          { stage: 'Organization Applications', date: 'Jan 15 - Feb 5, 2026' },
-          { stage: 'Accepted Orgs Announced', date: 'Feb 25, 2026' },
-          { stage: 'Student Proposal Window', date: 'March 18 - April 8, 2026' },
-          { stage: 'Coding Period Begins', date: 'May 26, 2026' },
-        ]),
-      },
-      {
-        slug: 'lfx-mentorship-2026',
-        name: 'Linux Foundation (LFX) Mentorship',
-        category: 'MENTORSHIP',
-        description: 'Paid open source mentorships on CNCF, Linux Kernel, Kubernetes, GraphQL, Hyperledger, and PyTorch.',
-        website: 'https://lfx.linuxfoundation.org/tools/mentorship/',
-        status: 'ACTIVE',
-        deadlineDate: new Date('2026-05-15T23:59:00Z'),
-        timelineJson: JSON.stringify([
-          { stage: 'Term 1 Spring', date: 'March 1 - May 31, 2026' },
-          { stage: 'Term 2 Summer', date: 'June 1 - August 31, 2026' },
-        ]),
-      },
-      {
-        slug: 'outreachy-2026',
-        name: 'Outreachy Diversity Internships',
-        category: 'MENTORSHIP',
-        description: 'Internships supporting diversity in free and open-source software with dedicated stipends.',
-        website: 'https://www.outreachy.org/',
-        status: 'ACTIVE',
-        deadlineDate: new Date('2026-06-01T16:00:00Z'),
-      },
-      {
-        slug: 'hacktoberfest-2026',
-        name: 'Hacktoberfest 2026',
-        category: 'HACKATHON',
-        description: 'Annual month-long celebration of open-source software with pull request challenges.',
-        website: 'https://hacktoberfest.com/',
-        status: 'SCHEDULED',
-        deadlineDate: new Date('2026-10-31T23:59:00Z'),
-      },
-    ];
-
-    for (const prog of canonicalPrograms) {
-      await prisma.ossProgram.upsert({
-        where: { slug: prog.slug },
-        update: {},
-        create: prog,
-      });
-    }
-
     const programs = await prisma.ossProgram.findMany({
       include: {
         _count: {
           select: { orgs: true },
         },
       },
+      orderBy: { deadlineDate: 'asc' },
     });
 
-    return programs.map(p => ({
-      ...p,
-      timeline: p.timelineJson ? JSON.parse(p.timelineJson) : [],
-    }));
+    const now = new Date();
+
+    return programs.map(p => {
+      let status = p.status;
+      if (p.deadlineDate && p.deadlineDate < now) {
+        status = 'ENDED';
+      }
+
+      return {
+        ...p,
+        status,
+        timeline: p.timelineJson ? JSON.parse(p.timelineJson) : [],
+      };
+    });
   }
 
   async monitorOpportunities(userId: string) {

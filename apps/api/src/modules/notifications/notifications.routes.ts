@@ -30,9 +30,26 @@ notificationsRouter.get('/unread-count', authenticate, async (req: AuthRequest, 
   }
 });
 
-// Orbit Pulse: Background opportunity and deadline monitor
+let lastPulseRun = 0;
+
+// Check deadlines now (Orbit Pulse opportunity and deadline monitor)
 notificationsRouter.post('/pulse', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const pulseIntervalMin = process.env.PULSE_INTERVAL_MIN ? parseInt(process.env.PULSE_INTERVAL_MIN, 10) : 0;
+    const nowMs = Date.now();
+    if (pulseIntervalMin > 0 && lastPulseRun > 0 && (nowMs - lastPulseRun) < pulseIntervalMin * 60 * 1000) {
+      res.json({
+        success: true,
+        message: `Pulse interval rate-limited (${pulseIntervalMin}m interval configured)`,
+        data: {
+          skipped: true,
+          nextRunInMs: (pulseIntervalMin * 60 * 1000) - (nowMs - lastPulseRun),
+        },
+      });
+      return;
+    }
+    lastPulseRun = nowMs;
+
     const userId = req.user!.id;
     const now = new Date();
     const threshold = new Date(now.getTime() + 72 * 3600 * 1000); // 72 hours

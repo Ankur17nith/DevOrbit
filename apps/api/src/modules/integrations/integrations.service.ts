@@ -99,7 +99,7 @@ export class IntegrationsService {
         connected: Boolean(tufCred),
         username: tufCred?.username,
         completedProblems: tufData?.totalCompleted ?? 0,
-        totalProblems: tufData?.totalProblems ?? 455,
+        totalProblems: tufData?.totalProblems ?? striverProblemsCount,
         currentStep: tufData?.currentStep || null,
         activeSheet: tufData?.activeSheet || 'Striver A2Z DSA Sheet',
         stats: tufData,
@@ -108,7 +108,7 @@ export class IntegrationsService {
       striver: {
         isBundled: true,
         sheetName: 'Striver A2Z DSA Sheet',
-        totalProblems: striverProblemsCount || 455,
+        totalProblems: striverProblemsCount,
         solvedCount: striverSolvedCount,
       },
       ollama: {
@@ -267,7 +267,7 @@ export class IntegrationsService {
   }
 
   async importTufData(userId: string, payload: TufImportPayload) {
-    const stats = tufProvider.processImport(payload);
+    const stats = await tufProvider.processImport(payload);
     const credential = await prisma.integrationCredential.upsert({
       where: { userId_provider: { userId, provider: 'TUF' } },
       update: {

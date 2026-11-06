@@ -629,7 +629,7 @@ model DeveloperProfile {
   preferredLanguagesJson  String?             // JSON array e.g. ["TypeScript", "Rust"]
   domainsJson             String?             // JSON array e.g. ["web", "systems", "ai"]
   experienceLevel         String              @default("INTERMEDIATE") // BEGINNER, INTERMEDIATE, ADVANCED
-  weeklyAvailabilityHours Int                 @default(10)
+  weeklyAvailabilityHours Int?                @default(10)
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 

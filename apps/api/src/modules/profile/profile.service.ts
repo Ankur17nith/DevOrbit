@@ -50,9 +50,9 @@ export class ProfileService {
       devProfile = await prisma.developerProfile.create({
         data: {
           userId,
-          headline: 'Full-Stack & Systems Open Source Developer',
-          experienceLevel: 'INTERMEDIATE',
-          weeklyAvailabilityHours: 10,
+          headline: null,
+          experienceLevel: 'BEGINNER',
+          weeklyAvailabilityHours: null,
         },
         include: {
           skills: true,
