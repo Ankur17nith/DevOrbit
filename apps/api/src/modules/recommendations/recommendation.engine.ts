@@ -1,6 +1,7 @@
 import { prisma } from '../../config/index.js';
 import { NotFoundError, BadRequestError } from '../../lib/errors.js';
 import { normalizeRepository } from '../opensource/repository.normalizer.js';
+import { matchSkillToken } from '../../lib/skill_matcher.js';
 
 export interface ScoringWeights {
   technologyMatch: number;   // default 0.25
@@ -67,7 +68,7 @@ export class RecommendationEngine {
     };
 
     // 1. Fetch user's verified skills, interests, and dismissed topics/issues
-    const [userSkills, devProfile, userRepos, dismissedFeedback, candidateIssues] = await Promise.all([
+    const [userSkills, devProfile, userRepos, dismissedFeedback] = await Promise.all([
       prisma.userSkillProfile.findMany({ where: { userId } }),
       prisma.developerProfile.findUnique({
         where: { userId },
@@ -77,14 +78,6 @@ export class RecommendationEngine {
       prisma.recommendationFeedback.findMany({
         where: { userId, action: 'DISMISSED' },
         include: { recommendation: true },
-      }),
-      prisma.ossIssue.findMany({
-        where: { state: 'open' },
-        include: {
-          repository: true,
-        },
-        take: 60,
-        orderBy: { createdAt: 'desc' },
       }),
     ]);
 
@@ -144,6 +137,35 @@ export class RecommendationEngine {
       }
     }
 
+    // Query candidates: 500 by recency + 500 by matching languages
+    const userLangs = Array.from(skillConfidenceMap.keys());
+    const [recentCandidates, langCandidates] = await Promise.all([
+      prisma.ossIssue.findMany({
+        where: { state: 'open' },
+        include: { repository: true },
+        take: 500,
+        orderBy: { createdAt: 'desc' },
+      }),
+      userLangs.length > 0
+        ? prisma.ossIssue.findMany({
+            where: {
+              state: 'open',
+              repository: {
+                language: { in: userLangs },
+              },
+            },
+            include: { repository: true },
+            take: 500,
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const candidateMap = new Map<string, typeof recentCandidates[0]>();
+    for (const c of [...recentCandidates, ...langCandidates]) {
+      candidateMap.set(c.id, c);
+    }
+    const candidateIssues = Array.from(candidateMap.values());
+
     const scoredList: ScoredOpportunity[] = [];
 
     for (const issue of candidateIssues) {
@@ -181,11 +203,11 @@ export class RecommendationEngine {
         matchedEvidence.push(`${repo.language} verified from your ${primarySkill.source} (confidence ${Math.round(primarySkill.confidence)}%)`);
       }
 
-      // Match topics / labels
-      for (const [sName, sData] of skillConfidenceMap.entries()) {
+      // Match topics / labels using tokenized exact matcher
+      for (const [sName] of skillConfidenceMap.entries()) {
         if (sName === repoLang) continue;
-        const matchesTopic = repoTopics.some(t => t.toLowerCase().includes(sName));
-        const matchesLabel = issueLabels.some(l => l.toLowerCase().includes(sName));
+        const matchesTopic = repoTopics.some(t => matchSkillToken(t, sName));
+        const matchesLabel = issueLabels.some(l => matchSkillToken(l, sName));
         if (matchesTopic || matchesLabel) {
           techScore = Math.min(100, techScore + 15);
           matchedEvidence.push(`${sName} overlap found in ${matchesTopic ? 'repository topics' : 'issue labels'}`);
@@ -195,7 +217,17 @@ export class RecommendationEngine {
       // --- FACTOR 2: Domain Relevance (20%) ---
       let domainScore = 40;
       if (repoTopics.length > 0) domainScore += 20;
-      if (issueLabels.some(l => /bug|fix|feat|api|core/i.test(l))) domainScore += 30;
+      if (issueLabels.some(l => /bug|fix|feat|api|core/i.test(l))) domainScore += 20;
+      if (devProfile?.interests && devProfile.interests.length > 0) {
+        const matchesInterest = devProfile.interests.some(int =>
+          repoTopics.some(t => matchSkillToken(t, int.topic)) ||
+          issueLabels.some(l => matchSkillToken(l, int.topic))
+        );
+        if (matchesInterest) {
+          domainScore = Math.min(100, domainScore + 20);
+          matchedEvidence.push('Matched topic of interest from your developer profile');
+        }
+      }
       domainScore = Math.min(100, domainScore);
 
       // --- FACTOR 3: Difficulty Alignment (15%) ---
@@ -294,38 +326,11 @@ export class RecommendationEngine {
     scoredList.sort((a, b) => b.score - a.score);
     const topScored = scoredList.slice(0, options?.limit || 15);
 
-    // Persist or link to Recommendation records so they have valid DB IDs
-    const result: ScoredOpportunity[] = [];
-    for (const item of topScored) {
-      let recRecord = await prisma.recommendation.findFirst({
-        where: {
-          userId,
-          targetId: item.issue.id,
-        },
-      });
-
-      if (!recRecord) {
-        recRecord = await prisma.recommendation.create({
-          data: {
-            userId,
-            targetType: item.targetType,
-            targetId: item.issue.id,
-            score: item.score,
-            category: item.category,
-            factorsJson: JSON.stringify(item.factors),
-            explanation: item.explanation,
-            status: 'ACTIVE',
-          },
-        });
-      }
-
-      result.push({
-        ...item,
-        id: recRecord.id,
-      });
-    }
-
-    return result;
+    // Return top scored opportunities directly without writing DB rows on GET
+    return topScored.map(item => ({
+      ...item,
+      id: item.issue.id,
+    }));
   }
 
   /**

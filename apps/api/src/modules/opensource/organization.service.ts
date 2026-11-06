@@ -217,19 +217,7 @@ export class OrganizationService {
    * Toggles bookmark / saving for an organization
    */
   async toggleSaveOrganization(userId: string, organizationIdOrSlug: string, notes?: string) {
-    const existing = await prisma.userSavedOrganization.findFirst({
-      where: {
-        userId,
-        organizationId: organizationIdOrSlug,
-      },
-    });
-
-    if (existing) {
-      await prisma.userSavedOrganization.delete({ where: { id: existing.id } });
-      return { saved: false };
-    }
-
-    // Ensure database OssOrganization row exists so foreign key relation is satisfied if referencing UUID
+    // Ensure database OssOrganization row exists so foreign key relation is satisfied
     let dbOrg = await prisma.ossOrganization.findFirst({
       where: {
         OR: [{ id: organizationIdOrSlug }, { slug: organizationIdOrSlug }],
@@ -253,6 +241,18 @@ export class OrganizationService {
           totalProjects: detail.totalProjects,
         },
       });
+    }
+
+    const existing = await prisma.userSavedOrganization.findFirst({
+      where: {
+        userId,
+        organizationId: dbOrg.id,
+      },
+    });
+
+    if (existing) {
+      await prisma.userSavedOrganization.delete({ where: { id: existing.id } });
+      return { saved: false };
     }
 
     await prisma.userSavedOrganization.create({

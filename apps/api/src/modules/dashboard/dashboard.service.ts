@@ -1,4 +1,5 @@
 import { prisma } from '../../config/index.js';
+import { safeJson } from '../../lib/json.js';
 
 export class DashboardService {
   async getDashboardSummary(userId: string) {
@@ -16,6 +17,8 @@ export class DashboardService {
       pipelineItems,
       recentRecon,
       aiConversationsCount,
+      unreadNotificationsCount,
+      totalReposCount,
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -68,6 +71,12 @@ export class DashboardService {
       prisma.aiConversation.count({
         where: { userId },
       }),
+      prisma.notification.count({
+        where: { userId, isRead: false },
+      }),
+      prisma.userGithubRepo.count({
+        where: { userId },
+      }),
     ]);
 
     const solvedDsa = dsaProgresses.filter(p => p.status === 'SOLVED');
@@ -98,6 +107,7 @@ export class DashboardService {
     const pipelineByStage = {
       SHORTLISTED: pipelineItems.filter(i => i.stage === 'SHORTLISTED').length,
       EXPLORING: pipelineItems.filter(i => i.stage === 'EXPLORING').length,
+      PREPARING: pipelineItems.filter(i => i.stage === 'PREPARING').length,
       WORKING: pipelineItems.filter(i => i.stage === 'WORKING').length,
       PR_SUBMITTED: pipelineItems.filter(i => i.stage === 'PR_SUBMITTED').length,
       MERGED: pipelineItems.filter(i => i.stage === 'MERGED').length,
@@ -117,12 +127,12 @@ export class DashboardService {
         dsaAttemptedCount: attemptedDsa.length,
         bookmarkedCount: bookmarks,
         activeSkillsCount: skills.length,
-        unreadNotificationsCount: notifications.length,
+        unreadNotificationsCount,
         independentSolves,
         assistedSolves,
-        totalReposCount: topRepos.length,
+        totalReposCount,
         connectedIntegrations: credentials.length,
-        indexedProjects: topRepos.length,
+        indexedProjects: totalReposCount,
         totalCommits: contributionMetric?.totalCommits || 0,
         mergeRate: contributionMetric?.mergeRate || 0,
         activeStreak: contributionMetric?.activeStreak || 0,
@@ -135,38 +145,32 @@ export class DashboardService {
           isConnected: Boolean(githubCred),
           username: githubCred?.username,
           lastSyncedAt: githubCred?.lastSyncedAt,
-          reposCount: topRepos.length,
+          reposCount: totalReposCount,
           totalCommits: contributionMetric?.totalCommits || 0,
         },
         codeforces: {
           isConnected: Boolean(cfCred),
           handle: cfCred?.username,
-          stats: cfCred?.metadataJson ? JSON.parse(cfCred.metadataJson) : null,
+          stats: safeJson(cfCred?.metadataJson, null),
           lastSyncedAt: cfCred?.lastSyncedAt,
         },
         leetcode: {
           isConnected: Boolean(lcCred),
           username: lcCred?.username,
-          stats: lcCred?.metadataJson ? JSON.parse(lcCred.metadataJson) : null,
+          stats: safeJson(lcCred?.metadataJson, null),
           lastSyncedAt: lcCred?.lastSyncedAt,
         },
         tuf: {
           isConnected: Boolean(tufCred),
           username: tufCred?.username,
-          stats: tufCred?.metadataJson ? JSON.parse(tufCred.metadataJson) : null,
+          stats: safeJson(tufCred?.metadataJson, null),
           lastSyncedAt: tufCred?.lastSyncedAt,
         },
       },
       activity: {
-        commitHeatmap: contributionMetric?.commitHeatmapJson
-          ? JSON.parse(contributionMetric.commitHeatmapJson)
-          : [],
-        languageBytes: contributionMetric?.languageBytesJson
-          ? JSON.parse(contributionMetric.languageBytesJson)
-          : {},
-        projectTimeline: contributionMetric?.projectTimelineJson
-          ? JSON.parse(contributionMetric.projectTimelineJson)
-          : [],
+        commitHeatmap: safeJson(contributionMetric?.commitHeatmapJson, []),
+        languageBytes: safeJson(contributionMetric?.languageBytesJson, {}),
+        projectTimeline: safeJson(contributionMetric?.projectTimelineJson, []),
       },
       repositories: topRepos.map(r => ({
         id: r.id,

@@ -1,79 +1,130 @@
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { prisma } from '../../config/index.js';
 import { generateToken } from '../../lib/jwt.js';
 import { BadRequestError, UnauthorizedError } from '../../lib/errors.js';
 
-export class AuthService {
-  async register(data: { email: string; username: string; password: string; name?: string }) {
-    const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existingEmail) {
-      throw new BadRequestError('Email is already registered');
-    }
+function hashSessionToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
-    const existingUsername = await prisma.user.findUnique({ where: { username: data.username } });
-    if (existingUsername) {
-      throw new BadRequestError('Username is already taken');
+export async function purgeExpiredSessions(): Promise<number> {
+  const now = new Date();
+  const res = await prisma.session.deleteMany({
+    where: { expiresAt: { lt: now } },
+  });
+  return res.count;
+}
+
+export class AuthService {
+  async register(data: {
+    email: string;
+    username: string;
+    password: string;
+    name?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
+    const cleanEmail = data.email.toLowerCase().trim();
+    const cleanUsername = data.username.trim();
+
+    if (data.password.length > 72) {
+      throw new BadRequestError('Password cannot exceed 72 characters');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        username: data.username,
-        passwordHash,
-        name: data.name || data.username,
-        preference: {
-          create: {
-            theme: 'dark',
-            ecoMode: true,
-            notifyDesktop: true,
+
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const existingEmail = await tx.user.findUnique({ where: { email: cleanEmail } });
+        if (existingEmail) {
+          throw new BadRequestError('Email is already registered');
+        }
+
+        const existingUsername = await tx.user.findUnique({ where: { username: cleanUsername } });
+        if (existingUsername) {
+          throw new BadRequestError('Username is already taken');
+        }
+
+        const user = await tx.user.create({
+          data: {
+            email: cleanEmail,
+            username: cleanUsername,
+            passwordHash,
+            name: data.name || cleanUsername,
+            preference: {
+              create: {
+                theme: 'dark',
+                ecoMode: true,
+                notifyDesktop: true,
+              },
+            },
           },
-        },
-      },
-      include: {
-        preference: true,
-      },
-    });
+          include: {
+            preference: true,
+          },
+        });
 
-    // Create session
-    const token = generateToken({
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-    });
+        // Create session
+        const token = generateToken({
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+        });
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
+        const tokenHash = hashSessionToken(token);
+        await tx.session.create({
+          data: {
+            userId: user.id,
+            token: tokenHash,
+            expiresAt,
+            ipAddress: data.ipAddress || null,
+            userAgent: data.userAgent || null,
+          },
+        });
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-        preference: user.preference,
-      },
-      token,
-    };
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            avatarUrl: user.avatarUrl,
+            preference: user.preference,
+          },
+          token,
+        };
+      });
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        throw new BadRequestError('Email or username is already registered');
+      }
+      throw err;
+    }
   }
 
-  async login(data: { login: string; password: string }) {
+  async login(data: {
+    login: string;
+    password: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
+    const cleanLogin = data.login.trim();
+    const lowerLogin = cleanLogin.toLowerCase();
+
+    if (data.password.length > 72) {
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: data.login },
-          { username: data.login },
+          { email: lowerLogin },
+          { username: cleanLogin },
         ],
       },
       include: {
@@ -99,11 +150,14 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    const tokenHash = hashSessionToken(token);
     await prisma.session.create({
       data: {
         userId: user.id,
-        token,
+        token: tokenHash,
         expiresAt,
+        ipAddress: data.ipAddress || null,
+        userAgent: data.userAgent || null,
       },
     });
 
@@ -122,8 +176,14 @@ export class AuthService {
   }
 
   async logout(token: string) {
+    const tokenHash = hashSessionToken(token);
     await prisma.session.deleteMany({
-      where: { token },
+      where: {
+        OR: [
+          { token: tokenHash },
+          { token },
+        ],
+      },
     });
     return { success: true };
   }

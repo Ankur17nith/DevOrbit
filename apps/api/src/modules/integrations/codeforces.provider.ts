@@ -55,17 +55,22 @@ export class CodeforcesProvider {
   private baseUrl = 'https://codeforces.com/api';
   private lastRequestTime = 0;
   private minIntervalMs = parseInt(process.env.CODEFORCES_MIN_INTERVAL_MS || '2000', 10);
+  private throttleQueue: Promise<void> = Promise.resolve();
 
   /**
-   * Throttles outgoing requests to Codeforces API to comply with the official 1 req / 2s policy
+   * Serialized throttle to comply with the official Codeforces 1 req / 2s policy
    */
   private async throttle(): Promise<void> {
-    const now = Date.now();
-    const elapsed = now - this.lastRequestTime;
-    if (elapsed < this.minIntervalMs) {
-      await new Promise(resolve => setTimeout(resolve, this.minIntervalMs - elapsed));
-    }
-    this.lastRequestTime = Date.now();
+    const next = this.throttleQueue.then(async () => {
+      const now = Date.now();
+      const elapsed = now - this.lastRequestTime;
+      if (elapsed < this.minIntervalMs) {
+        await new Promise(resolve => setTimeout(resolve, this.minIntervalMs - elapsed));
+      }
+      this.lastRequestTime = Date.now();
+    });
+    this.throttleQueue = next.catch(() => {});
+    return next;
   }
 
   /**
@@ -95,13 +100,12 @@ export class CodeforcesProvider {
 
     await this.throttle();
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`${this.baseUrl}/user.info?handles=${encodeURIComponent(cleanHandle)}`, {
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
 
       const json = (await res.json()) as { status: string; comment?: string; result?: CodeforcesProfile[] };
 
@@ -128,6 +132,8 @@ export class CodeforcesProvider {
         throw new BadRequestError('Codeforces API request timed out (limit 6s)');
       }
       throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -136,17 +142,17 @@ export class CodeforcesProvider {
    */
   async fetchAggregatedStats(handle: string): Promise<CodeforcesAggregatedStats> {
     const profile = await this.verifyHandle(handle);
+    const verifiedHandle = profile.handle;
 
     // Fetch rating history
     let ratingHistory: CodeforcesRatingChange[] = [];
+    await this.throttle();
+    const ratingController = new AbortController();
+    const ratingTimeoutId = setTimeout(() => ratingController.abort(), 6000);
     try {
-      await this.throttle();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch(`${this.baseUrl}/user.rating?handle=${encodeURIComponent(handle)}`, {
-        signal: controller.signal,
+      const res = await fetch(`${this.baseUrl}/user.rating?handle=${encodeURIComponent(verifiedHandle)}`, {
+        signal: ratingController.signal,
       });
-      clearTimeout(timeoutId);
 
       const json = (await res.json()) as { status: string; result?: CodeforcesRatingChange[] };
       if (json.status === 'OK' && Array.isArray(json.result)) {
@@ -154,59 +160,69 @@ export class CodeforcesProvider {
       }
     } catch {
       // Fall back with empty rating history if endpoint fails
+    } finally {
+      clearTimeout(ratingTimeoutId);
     }
 
-    // Fetch submissions to calculate unique solved problems
+    // Fetch submissions to calculate unique solved problems with correct buckets
     const solvedSet = new Set<string>();
     const difficultyBuckets: { [bucket: string]: number } = {
-      '800-1100': 0,
-      '1200-1400': 0,
-      '1500-1800': 0,
-      '1900-2100': 0,
+      '≤1199': 0,
+      '1200-1499': 0,
+      '1500-1899': 0,
+      '1900-2199': 0,
       '2200+': 0,
     };
     const tagCounts: { [tag: string]: number } = {};
 
-    try {
+    // Paginate submissions up to 5,000 (5 pages of 1,000)
+    for (let page = 0; page < 5; page++) {
+      const from = page * 1000 + 1;
       await this.throttle();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(
-        `${this.baseUrl}/user.status?handle=${encodeURIComponent(handle)}&from=1&count=500`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeoutId);
+      const subController = new AbortController();
+      const subTimeoutId = setTimeout(() => subController.abort(), 8000);
+      try {
+        const res = await fetch(
+          `${this.baseUrl}/user.status?handle=${encodeURIComponent(verifiedHandle)}&from=${from}&count=1000`,
+          { signal: subController.signal }
+        );
 
-      const json = (await res.json()) as { status: string; result?: CodeforcesSubmission[] };
-      if (json.status === 'OK' && Array.isArray(json.result)) {
-        for (const sub of json.result) {
-          if (sub.verdict === 'OK' && sub.problem) {
-            const probKey = `${sub.problem.contestId || 0}-${sub.problem.index}`;
-            if (!solvedSet.has(probKey)) {
-              solvedSet.add(probKey);
+        const json = (await res.json()) as { status: string; result?: CodeforcesSubmission[] };
+        if (json.status === 'OK' && Array.isArray(json.result)) {
+          for (const sub of json.result) {
+            if (sub.verdict === 'OK' && sub.problem) {
+              const probKey = `${sub.problem.contestId || 0}-${sub.problem.index}`;
+              if (!solvedSet.has(probKey)) {
+                solvedSet.add(probKey);
 
-              // Bucket difficulty
-              const r = sub.problem.rating;
-              if (r) {
-                if (r <= 1100) difficultyBuckets['800-1100']++;
-                else if (r <= 1400) difficultyBuckets['1200-1400']++;
-                else if (r <= 1800) difficultyBuckets['1500-1800']++;
-                else if (r <= 2100) difficultyBuckets['1900-2100']++;
-                else difficultyBuckets['2200+']++;
-              }
+                // Bucket difficulty (≤1199, 1200-1499, 1500-1899, 1900-2199, 2200+)
+                const r = sub.problem.rating;
+                if (r) {
+                  if (r <= 1199) difficultyBuckets['≤1199']++;
+                  else if (r <= 1499) difficultyBuckets['1200-1499']++;
+                  else if (r <= 1899) difficultyBuckets['1500-1899']++;
+                  else if (r <= 2199) difficultyBuckets['1900-2199']++;
+                  else difficultyBuckets['2200+']++;
+                }
 
-              // Count tags
-              if (sub.problem.tags) {
-                for (const t of sub.problem.tags) {
-                  tagCounts[t] = (tagCounts[t] || 0) + 1;
+                // Count tags
+                if (sub.problem.tags) {
+                  for (const t of sub.problem.tags) {
+                    tagCounts[t] = (tagCounts[t] || 0) + 1;
+                  }
                 }
               }
             }
           }
+          if (json.result.length < 1000) break;
+        } else {
+          break;
         }
+      } catch {
+        break; // Stop pagination on network or rate limit error
+      } finally {
+        clearTimeout(subTimeoutId);
       }
-    } catch {
-      // Graceful fallback if submissions endpoint rate-limited
     }
 
     const topTags = Object.entries(tagCounts)

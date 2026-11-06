@@ -37,7 +37,7 @@ export function generateCanonicalSlug(rawTitle: string): string {
   if (!rawTitle) return 'unnamed-problem';
   return rawTitle
     .toLowerCase()
-    .replace(/^\d+[\s\.\-_]+/, '') // remove leading problem numbers
+    .replace(/^\d+\.\s+/, '') // only remove leading digits + dot + space (e.g. "1. Two Sum")
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
@@ -67,14 +67,22 @@ export function normalizeDifficulty(diff?: string | number, platform: string = '
  * Normalizes input problem data into unified DevOrbit schema.
  */
 export function normalizeProblem(raw: RawProblemInput): NormalizedProblem {
-  const cleanTitle = raw.title.replace(/^\d+[\s\.\-_]+/, '').trim();
+  const cleanTitle = raw.title.replace(/^\d+\.\s+/, '').trim();
   const canonical = generateCanonicalSlug(cleanTitle);
-  const platform = (raw.platform || 'LEETCODE').toUpperCase() as any;
+  const rawPlatform = (raw.platform || 'LEETCODE').toUpperCase();
+  const allowedPlatforms: Array<NormalizedProblem['platform']> = ['LEETCODE', 'CODEFORCES', 'STRIVER_A2Z', 'TLE', 'TUF', 'CUSTOM'];
+  const platform = allowedPlatforms.includes(rawPlatform as any) ? (rawPlatform as NormalizedProblem['platform']) : 'CUSTOM';
   const slug = `${canonical}-${platform.toLowerCase()}`;
   const difficulty = normalizeDifficulty(raw.difficulty, platform);
   const topic = raw.topic?.trim() || 'General Algorithms';
 
   let validatedUrl = `https://leetcode.com/problems/${canonical}/`;
+  if (platform === 'CODEFORCES') {
+    validatedUrl = `https://codeforces.com/problemset/problem/${raw.externalId || canonical}`;
+  } else if (platform === 'TUF' || platform === 'STRIVER_A2Z') {
+    validatedUrl = `https://takeuforward.org/data-structure/${canonical}/`;
+  }
+
   if (raw.url) {
     try {
       const parsed = new URL(raw.url);
@@ -92,7 +100,7 @@ export function normalizeProblem(raw: RawProblemInput): NormalizedProblem {
     title: cleanTitle,
     slug,
     canonicalSlug: canonical,
-    platform: ['LEETCODE', 'CODEFORCES', 'STRIVER_A2Z', 'TLE', 'TUF', 'CUSTOM'].includes(platform) ? platform : 'CUSTOM',
+    platform,
     externalId: raw.externalId,
     url: validatedUrl,
     difficulty,

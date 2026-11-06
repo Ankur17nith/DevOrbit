@@ -45,11 +45,20 @@ export class MigrationSafetyChecker {
       }
     });
 
+    const allModelNames = new Set([...currentModels.keys(), ...proposedModels.keys()]);
+    const isRelation = (def: { type: string; raw: string }) => {
+      if (def.raw.includes('@relation') || def.type.endsWith('[]')) return true;
+      const baseType = def.type.replace(/\?$/, '');
+      return allModelNames.has(baseType);
+    };
+
     // 2. Check for Dropped Fields
     currentModels.forEach((currFields, modelName) => {
       const propFields = proposedModels.get(modelName);
       if (propFields) {
-        currFields.forEach((currType, fieldName) => {
+        currFields.forEach((currDef, fieldName) => {
+          if (isRelation(currDef)) return; // Skip virtual relation fields
+
           if (!propFields.has(fieldName)) {
             isDestructive = true;
             warnings.push({
@@ -60,6 +69,19 @@ export class MigrationSafetyChecker {
               message: `Field '${fieldName}' in model '${modelName}' is removed. Existing data in this column will be lost.`,
               safeRemediation: `Keep the field nullable or deprecate it in application code before dropping column.`,
             });
+          } else {
+            // Check for type change
+            const propDef = propFields.get(fieldName)!;
+            if (!isRelation(propDef) && currDef.type !== propDef.type) {
+              warnings.push({
+                severity: 'WARNING',
+                model: modelName,
+                field: fieldName,
+                change: 'TYPE_CHANGE',
+                message: `Field '${fieldName}' in model '${modelName}' changed type from '${currDef.type}' to '${propDef.type}'. Data conversion may fail.`,
+                safeRemediation: `Review data conversion compatibility or run an explicit data migration script.`,
+              });
+            }
           }
         });
       }
@@ -70,14 +92,15 @@ export class MigrationSafetyChecker {
       const currFields = currentModels.get(modelName);
       if (currFields) {
         propFields.forEach((propDef, fieldName) => {
+          if (isRelation(propDef)) return; // Skip virtual relation fields
+
           if (!currFields.has(fieldName)) {
-            // New field in existing model
+            // New scalar field in existing model
             const isNullable = propDef.type.includes('?');
             const hasDefault = propDef.raw.includes('@default');
             const isId = propDef.raw.includes('@id');
-            const isRelation = propDef.raw.includes('@relation');
 
-            if (!isNullable && !hasDefault && !isId && !isRelation) {
+            if (!isNullable && !hasDefault && !isId) {
               isDestructive = true;
               warnings.push({
                 severity: 'CRITICAL',

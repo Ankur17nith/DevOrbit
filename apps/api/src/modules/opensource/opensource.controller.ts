@@ -186,17 +186,18 @@ export class OpenSourceController {
       const parsedPlatforms = typeof platforms === 'string' ? platforms.split(',').filter(Boolean) : (Array.isArray(platforms) ? (platforms as string[]) : undefined);
       const parsedTechs = typeof technologies === 'string' ? technologies.split(',').filter(Boolean) : (Array.isArray(technologies) ? (technologies as string[]) : undefined);
       
+      const userId = (req as AuthRequest).user?.id;
       const data = await organizationService.getOrganizations({
         platforms: parsedPlatforms,
         technologies: parsedTechs,
         techLogic: techLogic === 'AND' ? 'AND' : 'OR',
         search: typeof search === 'string' ? search : undefined,
         hasBeginnerIssues: String(hasBeginnerIssues) === 'true',
-        year: year ? Number(year) : undefined,
+        year: year ? (isNaN(Number(year)) ? undefined : Number(year)) : undefined,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
         sortBy: (sortBy as any) || 'projects',
-      });
+      }, userId);
       res.json({ success: true, data });
     } catch (err) {
       next(err);

@@ -16,27 +16,41 @@ export class ImpactAnalyzer {
     const summary = await this.navigator.getSummary();
     const graph = this.navigator.getGraph();
 
-    const normalizedTarget = path.normalize(targetFilePath).replace(/^\//, '');
+    const normalizedTarget = path.posix.normalize(targetFilePath.replace(/\\/g, '/')).replace(/^\//, '');
 
-    // 1. Direct and Transitive Downstream Search
+    // 1. Direct and Transitive Downstream Search using Exact Path Matching & BFS
     const directDownstream = new Set<string>();
     const transitiveDownstream = new Set<string>();
 
+    // Build reverse adjacency graph (target -> dependents who import it)
+    const importersMap = new Map<string, string[]>();
     graph.edges.forEach(edge => {
-      // If edge.to matches target, then edge.from imports it
-      if (edge.to.includes(normalizedTarget) || normalizedTarget.includes(edge.to)) {
-        directDownstream.add(edge.from);
-      }
+      const from = path.posix.normalize(edge.from.replace(/\\/g, '/'));
+      const to = path.posix.normalize(edge.to.replace(/\\/g, '/'));
+      const list = importersMap.get(to) || [];
+      list.push(from);
+      importersMap.set(to, list);
     });
 
-    // One level of transitive dependencies
-    directDownstream.forEach(directFile => {
-      graph.edges.forEach(edge => {
-        if (edge.to === directFile && edge.from !== normalizedTarget) {
-          transitiveDownstream.add(edge.from);
+    const direct = importersMap.get(normalizedTarget) || [];
+    direct.forEach(f => directDownstream.add(f));
+
+    // BFS transitive closure with depth cap
+    const queue: { file: string; depth: number }[] = direct.map(f => ({ file: f, depth: 1 }));
+    const visited = new Set<string>([normalizedTarget, ...direct]);
+
+    while (queue.length > 0) {
+      const { file, depth } = queue.shift()!;
+      if (depth >= 10) continue;
+      const nextImporters = importersMap.get(file) || [];
+      for (const nextFile of nextImporters) {
+        if (!visited.has(nextFile)) {
+          visited.add(nextFile);
+          transitiveDownstream.add(nextFile);
+          queue.push({ file: nextFile, depth: depth + 1 });
         }
-      });
-    });
+      }
+    }
 
     const allDownstream = Array.from(new Set([...directDownstream, ...transitiveDownstream]));
 
@@ -66,10 +80,8 @@ export class ImpactAnalyzer {
     // 3. Compute Risk Score & Level
     let riskScore = 15; // Baseline
     const isCoreUtility = 
-      normalizedTarget.includes('/lib/') ||
-      normalizedTarget.includes('/middleware/') ||
-      normalizedTarget.includes('schema.prisma') ||
-      normalizedTarget.includes('config');
+      /(?:^|\/)(?:lib|middleware|config)(?:\/|$)/.test(normalizedTarget) ||
+      normalizedTarget.endsWith('schema.prisma');
 
     if (isCoreUtility) riskScore += 45;
     riskScore += directDownstream.size * 8;

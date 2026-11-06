@@ -7,7 +7,11 @@ const authService = new AuthService();
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await authService.register(req.body);
+      const result = await authService.register({
+        ...req.body,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
       res.cookie('devorbit_token', result.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -26,7 +30,11 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await authService.login(req.body);
+      const result = await authService.login({
+        ...req.body,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
       res.cookie('devorbit_token', result.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

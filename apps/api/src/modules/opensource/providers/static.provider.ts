@@ -69,7 +69,7 @@ export class StaticProvider implements PlatformProvider {
 
     const total = filtered.length;
     const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 24));
+    const limit = Math.min(1000, Math.max(1, filters.limit || 24));
     const skip = (page - 1) * limit;
 
     return {

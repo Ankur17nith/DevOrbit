@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
+import { NotFoundError } from '../../lib/errors.js';
 
 export const notificationsRouter = Router();
 
@@ -64,6 +65,9 @@ notificationsRouter.post('/pulse', authenticate, async (req: AuthRequest, res: R
       },
     });
 
+    const cycleWindowStart = new Date();
+    cycleWindowStart.setHours(0, 0, 0, 0);
+
     let newNotificationsCount = 0;
 
     for (const prog of urgentPrograms) {
@@ -71,6 +75,7 @@ notificationsRouter.post('/pulse', authenticate, async (req: AuthRequest, res: R
         where: {
           userId,
           title: `Deadline Approaching: ${prog.name}`,
+          createdAt: { gte: cycleWindowStart },
         },
       });
 
@@ -106,12 +111,44 @@ notificationsRouter.post('/pulse', authenticate, async (req: AuthRequest, res: R
   }
 });
 
+notificationsRouter.post('/read-all', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    await prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+notificationsRouter.patch('/read-all', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    await prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 notificationsRouter.patch('/:id/read', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const id = String(req.params.id);
-    await prisma.notification.updateMany({
+    const existing = await prisma.notification.findFirst({
       where: { id, userId },
+    });
+    if (!existing) {
+      throw new NotFoundError('Notification not found');
+    }
+    await prisma.notification.update({
+      where: { id },
       data: { isRead: true },
     });
     res.json({ success: true, message: 'Notification marked as read' });

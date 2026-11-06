@@ -2,6 +2,9 @@ import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
+import { validate } from '../../middleware/validate.js';
+import { createPostSchema, replyPostSchema } from './forum.validation.js';
+import { safeJson } from '../../lib/json.js';
 
 export const forumRouter = Router();
 
@@ -21,7 +24,7 @@ forumRouter.get('/posts', optionalAuthenticate, async (req: AuthRequest, res: Re
       success: true,
       data: posts.map(p => ({
         ...p,
-        tags: p.tagsJson ? JSON.parse(p.tagsJson) : [],
+        tags: safeJson(p.tagsJson, []),
         replyCount: p._count.replies,
       })),
     });
@@ -31,13 +34,10 @@ forumRouter.get('/posts', optionalAuthenticate, async (req: AuthRequest, res: Re
 });
 
 // Create post
-forumRouter.post('/posts', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+forumRouter.post('/posts', authenticate, validate(createPostSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const { title, content, tags } = req.body;
-    if (!title || !content) {
-      throw new BadRequestError('Title and content are required');
-    }
 
     const post = await prisma.forumPost.create({
       data: {
@@ -89,7 +89,7 @@ forumRouter.post('/posts/:postId/upvote', authenticate, async (req: AuthRequest,
 });
 
 // Reply to post
-forumRouter.post('/posts/:postId/replies', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+forumRouter.post('/posts/:postId/replies', authenticate, validate(replyPostSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const postId = String(req.params.postId);

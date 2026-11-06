@@ -7,36 +7,39 @@ export class GSoCProvider implements PlatformProvider {
 
   async getOrganizations(filters: OrganizationFilterOptions): Promise<{ orgs: NormalizedOrganization[]; total: number }> {
     const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 24));
+    const limit = Math.min(1000, Math.max(1, filters.limit || 24));
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const andClauses: any[] = [];
     if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search } },
-        { description: { contains: filters.search } },
-        { technologiesJson: { contains: filters.search } },
-      ];
+      andClauses.push({
+        OR: [
+          { name: { contains: filters.search } },
+          { description: { contains: filters.search } },
+          { technologiesJson: { contains: filters.search } },
+        ],
+      });
     }
 
     if (filters.technologies && filters.technologies.length > 0) {
       if (filters.techLogic === 'AND') {
-        where.AND = filters.technologies.map(tech => ({
-          technologiesJson: { contains: tech },
-        }));
+        filters.technologies.forEach(tech => {
+          andClauses.push({ technologiesJson: { contains: tech } });
+        });
       } else {
-        where.OR = [
-          ...(where.OR || []),
-          ...filters.technologies.map(tech => ({
+        andClauses.push({
+          OR: filters.technologies.map(tech => ({
             technologiesJson: { contains: tech },
           })),
-        ];
+        });
       }
     }
 
     if (filters.year) {
-      where.participationYearsJson = { contains: String(filters.year) };
+      andClauses.push({ participationYearsJson: { contains: String(filters.year) } });
     }
+
+    const where: any = andClauses.length > 0 ? { AND: andClauses } : {};
 
     const [total, orgs] = await Promise.all([
       prisma.ossOrganization.count({ where }),

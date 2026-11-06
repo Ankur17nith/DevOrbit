@@ -29,11 +29,8 @@ export function createRateLimiter(options: RateLimitOptions) {
   }
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    // Determine client identifier: authenticated userId preferred, fallback to client IP
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
-      req.socket.remoteAddress ||
-      'anonymous';
-
+    // Determine client identifier: authenticated userId preferred, fallback to Express req.ip
+    const clientIp = req.ip || 'anonymous';
     const userId = (req as any).user?.id;
     const key = userId ? `user:${userId}` : `ip:${clientIp}`;
 
@@ -54,10 +51,17 @@ export function createRateLimiter(options: RateLimitOptions) {
       res.setHeader('X-RateLimit-Limit', options.max);
       res.setHeader('X-RateLimit-Remaining', 0);
       res.setHeader('X-RateLimit-Reset', Math.ceil(existing.resetAt / 1000));
+      const requestId = (req as any).id || (req.headers['x-request-id'] as string) || null;
       res.status(429).json({
         success: false,
-        error: options.message,
-        retryAfter: retryAfterSeconds,
+        data: null,
+        error: {
+          message: options.message,
+          statusCode: 429,
+          details: { retryAfter: retryAfterSeconds },
+        },
+        message: options.message,
+        requestId,
       });
       return;
     }
@@ -69,6 +73,12 @@ export function createRateLimiter(options: RateLimitOptions) {
     next();
   };
 }
+
+export const globalRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '600', 10),
+  message: 'Too many requests. Please slow down.',
+});
 
 export const authRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,

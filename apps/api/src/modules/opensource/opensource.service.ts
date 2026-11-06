@@ -2,6 +2,8 @@ import { prisma } from '../../config/index.js';
 import { NotFoundError, BadRequestError } from '../../lib/errors.js';
 import { normalizeRepository, isValidRepository } from './repository.normalizer.js';
 import { recommendationEngine } from '../recommendations/recommendation.engine.js';
+import { matchSkillToken } from '../../lib/skill_matcher.js';
+import { safeJson } from '../../lib/json.js';
 
 export class OpenSourceService {
   async getCatalog(query: {
@@ -111,6 +113,9 @@ export class OpenSourceService {
     const skip = (page - 1) * limit;
 
     const where: any = { state: 'open' };
+    if (query.language && query.language !== 'All') {
+      where.repository = { language: { equals: query.language } };
+    }
     if (query.difficulty && query.difficulty !== 'All') {
       where.difficulty = query.difficulty.toLowerCase();
     }
@@ -245,42 +250,55 @@ export class OpenSourceService {
   async getBounties(query: { page?: number; limit?: number; minAmount?: number }) {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(query.limit) || 20));
-    const skip = (page - 1) * limit;
 
     const where: any = {
       bountyAmount: { not: null },
       state: 'open',
     };
 
-    const [total, bounties] = await Promise.all([
-      prisma.ossIssue.count({ where }),
-      prisma.ossIssue.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          repository: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
+    const parseBountyValue = (val: string | null | undefined): number => {
+      if (!val) return 0;
+      const cleaned = val.replace(/[^0-9.kKmM]/g, '');
+      if (cleaned.toLowerCase().endsWith('k')) return (parseFloat(cleaned) || 0) * 1000;
+      if (cleaned.toLowerCase().endsWith('m')) return (parseFloat(cleaned) || 0) * 1000000;
+      return parseFloat(cleaned) || 0;
+    };
+
+    const bounties = await prisma.ossIssue.findMany({
+      where,
+      include: {
+        repository: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let mapped = bounties.map(b => {
+      let normalizedRepo = null;
+      if (b.repository) {
+        try {
+          normalizedRepo = normalizeRepository(b.repository);
+        } catch {
+          normalizedRepo = b.repository;
+        }
+      }
+      return {
+        ...b,
+        bountyValue: parseBountyValue(b.bountyAmount),
+        repository: normalizedRepo,
+        labels: safeJson(b.labelsJson, []),
+      };
+    });
+
+    if (query.minAmount !== undefined && !isNaN(Number(query.minAmount))) {
+      mapped = mapped.filter(b => b.bountyValue >= Number(query.minAmount));
+    }
+
+    const total = mapped.length;
+    const skip = (page - 1) * limit;
+    const paginated = mapped.slice(skip, skip + limit);
 
     return {
-      bounties: bounties.map(b => {
-        let normalizedRepo = null;
-        if (b.repository) {
-          try {
-            normalizedRepo = normalizeRepository(b.repository);
-          } catch {
-            normalizedRepo = b.repository;
-          }
-        }
-        return {
-          ...b,
-          repository: normalizedRepo,
-          labels: b.labelsJson ? JSON.parse(b.labelsJson) : [],
-        };
-      }),
+      bounties: paginated,
       pagination: {
         page,
         limit,
@@ -291,33 +309,62 @@ export class OpenSourceService {
   }
 
   // Multi-user Bookmarking
-  async toggleBookmark(userId: string, data: { targetType: string; repositoryId?: string; issueId?: string; organizationId?: string }) {
-    const existing = await prisma.userBookmark.findFirst({
-      where: {
-        userId,
-        targetType: data.targetType,
-        repositoryId: data.repositoryId || null,
-        issueId: data.issueId || null,
-        organizationId: data.organizationId || null,
-      },
-    });
-
-    if (existing) {
-      await prisma.userBookmark.delete({ where: { id: existing.id } });
-      return { bookmarked: false };
+  async toggleBookmark(userId: string, data: { targetType: string; repositoryId?: string; issueId?: string; organizationId?: string; targetId?: string }) {
+    const rawType = data.targetType?.toUpperCase();
+    const targetType = rawType === 'REPO' ? 'REPOSITORY' : rawType;
+    const validTypes = ['REPOSITORY', 'ISSUE', 'ORGANIZATION'];
+    if (!validTypes.includes(targetType)) {
+      throw new BadRequestError('Invalid bookmark targetType. Must be REPOSITORY, ISSUE, or ORGANIZATION');
     }
 
-    await prisma.userBookmark.create({
-      data: {
-        userId,
-        targetType: data.targetType,
-        repositoryId: data.repositoryId,
-        issueId: data.issueId,
-        organizationId: data.organizationId,
-      },
-    });
+    const repositoryId = data.repositoryId || (targetType === 'REPOSITORY' ? data.targetId : undefined);
+    const issueId = data.issueId || (targetType === 'ISSUE' ? data.targetId : undefined);
+    const organizationId = data.organizationId || (targetType === 'ORGANIZATION' ? data.targetId : undefined);
 
-    return { bookmarked: true };
+    if (targetType === 'REPOSITORY') {
+      if (!repositoryId) throw new BadRequestError('repositoryId is required for REPOSITORY bookmark');
+      const repo = await prisma.ossRepository.findUnique({ where: { id: repositoryId } });
+      if (!repo) throw new NotFoundError('Target repository not found');
+    } else if (targetType === 'ISSUE') {
+      if (!issueId) throw new BadRequestError('issueId is required for ISSUE bookmark');
+      const issue = await prisma.ossIssue.findUnique({ where: { id: issueId } });
+      if (!issue) throw new NotFoundError('Target issue not found');
+    } else if (targetType === 'ORGANIZATION') {
+      if (!organizationId) throw new BadRequestError('organizationId is required for ORGANIZATION bookmark');
+      const org = await prisma.ossOrganization.findFirst({
+        where: { OR: [{ id: organizationId }, { slug: organizationId }] },
+      });
+      if (!org) throw new NotFoundError('Target organization not found');
+    }
+
+    return await prisma.$transaction(async tx => {
+      const existing = await tx.userBookmark.findFirst({
+        where: {
+          userId,
+          targetType,
+          repositoryId: repositoryId || null,
+          issueId: issueId || null,
+          organizationId: organizationId || null,
+        },
+      });
+
+      if (existing) {
+        await tx.userBookmark.delete({ where: { id: existing.id } });
+        return { bookmarked: false };
+      }
+
+      await tx.userBookmark.create({
+        data: {
+          userId,
+          targetType,
+          repositoryId: repositoryId || null,
+          issueId: issueId || null,
+          organizationId: organizationId || null,
+        },
+      });
+
+      return { bookmarked: true };
+    });
   }
 
   async getUserBookmarks(userId: string) {
@@ -508,8 +555,8 @@ export class OpenSourceService {
       },
     });
 
-    // If merged, automatically celebrate and record in notification table
-    if (data.stage === 'MERGED') {
+    // If transitioned into merged, automatically celebrate and record in notification table
+    if (data.stage === 'MERGED' && item.stage !== 'MERGED') {
       await prisma.notification.create({
         data: {
           userId,
@@ -559,8 +606,9 @@ export class OpenSourceService {
     });
 
     const repoLanguage = issue.repository.language;
-    const repoTopics: string[] = issue.repository.topicsJson ? JSON.parse(issue.repository.topicsJson) : [];
-    const issueLabels: string[] = issue.labelsJson ? JSON.parse(issue.labelsJson).map((l: any) => (typeof l === 'string' ? l : l.name || '')) : [];
+    const repoTopics: string[] = safeJson(issue.repository.topicsJson, []);
+    const rawLabels = safeJson<any[]>(issue.labelsJson, []);
+    const issueLabels: string[] = rawLabels.map((l: any) => (typeof l === 'string' ? l : l.name || '')).filter(Boolean);
 
     // Analyze requirements
     const requiredSkills: string[] = [];
@@ -579,7 +627,7 @@ export class OpenSourceService {
     const missingSkills: string[] = [];
 
     let totalScore = 0;
-    const langSkill = userSkills.find(s => s.skillName.toLowerCase() === repoLanguage?.toLowerCase());
+    const langSkill = userSkills.find(s => matchSkillToken(s.skillName, repoLanguage || ''));
 
     if (langSkill) {
       const langContribution = Math.round(55 * (langSkill.confidenceScore / 100));
@@ -587,24 +635,24 @@ export class OpenSourceService {
       matchedSkills.push({
         skillName: langSkill.skillName,
         confidence: langSkill.confidenceScore,
-        evidenceCount: langSkill.verifiedEvidenceJson ? JSON.parse(langSkill.verifiedEvidenceJson).length : 1,
+        evidenceCount: safeJson<any[]>(langSkill.verifiedEvidenceJson, []).length || 1,
       });
     } else if (repoLanguage) {
       missingSkills.push(repoLanguage);
     }
 
-    // Match topic skills
+    // Match topic skills using tokenized matcher
     for (const userSkill of userSkills) {
-      if (userSkill.skillName.toLowerCase() === repoLanguage?.toLowerCase()) continue;
-      const matchesTopic = repoTopics.some(t => t.toLowerCase().includes(userSkill.skillName.toLowerCase()));
-      const matchesLabel = issueLabels.some(l => l.toLowerCase().includes(userSkill.skillName.toLowerCase()));
+      if (repoLanguage && matchSkillToken(userSkill.skillName, repoLanguage)) continue;
+      const matchesTopic = repoTopics.some(t => matchSkillToken(t, userSkill.skillName));
+      const matchesLabel = issueLabels.some(l => matchSkillToken(l, userSkill.skillName));
 
       if (matchesTopic || matchesLabel) {
         totalScore += Math.round(20 * (userSkill.confidenceScore / 100));
         matchedSkills.push({
           skillName: userSkill.skillName,
           confidence: userSkill.confidenceScore,
-          evidenceCount: userSkill.verifiedEvidenceJson ? JSON.parse(userSkill.verifiedEvidenceJson).length : 1,
+          evidenceCount: safeJson<any[]>(userSkill.verifiedEvidenceJson, []).length || 1,
         });
       }
     }
@@ -701,11 +749,14 @@ export class OpenSourceService {
         const diffHours = (item.deadline.getTime() - now.getTime()) / (1000 * 3600);
         // Alert if deadline within 72 hours
         if (diffHours > 0 && diffHours <= 72) {
+          const oneDayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
+          const alertTitle = `⏰ Deadline Approaching: ${item.issue.repository.fullName}`;
           const existing = await prisma.notification.findFirst({
             where: {
               userId,
               type: 'OPPORTUNITY',
-              message: { contains: item.issue.title },
+              title: alertTitle,
+              createdAt: { gte: oneDayAgo },
             },
           });
 
@@ -713,7 +764,7 @@ export class OpenSourceService {
             const notif = await prisma.notification.create({
               data: {
                 userId,
-                title: `⏰ Deadline Approaching: ${item.issue.repository.fullName}`,
+                title: alertTitle,
                 message: `Target deadline for "${item.issue.title}" is in ${Math.round(diffHours)} hours (${item.priority} priority).`,
                 type: 'OPPORTUNITY',
                 linkUrl: item.issue.url,

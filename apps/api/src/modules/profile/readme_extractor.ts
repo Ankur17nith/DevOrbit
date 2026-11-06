@@ -50,10 +50,21 @@ export function extractSignalsFromReadme(content: string): ExtractedSignal[] {
 
   const normalized = content.replace(/\r\n/g, '\n');
 
+  const CASE_SENSITIVE = new Set(['C', 'Go', 'Rust', 'Swift', 'Express', 'Gin', 'Julia', 'Git']);
+
+  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const testKeyword = (text: string, keyword: string): boolean => {
+    const escaped = escapeRegex(keyword);
+    const pattern = `(?<![\\w+#])${escaped}(?![\\w+#])`;
+    const flags = CASE_SENSITIVE.has(keyword) ? '' : 'i';
+    const regex = new RegExp(pattern, flags);
+    return regex.test(text);
+  };
+
   // 1. Extract Languages
   for (const lang of KNOWN_LANGUAGES) {
-    const regex = new RegExp(`\\b${lang.replace('+', '\\+')}\\b`, 'i');
-    if (regex.test(normalized)) {
+    if (testKeyword(normalized, lang)) {
       addSignal({
         signalType: 'LANGUAGE',
         signalKey: lang,
@@ -65,8 +76,7 @@ export function extractSignalsFromReadme(content: string): ExtractedSignal[] {
 
   // 2. Extract Frameworks
   for (const fw of KNOWN_FRAMEWORKS) {
-    const regex = new RegExp(`\\b${fw.replace('.', '\\.')}\\b`, 'i');
-    if (regex.test(normalized)) {
+    if (testKeyword(normalized, fw)) {
       addSignal({
         signalType: 'FRAMEWORK',
         signalKey: fw,
@@ -78,8 +88,7 @@ export function extractSignalsFromReadme(content: string): ExtractedSignal[] {
 
   // 3. Extract Tools & Databases
   for (const tool of KNOWN_TOOLS) {
-    const regex = new RegExp(`\\b${tool}\\b`, 'i');
-    if (regex.test(normalized)) {
+    if (testKeyword(normalized, tool)) {
       const type = ['PostgreSQL', 'Postgres', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Prisma'].includes(tool)
         ? 'DATABASE'
         : 'TOOL';
@@ -94,8 +103,7 @@ export function extractSignalsFromReadme(content: string): ExtractedSignal[] {
 
   // 4. Extract Focus Domains
   for (const domain of KNOWN_DOMAINS) {
-    const regex = new RegExp(`\\b${domain}\\b`, 'i');
-    if (regex.test(normalized)) {
+    if (testKeyword(normalized, domain)) {
       addSignal({
         signalType: 'DOMAIN',
         signalKey: domain,

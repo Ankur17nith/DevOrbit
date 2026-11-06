@@ -188,14 +188,41 @@ export class LeetCodeProvider {
    * Process verified manual import or browser extension payload
    */
   processImport(payload: LeetCodeImportPayload, source: 'manual_import' | 'browser_extension' = 'manual_import'): LeetCodeStats {
-    if (!payload.username) {
+    if (!payload.username || typeof payload.username !== 'string' || !payload.username.trim()) {
       throw new BadRequestError('Import data must include a valid LeetCode username');
     }
 
-    const easy = Number(payload.easySolved) || 0;
-    const medium = Number(payload.mediumSolved) || 0;
-    const hard = Number(payload.hardSolved) || 0;
-    const total = Number(payload.totalSolved) || (easy + medium + hard);
+    const validateCount = (val: any, fieldName: string): number => {
+      if (val === undefined || val === null) return 0;
+      const num = Number(val);
+      if (isNaN(num) || !Number.isInteger(num) || num < 0 || num > 100000) {
+        throw new BadRequestError(`Invalid value for ${fieldName}: must be an integer between 0 and 100,000`);
+      }
+      return num;
+    };
+
+    const easy = validateCount(payload.easySolved, 'easySolved');
+    const medium = validateCount(payload.mediumSolved, 'mediumSolved');
+    const hard = validateCount(payload.hardSolved, 'hardSolved');
+    const total = payload.totalSolved !== undefined ? validateCount(payload.totalSolved, 'totalSolved') : (easy + medium + hard);
+
+    let ranking: number | undefined;
+    if (payload.ranking !== undefined && payload.ranking !== null) {
+      const r = Number(payload.ranking);
+      if (isNaN(r) || !Number.isInteger(r) || r < 0) {
+        throw new BadRequestError('Invalid ranking: must be a positive integer');
+      }
+      ranking = r;
+    }
+
+    let contestRating: number | undefined;
+    if (payload.contestRating !== undefined && payload.contestRating !== null) {
+      const cr = Number(payload.contestRating);
+      if (isNaN(cr) || !Number.isInteger(cr) || cr < 0) {
+        throw new BadRequestError('Invalid contest rating: must be a positive integer');
+      }
+      contestRating = cr;
+    }
 
     return {
       username: payload.username.trim(),
@@ -203,8 +230,8 @@ export class LeetCodeProvider {
       easySolved: easy,
       mediumSolved: medium,
       hardSolved: hard,
-      ranking: payload.ranking,
-      contestRating: payload.contestRating,
+      ranking,
+      contestRating,
       source,
       lastSyncedAt: new Date().toISOString(),
     };

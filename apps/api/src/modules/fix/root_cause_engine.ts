@@ -75,7 +75,7 @@ export class RootCauseEngine {
     workspaceRoot: string = NAVIGATOR_ROOT
   ): PatchResult {
     const filePath = analysis.filePath || 'src/index.ts';
-    const lineNumber = analysis.lineNumber || 1;
+    let lineNumber = analysis.lineNumber || 1;
     if (analysis.category !== 'NULL_UNDEFINED') {
       return {
         patch: null,
@@ -95,8 +95,10 @@ export class RootCauseEngine {
       };
     }
 
-    const errorLineObj = analysis.codeContext.find(l => l.isErrorLine);
-    const originalLine = errorLineObj ? errorLineObj.content : `    const result = obj.${targetProperty};`;
+    const lineWithProp = analysis.codeContext.find(l => l.isErrorLine && l.content.includes(targetProperty)) ||
+                          analysis.codeContext.find(l => l.content.includes(targetProperty));
+    const originalLine = lineWithProp ? lineWithProp.content : `    const result = obj.${targetProperty};`;
+    lineNumber = lineWithProp ? lineWithProp.lineNumber : lineNumber;
     let patchedLine = originalLine;
     let explanation = '';
 

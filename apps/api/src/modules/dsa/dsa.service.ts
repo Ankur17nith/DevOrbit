@@ -52,7 +52,7 @@ export class DsaService {
       if (repetitionCount === 0) {
         interval = 1;
       } else if (repetitionCount === 1) {
-        interval = rating === 5 ? 6 : 3;
+        interval = 6;
       } else {
         interval = Math.round(currentInterval * easeFactor);
       }
@@ -165,7 +165,7 @@ export class DsaService {
 
     const solutionMode = data.solutionMode || (data.hintUsed ? 'WITH_HINTS' : 'INDEPENDENT');
     const masteryScore = this.calculateMasteryScore(solutionMode, data.status);
-    const confidenceRating = data.confidenceRating || (data.status === 'SOLVED' ? 4 : 2);
+    const confidenceRating = data.confidenceRating !== undefined ? data.confidenceRating : (data.status === 'SOLVED' ? 4 : 2);
 
     const prevRepetition = existingProgress?.repetitionCount || 0;
     const prevEase = existingProgress?.easeFactor || 2.5;
@@ -271,7 +271,7 @@ export class DsaService {
         userId,
         OR: [
           { status: 'REVISE' },
-          { nextReviewDate: { lte: now } },
+          { status: 'SOLVED', nextReviewDate: { lte: now } },
         ],
       },
       include: { problem: true },

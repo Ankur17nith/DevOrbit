@@ -27,6 +27,8 @@ export function extractToken(req: Request): string | null {
   return null;
 }
 
+import crypto from 'crypto';
+
 export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   const token = extractToken(req);
   if (!token) {
@@ -35,8 +37,14 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
 
   try {
     const payload = verifyToken(token);
-    const session = await prisma.session.findUnique({
-      where: { token },
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const session = await prisma.session.findFirst({
+      where: {
+        OR: [
+          { token: tokenHash },
+          { token: token },
+        ],
+      },
       include: { user: true },
     });
 
@@ -78,8 +86,14 @@ export function optionalAuthenticate(req: AuthRequest, res: Response, next: Next
 
   try {
     const payload = verifyToken(token);
-    prisma.session.findUnique({
-      where: { token },
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    prisma.session.findFirst({
+      where: {
+        OR: [
+          { token: tokenHash },
+          { token: token },
+        ],
+      },
       include: { user: true },
     }).then(session => {
       if (session && session.expiresAt >= new Date()) {

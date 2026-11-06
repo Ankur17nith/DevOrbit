@@ -1,7 +1,7 @@
 import { prisma } from '../../config/index.js';
 import { encryptSecret, decryptSecret, maskSecretToken } from '../../lib/encryption.js';
 import { githubClient, GitHubApiError } from './github.client.js';
-import { NotFoundError, BadRequestError } from '../../lib/errors.js';
+import { NotFoundError, BadRequestError, AppError } from '../../lib/errors.js';
 import { githubOAuthHandler } from '../integrations/github.oauth.js';
 
 export interface SkillEvidenceItem {
@@ -156,8 +156,12 @@ export class GitHubService {
         return refreshed.accessToken;
       } catch (err) {
         console.error('Failed to automatically refresh expiring GitHub token:', err);
-        return decryptSecret(cred.encryptedToken);
+        throw new AppError('GitHub token expired, reconnect', 401);
       }
+    }
+
+    if (cred.tokenExpiresAt && cred.tokenExpiresAt.getTime() <= now) {
+      throw new AppError('GitHub token expired, reconnect', 401);
     }
 
     return decryptSecret(cred.encryptedToken);
@@ -258,18 +262,21 @@ export class GitHubService {
     // Decrypt and ensure valid token (refreshing if expired)
     const rawToken = await this.getValidAccessToken(userId);
 
-    // Fetch existing repos to get last ETag if available
-    const existingRepos = await prisma.userGithubRepo.findMany({
-      where: { userId },
-      select: { githubRepoId: true, etag: true },
-      take: 1,
-    });
-    const lastEtag = existingRepos.length > 0 ? existingRepos[0].etag || undefined : undefined;
+    // Paginate user repos (up to 10 pages of 100)
+    const allRepos: any[] = [];
+    let page = 1;
+    const maxPages = 10;
+    let lastRateLimit = { remaining: 5000, reset: new Date(), limit: 5000 };
 
-    // Fetch user repos from GitHub with conditional caching
-    let result;
     try {
-      result = await githubClient.fetchUserRepos(rawToken, { etag: lastEtag });
+      while (page <= maxPages) {
+        const pageResult = await githubClient.fetchUserRepos(rawToken, { page, perPage: 100 });
+        lastRateLimit = pageResult.rateLimit;
+        if (!pageResult.repos || pageResult.repos.length === 0) break;
+        allRepos.push(...pageResult.repos);
+        if (pageResult.repos.length < 100) break;
+        page++;
+      }
     } catch (err: any) {
       if (err instanceof GitHubApiError && err.statusCode === 401) {
         await prisma.integrationCredential.update({
@@ -283,69 +290,93 @@ export class GitHubService {
       throw err;
     }
 
-    if (!result.notModified && result.repos.length > 0) {
-      for (const repo of result.repos) {
-        // Fetch languages for this repo
-        const [owner, name] = repo.full_name.split('/');
-        const languages = await githubClient.fetchRepoLanguages(rawToken, owner, name);
+    // Bounded concurrency (5) for per-repo language fetches
+    const concurrency = 5;
+    const repoLanguages = new Map<number, Record<string, number>>();
+    for (let i = 0; i < allRepos.length; i += concurrency) {
+      const batch = allRepos.slice(i, i + concurrency);
+      await Promise.all(
+        batch.map(async (repo) => {
+          try {
+            const [owner, name] = repo.full_name.split('/');
+            const languages = await githubClient.fetchRepoLanguages(rawToken, owner, name);
+            repoLanguages.set(repo.id, languages);
+          } catch (err) {
+            console.warn(`Failed to fetch languages for repo ${repo.full_name}:`, err);
+            repoLanguages.set(repo.id, {});
+          }
+        })
+      );
+    }
 
-        await prisma.userGithubRepo.upsert({
-          where: {
-            userId_githubRepoId: {
-              userId,
-              githubRepoId: repo.id,
-            },
-          },
-          create: {
+    // Upsert all fetched repositories
+    for (const repo of allRepos) {
+      const languages = repoLanguages.get(repo.id) || {};
+      await prisma.userGithubRepo.upsert({
+        where: {
+          userId_githubRepoId: {
             userId,
             githubRepoId: repo.id,
-            name: repo.name,
-            fullName: repo.full_name,
-            description: repo.description,
-            language: repo.language,
-            languagesJson: JSON.stringify(languages),
-            topicsJson: JSON.stringify(repo.topics || []),
-            stargazersCount: repo.stargazers_count,
-            forksCount: repo.forks_count,
-            openIssuesCount: repo.open_issues_count,
-            isPrivate: repo.private,
-            isFork: repo.fork,
-            defaultBranch: repo.default_branch,
-            license: repo.license?.spdx_id || repo.license?.name || null,
-            pushedAt: repo.pushed_at ? new Date(repo.pushed_at) : null,
-            etag: result.etag || null,
-            syncedAt: new Date(),
           },
-          update: {
-            name: repo.name,
-            fullName: repo.full_name,
-            description: repo.description,
-            language: repo.language,
-            languagesJson: JSON.stringify(languages),
-            topicsJson: JSON.stringify(repo.topics || []),
-            stargazersCount: repo.stargazers_count,
-            forksCount: repo.forks_count,
-            openIssuesCount: repo.open_issues_count,
-            isPrivate: repo.private,
-            isFork: repo.fork,
-            defaultBranch: repo.default_branch,
-            license: repo.license?.spdx_id || repo.license?.name || null,
-            pushedAt: repo.pushed_at ? new Date(repo.pushed_at) : null,
-            etag: result.etag || null,
-            syncedAt: new Date(),
-          },
-        });
-      }
+        },
+        create: {
+          userId,
+          githubRepoId: repo.id,
+          name: repo.name,
+          fullName: repo.full_name,
+          description: repo.description,
+          language: repo.language,
+          languagesJson: JSON.stringify(languages),
+          topicsJson: JSON.stringify(repo.topics || []),
+          stargazersCount: repo.stargazers_count,
+          forksCount: repo.forks_count,
+          openIssuesCount: repo.open_issues_count,
+          isPrivate: repo.private,
+          isFork: repo.fork,
+          defaultBranch: repo.default_branch,
+          license: repo.license?.spdx_id || repo.license?.name || null,
+          pushedAt: repo.pushed_at ? new Date(repo.pushed_at) : null,
+          etag: null,
+          syncedAt: new Date(),
+        },
+        update: {
+          name: repo.name,
+          fullName: repo.full_name,
+          description: repo.description,
+          language: repo.language,
+          languagesJson: JSON.stringify(languages),
+          topicsJson: JSON.stringify(repo.topics || []),
+          stargazersCount: repo.stargazers_count,
+          forksCount: repo.forks_count,
+          openIssuesCount: repo.open_issues_count,
+          isPrivate: repo.private,
+          isFork: repo.fork,
+          defaultBranch: repo.default_branch,
+          license: repo.license?.spdx_id || repo.license?.name || null,
+          pushedAt: repo.pushed_at ? new Date(repo.pushed_at) : null,
+          etag: null,
+          syncedAt: new Date(),
+        },
+      });
     }
+
+    // Delete repositories that were removed or renamed from GitHub
+    const activeIds = allRepos.map(r => r.id);
+    await prisma.userGithubRepo.deleteMany({
+      where: {
+        userId,
+        githubRepoId: { notIn: activeIds },
+      },
+    });
 
     const now = new Date();
     await prisma.integrationCredential.update({
       where: { id: cred.id },
       data: {
         lastSyncedAt: now,
-        rateLimitRemaining: result.rateLimit.remaining,
-        rateLimitReset: result.rateLimit.reset,
-        rateLimitTotal: result.rateLimit.limit,
+        rateLimitRemaining: lastRateLimit.remaining,
+        rateLimitReset: lastRateLimit.reset,
+        rateLimitTotal: lastRateLimit.limit,
       },
     });
 
@@ -357,8 +388,8 @@ export class GitHubService {
 
     return {
       synced: true,
-      notModified: result.notModified,
-      syncedCount: result.repos.length,
+      notModified: false,
+      syncedCount: allRepos.length,
       totalCount,
       lastSyncedAt: now,
     };
@@ -508,7 +539,10 @@ export class GitHubService {
       where: { userId },
     });
 
-    if (repos.length === 0) return [];
+    if (repos.length === 0) {
+      await prisma.userSkillProfile.deleteMany({ where: { userId } });
+      return [];
+    }
 
     interface SkillCandidate {
       name: string;
@@ -557,6 +591,9 @@ export class GitHubService {
     };
 
     for (const repo of repos) {
+      // Ignore forks for skill evidence
+      if (repo.isFork) continue;
+
       // 1. Language evidence
       if (repo.languagesJson) {
         try {
@@ -598,7 +635,7 @@ export class GitHubService {
                   lastActive: repo.pushedAt ? repo.pushedAt.toISOString() : repo.updatedAt.toISOString(),
                   isOwner: !repo.isFork,
                 },
-                50000
+                0
               );
             }
           }
@@ -655,6 +692,15 @@ export class GitHubService {
 
       results.push(profile);
     }
+
+    // Delete stale skills that are no longer evidenced
+    const activeSkillNames = Array.from(candidates.keys());
+    await prisma.userSkillProfile.deleteMany({
+      where: {
+        userId,
+        skillName: { notIn: activeSkillNames },
+      },
+    });
 
     return results;
   }

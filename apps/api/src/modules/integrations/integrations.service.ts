@@ -6,6 +6,7 @@ import { tufProvider, TufStats, TufImportPayload } from './tuf.provider.js';
 import { githubOAuthHandler } from './github.oauth.js';
 import { OllamaService } from '../ai/ollama.service.js';
 import { BadRequestError } from '../../lib/errors.js';
+import { normalizeProblem } from '../dsa/adapters/deduplication.js';
 
 export class IntegrationsService {
   private ollama = new OllamaService();
@@ -213,6 +214,52 @@ export class IntegrationsService {
         lastSyncedAt: new Date(),
       },
     });
+
+    if (Array.isArray(payload.problems) && payload.problems.length > 0) {
+      for (const p of payload.problems) {
+        if (!p.title) continue;
+        const normalized = normalizeProblem({
+          title: p.title,
+          platform: 'LEETCODE',
+          difficulty: p.difficulty,
+          url: p.slug ? `https://leetcode.com/problems/${p.slug}/` : undefined,
+        });
+
+        const problem = await prisma.dsaProblem.upsert({
+          where: { platform_slug: { platform: 'LEETCODE', slug: normalized.slug } },
+          create: {
+            title: normalized.title,
+            slug: normalized.slug,
+            canonicalSlug: normalized.canonicalSlug,
+            platform: 'LEETCODE',
+            difficulty: normalized.difficulty,
+            topic: 'LeetCode Imports',
+            url: normalized.url,
+          },
+          update: {},
+        });
+
+        const status = p.status || 'SOLVED';
+        await prisma.userDsaProgress.upsert({
+          where: { userId_problemId: { userId, problemId: problem.id } },
+          create: {
+            userId,
+            problemId: problem.id,
+            status,
+            solutionMode: (p.solutionMode as any) || 'INDEPENDENT',
+            masteryScore: status === 'SOLVED' ? 100 : 0,
+            confidenceRating: status === 'SOLVED' ? 4 : 2,
+            attemptsCount: 1,
+            lastSolvedAt: status === 'SOLVED' ? new Date() : null,
+          },
+          update: {
+            status,
+            solutionMode: (p.solutionMode as any) || undefined,
+            lastSolvedAt: status === 'SOLVED' ? new Date() : undefined,
+          },
+        });
+      }
+    }
 
     return { credential, stats };
   }

@@ -63,13 +63,19 @@ aiRouter.get('/conversations', authenticate, async (req: AuthRequest, res: Respo
       include: {
         messages: {
           take: 30,
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
         },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    res.json({ success: true, data: conversations });
+    res.json({
+      success: true,
+      data: conversations.map(c => ({
+        ...c,
+        messages: [...c.messages].reverse(),
+      })),
+    });
   } catch (err) {
     next(err);
   }
@@ -90,7 +96,7 @@ aiRouter.get('/conversations/:id', authenticate, async (req: AuthRequest, res: R
     });
 
     if (!conversation) {
-      throw new NotFoundError('Conversation not found or access denied');
+      throw new NotFoundError('Conversation not found');
     }
 
     res.json({ success: true, data: conversation });
@@ -113,7 +119,7 @@ aiRouter.patch('/conversations/:id', authenticate, async (req: AuthRequest, res:
       where: { id, userId },
     });
     if (!conversation) {
-      throw new NotFoundError('Conversation not found or access denied');
+      throw new NotFoundError('Conversation not found');
     }
 
     const updated = await prisma.aiConversation.update({
@@ -136,7 +142,7 @@ aiRouter.delete('/conversations/:id', authenticate, async (req: AuthRequest, res
       where: { id, userId },
     });
     if (!conversation) {
-      throw new NotFoundError('Conversation not found or access denied');
+      throw new NotFoundError('Conversation not found');
     }
 
     await prisma.aiMessage.deleteMany({
@@ -160,15 +166,31 @@ aiRouter.post('/chat', authenticate, aiRateLimiter, async (req: AuthRequest, res
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       throw new BadRequestError('Prompt is required');
     }
+    if (prompt.length > 8000) {
+      throw new BadRequestError('Prompt exceeds maximum length of 8000 characters');
+    }
 
     let convId = conversationId;
+    let historyMessages: Array<{ role: string; content: string }> = [];
+
     if (convId) {
-      const existingConv = await prisma.aiConversation.findFirst({
-        where: { id: convId, userId },
+      const existingConv = await prisma.aiConversation.findUnique({
+        where: { id: convId },
       });
       if (!existingConv) {
+        throw new NotFoundError('Conversation not found');
+      }
+      if (existingConv.userId !== userId) {
         throw new ForbiddenError('Conversation not found or access denied');
       }
+
+      // Fetch last 10 messages for conversational context
+      const prev = await prisma.aiMessage.findMany({
+        where: { conversationId: convId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+      historyMessages = prev.reverse().map(m => ({ role: m.role, content: m.content }));
     } else {
       const conv = await prisma.aiConversation.create({
         data: {
@@ -188,8 +210,12 @@ aiRouter.post('/chat', authenticate, aiRateLimiter, async (req: AuthRequest, res
       },
     });
 
-    // Generate developer response using Local AI (Ollama or Deterministic Fallback)
-    const aiResponse = await ollamaService.generate(prompt.trim(), modelName || 'qwen2.5-coder');
+    // Generate developer response using Local AI with context history
+    const aiResponse = await ollamaService.generate(
+      prompt.trim(),
+      modelName || 'qwen2.5-coder',
+      historyMessages
+    );
     const responseText = aiResponse.content;
 
     // Save assistant message with provenance
@@ -234,6 +260,9 @@ aiRouter.post('/prompt', authenticate, aiRateLimiter, async (req: AuthRequest, r
     const { prompt, context, modelName } = req.body;
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       throw new BadRequestError('Prompt is required');
+    }
+    if (prompt.length > 8000) {
+      throw new BadRequestError('Prompt exceeds maximum length of 8000 characters');
     }
 
     const aiResponse = await ollamaService.generate(prompt.trim(), modelName || 'qwen2.5-coder');

@@ -153,7 +153,7 @@ export class NavigatorService {
           if (IGNORED_DIRS.has(entry.name)) continue;
 
           const subDirPath = path.join(dir, entry.name);
-          const relativePath = path.relative(rootPath, subDirPath);
+          const relativePath = path.relative(rootPath, subDirPath).split(path.sep).join('/');
           const childDirNode: TreeNode = {
             name: entry.name,
             path: relativePath,
@@ -173,7 +173,7 @@ export class NavigatorService {
           if (!ALLOWED_EXTENSIONS.has(ext)) continue;
 
           const fullFilePath = path.join(dir, entry.name);
-          const relativeFilePath = path.relative(rootPath, fullFilePath);
+          const relativeFilePath = path.relative(rootPath, fullFilePath).split(path.sep).join('/');
 
           try {
             const stat = await fs.promises.stat(fullFilePath);

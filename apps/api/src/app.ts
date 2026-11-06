@@ -25,6 +25,9 @@ import { profileRouter } from './modules/profile/profile.routes.js';
 
 export const app = express();
 
+// Trust Proxy Configuration
+app.set('trust proxy', process.env.TRUST_PROXY || 1);
+
 // Request ID & Structured Logging Middleware
 app.use((req, res, next) => {
   const reqId = (req.headers['x-request-id'] as string) || randomUUID();
@@ -35,12 +38,22 @@ app.use((req, res, next) => {
 
 // Security & Parsing Middlewares
 app.use(helmet({
-  contentSecurityPolicy: false, // Allow local development UI and Vite assets
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   referrerPolicy: { policy: 'no-referrer' },
 }));
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: config.corsOrigins.length === 1 ? config.corsOrigins[0] : config.corsOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));

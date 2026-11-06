@@ -2,6 +2,8 @@ import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../../config/index.js';
 import { AuthRequest, authenticate } from '../../middleware/auth.js';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
+import { validate } from '../../middleware/validate.js';
+import { createWorkspaceSchema, addWorkspaceMemberSchema, updateMemberRoleSchema } from './workspaces.validation.js';
 
 export const workspacesRouter = Router();
 
@@ -49,13 +51,10 @@ workspacesRouter.get('/', authenticate, async (req: AuthRequest, res: Response, 
 });
 
 // Create workspace
-workspacesRouter.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+workspacesRouter.post('/', authenticate, validate(createWorkspaceSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const { name, slug, description } = req.body;
-    if (!name || !slug) {
-      throw new BadRequestError('Workspace name and slug are required');
-    }
 
     const existing = await prisma.workspace.findUnique({ where: { slug } });
     if (existing) {
@@ -84,7 +83,7 @@ workspacesRouter.post('/', authenticate, async (req: AuthRequest, res: Response,
 });
 
 // Add member to workspace
-workspacesRouter.post('/:workspaceId/members', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+workspacesRouter.post('/:workspaceId/members', authenticate, validate(addWorkspaceMemberSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const workspaceId = String(req.params.workspaceId);
@@ -219,7 +218,7 @@ workspacesRouter.delete('/:workspaceId', authenticate, async (req: AuthRequest, 
 });
 
 // Update member role in workspace (Owner/Admin only)
-workspacesRouter.patch('/:workspaceId/members/:targetUserId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+workspacesRouter.patch('/:workspaceId/members/:targetUserId', authenticate, validate(updateMemberRoleSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const workspaceId = String(req.params.workspaceId);

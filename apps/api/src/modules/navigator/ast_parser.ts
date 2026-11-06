@@ -95,34 +95,27 @@ export class AstParser {
       return line + 1; // 1-indexed
     };
 
-    const isNodeExported = (node: ts.Node): boolean => {
-      return (
-        (ts.getCombinedModifierFlags(node as ts.Declaration) & ts.ModifierFlags.Export) !== 0 ||
-        (!!node.parent && node.parent.kind === ts.SyntaxKind.SourceFile)
-      );
-    };
-
-    const visit = (node: ts.Node) => {
+    for (const stmt of sourceFile.statements) {
       // 1. Imports
-      if (ts.isImportDeclaration(node)) {
-        if (ts.isStringLiteral(node.moduleSpecifier)) {
-          imports.push(node.moduleSpecifier.text);
+      if (ts.isImportDeclaration(stmt)) {
+        if (ts.isStringLiteral(stmt.moduleSpecifier)) {
+          imports.push(stmt.moduleSpecifier.text);
         }
       }
 
       // 2. Export Declarations
-      if (ts.isExportDeclaration(node)) {
-        if (node.exportClause && ts.isNamedExports(node.exportClause)) {
-          node.exportClause.elements.forEach(el => exports.push(el.name.text));
+      if (ts.isExportDeclaration(stmt)) {
+        if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
+          stmt.exportClause.elements.forEach(el => exports.push(el.name.text));
         }
       }
 
       // 3. Functions
-      if (ts.isFunctionDeclaration(node) && node.name) {
-        const startLine = getLineAndChar(node.getStart(sourceFile));
-        const endLine = getLineAndChar(node.getEnd());
-        const exported = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0;
-        const name = node.name.text;
+      if (ts.isFunctionDeclaration(stmt) && stmt.name) {
+        const startLine = getLineAndChar(stmt.getStart(sourceFile));
+        const endLine = getLineAndChar(stmt.getEnd());
+        const exported = (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0;
+        const name = stmt.name.text;
         if (exported) exports.push(name);
 
         symbols.push({
@@ -136,11 +129,11 @@ export class AstParser {
       }
 
       // 4. Classes
-      if (ts.isClassDeclaration(node) && node.name) {
-        const startLine = getLineAndChar(node.getStart(sourceFile));
-        const endLine = getLineAndChar(node.getEnd());
-        const exported = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0;
-        const name = node.name.text;
+      if (ts.isClassDeclaration(stmt) && stmt.name) {
+        const startLine = getLineAndChar(stmt.getStart(sourceFile));
+        const endLine = getLineAndChar(stmt.getEnd());
+        const exported = (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0;
+        const name = stmt.name.text;
         if (exported) exports.push(name);
 
         symbols.push({
@@ -153,7 +146,7 @@ export class AstParser {
         });
 
         // Scan methods inside class
-        node.members.forEach(member => {
+        stmt.members.forEach(member => {
           if (ts.isMethodDeclaration(member) && member.name && ts.isIdentifier(member.name)) {
             const mStart = getLineAndChar(member.getStart(sourceFile));
             const mEnd = getLineAndChar(member.getEnd());
@@ -170,11 +163,11 @@ export class AstParser {
       }
 
       // 5. Interfaces
-      if (ts.isInterfaceDeclaration(node)) {
-        const startLine = getLineAndChar(node.getStart(sourceFile));
-        const endLine = getLineAndChar(node.getEnd());
-        const exported = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0;
-        const name = node.name.text;
+      if (ts.isInterfaceDeclaration(stmt)) {
+        const startLine = getLineAndChar(stmt.getStart(sourceFile));
+        const endLine = getLineAndChar(stmt.getEnd());
+        const exported = (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0;
+        const name = stmt.name.text;
         if (exported) exports.push(name);
 
         symbols.push({
@@ -188,11 +181,11 @@ export class AstParser {
       }
 
       // 6. Type Aliases
-      if (ts.isTypeAliasDeclaration(node)) {
-        const startLine = getLineAndChar(node.getStart(sourceFile));
-        const endLine = getLineAndChar(node.getEnd());
-        const exported = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0;
-        const name = node.name.text;
+      if (ts.isTypeAliasDeclaration(stmt)) {
+        const startLine = getLineAndChar(stmt.getStart(sourceFile));
+        const endLine = getLineAndChar(stmt.getEnd());
+        const exported = (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0;
+        const name = stmt.name.text;
         if (exported) exports.push(name);
 
         symbols.push({
@@ -206,11 +199,11 @@ export class AstParser {
       }
 
       // 7. Enums
-      if (ts.isEnumDeclaration(node)) {
-        const startLine = getLineAndChar(node.getStart(sourceFile));
-        const endLine = getLineAndChar(node.getEnd());
-        const exported = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0;
-        const name = node.name.text;
+      if (ts.isEnumDeclaration(stmt)) {
+        const startLine = getLineAndChar(stmt.getStart(sourceFile));
+        const endLine = getLineAndChar(stmt.getEnd());
+        const exported = (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0;
+        const name = stmt.name.text;
         if (exported) exports.push(name);
 
         symbols.push({
@@ -223,10 +216,10 @@ export class AstParser {
         });
       }
 
-      // 8. Variable Statements (const/let exports, arrow functions)
-      if (ts.isVariableStatement(node)) {
-        const exported = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
-        node.declarationList.declarations.forEach(decl => {
+      // 8. Variable Statements (top-level const/let exports, arrow functions)
+      if (ts.isVariableStatement(stmt)) {
+        const exported = stmt.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+        stmt.declarationList.declarations.forEach(decl => {
           if (ts.isIdentifier(decl.name)) {
             const name = decl.name.text;
             if (exported) exports.push(name);
@@ -247,12 +240,33 @@ export class AstParser {
           }
         });
       }
+    }
 
-      ts.forEachChild(node, visit);
-    };
-
-    visit(sourceFile);
     return { symbols, imports, exports };
+  }
+
+  /**
+   * Helper to calculate closing brace endLine
+   */
+  private static findBraceEndLine(lines: string[], startIdx: number): number {
+    let depth = 0;
+    let foundOpen = false;
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      for (const char of line) {
+        if (char === '{') {
+          depth++;
+          foundOpen = true;
+        } else if (char === '}') {
+          depth--;
+          if (foundOpen && depth <= 0) {
+            return i + 1;
+          }
+        }
+      }
+    }
+    return startIdx + 1;
   }
 
   /**
@@ -266,6 +280,22 @@ export class AstParser {
     const exports: string[] = [];
 
     const lines = content.split('\n');
+
+    const findPythonEndLine = (startIdx: number, baseIndent: number): number => {
+      let lastLine = startIdx + 1;
+      for (let i = startIdx + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (!l.trim() || l.trim().startsWith('#')) continue;
+        const indent = l.match(/^\s*/)?.[0].length || 0;
+        if (indent > baseIndent) {
+          lastLine = i + 1;
+        } else {
+          break;
+        }
+      }
+      return lastLine;
+    };
+
     lines.forEach((line, index) => {
       const lineNum = index + 1;
       const trimmed = line.trim();
@@ -279,11 +309,13 @@ export class AstParser {
       // Classes
       const classMatch = trimmed.match(/^class\s+([a-zA-Z0-9_]+)(?:\((.*?)\))?:/);
       if (classMatch) {
+        const baseIndent = line.match(/^\s*/)?.[0].length || 0;
+        const endLine = findPythonEndLine(index, baseIndent);
         symbols.push({
           name: classMatch[1],
           kind: 'class',
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `class ${classMatch[1]}`,
           exported: !classMatch[1].startsWith('_'),
         });
@@ -292,11 +324,13 @@ export class AstParser {
       // Functions / Methods
       const funcMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\((.*?)\):/);
       if (funcMatch) {
+        const baseIndent = line.match(/^\s*/)?.[0].length || 0;
+        const endLine = findPythonEndLine(index, baseIndent);
         symbols.push({
           name: funcMatch[1],
           kind: 'function',
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `def ${funcMatch[1]}(...)`,
           exported: !funcMatch[1].startsWith('_'),
         });
@@ -317,25 +351,43 @@ export class AstParser {
     const exports: string[] = [];
 
     const lines = content.split('\n');
+    let inImportBlock = false;
+
     lines.forEach((line, index) => {
       const lineNum = index + 1;
       const trimmed = line.trim();
 
-      // Import statement
-      const importMatch = trimmed.match(/^import\s+(?:\((.*?)\)|"([^"]+)")/);
-      if (importMatch && importMatch[2]) {
-        imports.push(importMatch[2]);
+      // Import statement blocks
+      if (trimmed.startsWith('import (')) {
+        inImportBlock = true;
+        return;
+      }
+      if (inImportBlock) {
+        if (trimmed === ')') {
+          inImportBlock = false;
+          return;
+        }
+        const m = trimmed.match(/"([^"]+)"/);
+        if (m) imports.push(m[1]);
+        return;
+      }
+
+      // Single line import
+      const importMatch = trimmed.match(/^import\s+(?:\w+\s+)?"([^"]+)"/);
+      if (importMatch && importMatch[1]) {
+        imports.push(importMatch[1]);
       }
 
       // Functions & Methods
       const funcMatch = trimmed.match(/^func\s+(?:\(.*?\)\s+)?([A-Za-z0-9_]+)\s*\(/);
       if (funcMatch) {
         const isExported = /^[A-Z]/.test(funcMatch[1]);
+        const endLine = this.findBraceEndLine(lines, index);
         symbols.push({
           name: funcMatch[1],
           kind: 'function',
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `func ${funcMatch[1]}(...)`,
           exported: isExported,
         });
@@ -346,11 +398,12 @@ export class AstParser {
       const typeMatch = trimmed.match(/^type\s+([A-Za-z0-9_]+)\s+(struct|interface)/);
       if (typeMatch) {
         const isExported = /^[A-Z]/.test(typeMatch[1]);
+        const endLine = this.findBraceEndLine(lines, index);
         symbols.push({
           name: typeMatch[1],
           kind: typeMatch[2] === 'struct' ? 'struct' : 'interface',
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `type ${typeMatch[1]} ${typeMatch[2]}`,
           exported: isExported,
         });
@@ -386,26 +439,29 @@ export class AstParser {
       const fnMatch = trimmed.match(/^(?:pub(?:\(.*?\))?\s+)?fn\s+([a-zA-Z0-9_]+)\s*\(/);
       if (fnMatch) {
         const isExported = trimmed.startsWith('pub');
+        const endLine = this.findBraceEndLine(lines, index);
         symbols.push({
           name: fnMatch[1],
           kind: 'function',
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `fn ${fnMatch[1]}(...)`,
           exported: isExported,
         });
         if (isExported) exports.push(fnMatch[1]);
       }
 
-      // Structs and Enums
+      // Structs, Enums, and Traits
       const structMatch = trimmed.match(/^(?:pub(?:\(.*?\))?\s+)?(struct|enum|trait)\s+([a-zA-Z0-9_]+)/);
       if (structMatch) {
         const isExported = trimmed.startsWith('pub');
+        const endLine = this.findBraceEndLine(lines, index);
+        const kind = structMatch[1] === 'struct' ? 'struct' : structMatch[1] === 'trait' ? 'interface' : 'enum';
         symbols.push({
           name: structMatch[2],
-          kind: structMatch[1] === 'struct' ? 'struct' : 'enum',
+          kind,
           startLine: lineNum,
-          endLine: lineNum,
+          endLine,
           signature: `${structMatch[1]} ${structMatch[2]}`,
           exported: isExported,
         });

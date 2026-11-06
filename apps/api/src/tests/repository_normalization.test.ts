@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeRepository, isValidRepository } from '../modules/opensource/repository.normalizer.js';
-import { repairStoredRepositories } from '../modules/opensource/repair_repositories.js';
 import { OpenSourceService } from '../modules/opensource/opensource.service.js';
 
 describe('Canonical Repository Normalization & Data Integrity', () => {

@@ -126,7 +126,7 @@ export class FixService {
         name: 'Node.js Null Dereference (TypeError)',
         category: 'TypeScript/Node',
         log: `TypeError: Cannot read properties of undefined (reading 'fullName')
-    at OpenSourceService.matchIssueSkills (/home/ankurgupta/DevOrbit/apps/api/src/modules/opensource/opensource.service.ts:159:32)
+    at OpenSourceService.matchIssueSkills (/home/ankurgupta/DevOrbit/apps/api/src/modules/opensource/opensource.service.ts:164:32)
     at OpenSourceController.matchIssueSkills (/home/ankurgupta/DevOrbit/apps/api/src/modules/opensource/opensource.controller.ts:25:28)
     at Layer.handle [as handle_request] (/home/ankurgupta/DevOrbit/node_modules/express/lib/router/layer.js:95:5)
     at next (/home/ankurgupta/DevOrbit/node_modules/express/lib/router/route.js:149:13)`,

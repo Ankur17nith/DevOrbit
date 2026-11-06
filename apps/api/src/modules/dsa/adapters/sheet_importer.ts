@@ -2,6 +2,30 @@ import { prisma } from '../../../config/index.js';
 import { normalizeProblem, RawProblemInput, generateCanonicalSlug } from './deduplication.js';
 import { BadRequestError } from '../../../lib/errors.js';
 
+function parseCsvRow(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"' || char === "'") {
+      if (inQuotes && line[i + 1] === char) {
+        current += char;
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
 export class SheetImporter {
   /**
    * Imports problems from CSV text content.
@@ -17,7 +41,11 @@ export class SheetImporter {
       throw new BadRequestError('CSV must contain a header line and at least one data row');
     }
 
-    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    if (lines.length > 5001) {
+      throw new BadRequestError('CSV file exceeds maximum allowed limit of 5,000 problems');
+    }
+
+    const header = parseCsvRow(lines[0]).map(h => h.trim().toLowerCase());
     const titleIdx = header.indexOf('title');
     const platformIdx = header.indexOf('platform');
     const diffIdx = header.indexOf('difficulty');
@@ -32,7 +60,7 @@ export class SheetImporter {
 
     const parsedProblems: RawProblemInput[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const row = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+      const row = parseCsvRow(lines[i]);
       if (row.length === 0 || !row[titleIdx]) continue;
 
       parsedProblems.push({
@@ -58,6 +86,10 @@ export class SheetImporter {
       throw new BadRequestError('Invalid or empty JSON array');
     }
 
+    if (jsonProblems.length > 5000) {
+      throw new BadRequestError('JSON array exceeds maximum allowed limit of 5,000 problems');
+    }
+
     const prepared = jsonProblems.map(p => ({
       ...p,
       sheetCategory: p.sheetCategory || defaultCategory,
@@ -74,19 +106,28 @@ export class SheetImporter {
     let deduplicatedCount = 0;
     const resultProblems = [];
 
-    for (const raw of rawProblems) {
-      if (!raw.title) continue;
-      const normalized = normalizeProblem(raw);
+    // Pre-normalize all valid problems
+    const normalizedList = rawProblems
+      .filter(p => p.title && p.title.trim())
+      .map(p => normalizeProblem(p));
 
-      // Check if problem already exists by platform and slug or canonicalSlug
-      const existing = await prisma.dsaProblem.findFirst({
-        where: {
-          OR: [
-            { platform: normalized.platform, slug: normalized.slug },
-            { canonicalSlug: normalized.canonicalSlug, platform: normalized.platform },
-          ],
-        },
-      });
+    const canonicalSlugs = normalizedList.map(n => n.canonicalSlug);
+    const existingList = await prisma.dsaProblem.findMany({
+      where: {
+        canonicalSlug: { in: canonicalSlugs },
+      },
+    });
+
+    const existingMap = new Map<string, typeof existingList[0]>();
+    existingList.forEach(e => {
+      existingMap.set(`${e.platform}:${e.canonicalSlug}`, e);
+      existingMap.set(`${e.platform}:${e.slug}`, e);
+    });
+
+    for (const normalized of normalizedList) {
+      const key1 = `${normalized.platform}:${normalized.canonicalSlug}`;
+      const key2 = `${normalized.platform}:${normalized.slug}`;
+      const existing = existingMap.get(key1) || existingMap.get(key2);
 
       if (existing) {
         deduplicatedCount++;
@@ -108,6 +149,8 @@ export class SheetImporter {
             url: normalized.url,
           },
         });
+        existingMap.set(key1, created);
+        existingMap.set(key2, created);
         importedCount++;
         resultProblems.push(created);
       }

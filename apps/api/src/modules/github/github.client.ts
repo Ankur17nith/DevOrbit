@@ -72,13 +72,17 @@ export class GitHubClient {
    * Validates a GitHub Personal Access Token or OAuth token by fetching authenticated user details.
    */
   async validateToken(token: string): Promise<GitHubUserValidation> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
       const res = await fetch(`${this.baseUrl}/user`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'DevOrbit-Platform/1.0',
         },
+        signal: controller.signal,
       });
 
       const rateLimit = this.parseRateLimit(res.headers);
@@ -122,7 +126,12 @@ export class GitHubClient {
       };
     } catch (err: any) {
       if (err instanceof GitHubApiError) throw err;
+      if (err.name === 'AbortError') {
+        throw new GitHubApiError('GitHub API request timed out (10s)', 504);
+      }
       throw new GitHubApiError(`Network connection to GitHub failed: ${err.message}`, 503);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -142,7 +151,8 @@ export class GitHubClient {
     const perPage = options.perPage || 100;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github.v3+json',
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'DevOrbit-Platform/1.0',
     };
 
@@ -150,9 +160,12 @@ export class GitHubClient {
       headers['If-None-Match'] = options.etag;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const url = `${this.baseUrl}/user/repos?per_page=${perPage}&page=${page}&sort=pushed&affiliation=owner,collaborator`;
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, signal: controller.signal });
 
       const rateLimit = this.parseRateLimit(res.headers);
       const newEtag = res.headers.get('etag') || undefined;
@@ -187,7 +200,12 @@ export class GitHubClient {
       };
     } catch (err: any) {
       if (err instanceof GitHubApiError) throw err;
+      if (err.name === 'AbortError') {
+        throw new GitHubApiError('GitHub API request timed out (10s)', 504);
+      }
       throw new GitHubApiError(`Failed to fetch repositories: ${err.message}`, 503);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -195,19 +213,25 @@ export class GitHubClient {
    * Fetches language breakdown in bytes for a repository.
    */
   async fetchRepoLanguages(token: string, owner: string, repo: string): Promise<Record<string, number>> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
       const res = await fetch(`${this.baseUrl}/repos/${owner}/${repo}/languages`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'DevOrbit-Platform/1.0',
         },
+        signal: controller.signal,
       });
 
       if (!res.ok) return {};
       return (await res.json()) as Record<string, number>;
     } catch {
       return {};
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
