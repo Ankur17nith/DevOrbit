@@ -163,8 +163,8 @@ flowchart TD
 
 ### 2. Clone Repository & Install Dependencies
 ```bash
-git clone https://github.com/ankurgupta/DevOrbit.git
-cd DevOrbit
+git clone https://github.com/<owner>/devorbit.git
+cd devorbit
 npm install
 ```
 

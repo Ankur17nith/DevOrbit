@@ -73,7 +73,7 @@ This document catalogues all official agent skills and reverse engineering tooli
   ```
   - CLI version: `6.8.0`
   - Skill status: `installed_version: "49", installed_tool_count: 229, state: aligned`
-  - Client registration: `antigravity -> /home/ankurgupta/.gemini/config/mcp_config.json -> [/home/ankurgupta/.nvm/versions/node/v24.22.1/bin/rea, mcp] (aligned)`
+  - Client registration: `antigravity -> ~/.gemini/config/mcp_config.json -> [rea, mcp] (aligned)`
 
 ### 2.6 UI/UX Pro Max Suite
 - **Command**:

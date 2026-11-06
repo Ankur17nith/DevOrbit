@@ -30,7 +30,7 @@ DevOrbit is organized as an npm workspaces monorepo:
 ### Setup Instructions
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/devorbit/devorbit.git
+   git clone https://github.com/<owner>/devorbit.git
    cd devorbit
    ```
 

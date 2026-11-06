@@ -39,8 +39,8 @@ npm -v    # Expected: v10.x+
 
 ### Step 2.2: Clone Repository
 ```bash
-git clone https://github.com/ankurgupta/DevOrbit.git
-cd DevOrbit
+git clone https://github.com/<owner>/devorbit.git
+cd devorbit
 ```
 
 ### Step 2.3: Install Monorepo Dependencies
@@ -84,8 +84,8 @@ brew link node@22
 
 ### Step 3.2: Clone, Configure, and Seed
 ```bash
-git clone https://github.com/ankurgupta/DevOrbit.git
-cd DevOrbit
+git clone https://github.com/<owner>/devorbit.git
+cd devorbit
 npm install
 cp .env.example .env
 npm run db:push

@@ -152,8 +152,8 @@ Actual screenshots were captured using headless Chrome with simulated render bud
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/ankurgupta/DevOrbit.git
-cd DevOrbit
+git clone https://github.com/<owner>/devorbit.git
+cd devorbit
 
 # 2. Install dependencies
 npm install

@@ -18,20 +18,20 @@ This document records the installation, configuration, verification, and workflo
 
 - **Node.js Engine**: Requires `^22.23.4 || ^24.22.1 || >=26.12.1`.
 - **System Version Configured**: Node.js `v24.22.1` via `~/.nvm`.
-- **Global Path**: `/home/ankurgupta/.nvm/versions/node/v24.22.1/bin/rea`
+- **Global Path**: `rea` (available in standard PATH via NVM or global bin)
 
 ---
 
 ## 3. MCP Integration Configuration
 
 The REA MCP server is registered directly inside Antigravity's global MCP manifest:
-- **Config Path**: `/home/ankurgupta/.gemini/config/mcp_config.json`
+- **Config Path**: `~/.gemini/config/mcp_config.json`
 - **Definition**:
 ```json
 {
   "mcpServers": {
     "rea": {
-      "command": "/home/ankurgupta/.nvm/versions/node/v24.22.1/bin/rea",
+      "command": "rea",
       "args": ["mcp"]
     }
   }
@@ -58,8 +58,8 @@ identity:
     state: aligned
   registrations:
     - client: antigravity
-      config_path: /home/ankurgupta/.gemini/config/mcp_config.json
-      command: [/home/ankurgupta/.nvm/versions/node/v24.22.1/bin/rea, mcp]
+      config_path: ~/.gemini/config/mcp_config.json
+      command: [rea, mcp]
       state: aligned
 ```
 

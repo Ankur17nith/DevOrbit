@@ -1,0 +1,5 @@
+TypeError: Cannot read properties of undefined (reading 'fullName')
+    at OpenSourceService.matchIssueSkills (/app/apps/api/src/modules/opensource/opensource.service.ts:164:32)
+    at OpenSourceController.matchIssueSkills (/app/apps/api/src/modules/opensource/opensource.controller.ts:25:28)
+    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)
+    at next (/app/node_modules/express/lib/router/route.js:149:13)

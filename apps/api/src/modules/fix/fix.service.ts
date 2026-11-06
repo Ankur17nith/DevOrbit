@@ -121,35 +121,42 @@ export class FixService {
    * Get pre-built realistic sample error logs for UI inspection
    */
   public getSampleErrors(): Array<{ name: string; category: string; log: string }> {
+    const samplesDir = path.resolve(__dirname, 'samples');
+
+    const readFixture = (filename: string, fallback: string): string => {
+      try {
+        const filePath = path.join(samplesDir, filename);
+        if (fs.existsSync(filePath)) {
+          return fs.readFileSync(filePath, 'utf8').trim();
+        }
+      } catch {}
+      return fallback;
+    };
+
     return [
       {
         name: 'Node.js Null Dereference (TypeError)',
         category: 'TypeScript/Node',
-        log: `TypeError: Cannot read properties of undefined (reading 'fullName')
-    at OpenSourceService.matchIssueSkills (/home/ankurgupta/DevOrbit/apps/api/src/modules/opensource/opensource.service.ts:164:32)
-    at OpenSourceController.matchIssueSkills (/home/ankurgupta/DevOrbit/apps/api/src/modules/opensource/opensource.controller.ts:25:28)
-    at Layer.handle [as handle_request] (/home/ankurgupta/DevOrbit/node_modules/express/lib/router/layer.js:95:5)
-    at next (/home/ankurgupta/DevOrbit/node_modules/express/lib/router/route.js:149:13)`,
+        log: readFixture(
+          'node_error.log',
+          `TypeError: Cannot read properties of undefined (reading 'fullName')\n    at OpenSourceService.matchIssueSkills (/app/apps/api/src/modules/opensource/opensource.service.ts:164:32)\n    at OpenSourceController.matchIssueSkills (/app/apps/api/src/modules/opensource/opensource.controller.ts:25:28)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)\n    at next (/app/node_modules/express/lib/router/route.js:149:13)`
+        ),
       },
       {
         name: 'Vitest Test Assertion Failure',
         category: 'Vitest/Test',
-        log: `FAIL  src/tests/dsa_intelligence.test.ts > Advanced DSA Intelligence & Spaced Repetition Tests > 2. Imports problems from CSV
-AssertionError: expected +0 to be 2 // Object.is equality
- ❯ src/tests/dsa_intelligence.test.ts:82:41
-     80|     expect(res.status).toBe(201);
-     81|     expect(res.body.data.totalReceived).toBe(3);
-     82|     expect(res.body.data.importedCount).toBe(2);
-       |                                         ^
-     83|     expect(res.body.data.deduplicatedCount).toBe(1);`,
+        log: readFixture(
+          'vitest_assertion.log',
+          `FAIL  src/tests/dsa_intelligence.test.ts > Advanced DSA Intelligence & Spaced Repetition Tests > 2. Imports problems from CSV\nAssertionError: expected +0 to be 2 // Object.is equality\n ❯ src/tests/dsa_intelligence.test.ts:82:41\n     80|     expect(res.status).toBe(201);\n     81|     expect(res.body.data.totalReceived).toBe(3);\n     82|     expect(res.body.data.importedCount).toBe(2);\n       |                                         ^\n     83|     expect(res.body.data.deduplicatedCount).toBe(1);`
+        ),
       },
       {
         name: 'Python IndexError (Out of Bounds)',
         category: 'Python',
-        log: `Traceback (most recent call last):
-  File "apps/api/scripts/seed_repos.py", line 58, in parse_tags
-    primary_topic = topics[0]
-IndexError: list index out of range`,
+        log: readFixture(
+          'python_index_error.log',
+          `Traceback (most recent call last):\n  File "/app/scripts/seed_repos.py", line 58, in parse_tags\n    primary_topic = topics[0]\nIndexError: list index out of range`
+        ),
       },
     ];
   }

@@ -26,7 +26,7 @@ Local-first, multi-user Developer Intelligence Operating System.
 ## Detailed Session Log
 
 ### Session 1 — Nov 4, 2026
-- **Tooling Verification**: Pinned Node v24.22.1 via NVM. Globally installed `rea-agents@6.8.0`. Configured Antigravity MCP server (`/home/ankurgupta/.gemini/config/mcp_config.json`). Verified `rea doctor` alignment.
+- **Tooling Verification**: Pinned Node v24.22.1 via NVM. Globally installed `rea-agents@6.8.0`. Configured Antigravity MCP server (`~/.gemini/config/mcp_config.json`). Verified `rea doctor` alignment.
 - **Agent Skills**: Installed and verified `frontend-design`, `vercel-react-best-practices`, `vercel-composition-patterns`, and `web-design-guidelines` under `.agents/skills`.
 - **Ossium Deep Reconnaissance**:
   - Downloaded live OpenAPI 3.1 schema, `llms.txt`, `llms-full.txt`, and Model Context Protocol specification from `https://ossium.in`.

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/app/scripts/seed_repos.py", line 58, in parse_tags
+    primary_topic = topics[0]
+IndexError: list index out of range

@@ -24,9 +24,9 @@ describe('Orbit Fix & Root-Cause Debugging Tests (Milestone M6)', () => {
   // 1. Node.js / V8 Stack Trace Parsing
   it('1. Parses Node.js/V8 stack traces, extracting error type, message, and project frames', () => {
     const raw = `TypeError: Cannot read properties of undefined (reading 'title')
-    at DsaService.solveProblem (/home/ankurgupta/DevOrbit/apps/api/src/modules/dsa/dsa.service.ts:55:20)
-    at DsaController.submitSolve (/home/ankurgupta/DevOrbit/apps/api/src/modules/dsa/dsa.controller.ts:32:15)
-    at /home/ankurgupta/DevOrbit/node_modules/express/lib/router/layer.js:95:5`;
+    at DsaService.solveProblem (/app/apps/api/src/modules/dsa/dsa.service.ts:55:20)
+    at DsaController.submitSolve (/app/apps/api/src/modules/dsa/dsa.controller.ts:32:15)
+    at /app/node_modules/express/lib/router/layer.js:95:5`;
 
     const parsed = StackParser.parse(raw);
     expect(parsed.errorType).toBe('TypeError');

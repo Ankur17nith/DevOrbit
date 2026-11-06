@@ -30,6 +30,7 @@ devorbit.db-journal
 # Logs & Coverage
 logs/
 *.log
+!apps/api/src/modules/fix/samples/*.log
 coverage/
 
 # Operating System
@@ -46,3 +47,8 @@ src-tauri/gen/
 # Scratch / Cache
 scratch/
 .cache/
+
+# Third-party agent skills & locks
+.agents/
+skills-lock.json
+

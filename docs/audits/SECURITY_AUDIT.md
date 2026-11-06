@@ -1,3 +1,7 @@
+> [!WARNING]
+> **Historical Record — May Be Inaccurate**
+> This document is a historical milestone record from earlier development phases prior to the full audit remediation. Many legacy claims (including test counts, feature completion claims, or architectural assumptions) have been superseded. For verified system status, see docs/audits/REMEDIATION_REPORT.md.
+
 # DevOrbit Security Audit and Threat Model
 
 **Audit Date:** 2026-11-04  
