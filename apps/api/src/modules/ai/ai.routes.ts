@@ -9,7 +9,7 @@ export const aiRouter = Router();
 const ollamaService = new OllamaService();
 
 // 1. Check local AI / Ollama status
-aiRouter.get('/status', async (_req, res) => {
+aiRouter.get('/status', authenticate, async (_req, res) => {
   const isAvailable = await ollamaService.isOllamaAvailable();
   res.json({
     success: true,
@@ -19,13 +19,12 @@ aiRouter.get('/status', async (_req, res) => {
       activeEngine: isAvailable ? 'ollama-local-llm' : 'devorbit-deterministic-fallback',
       defaultModel: isAvailable ? 'qwen2.5-coder' : 'devorbit-deterministic-v1',
       privacy: '100% Local-First / Zero Cloud Exfiltration',
-      hostUrl: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434',
     },
   });
 });
 
 // 2. List available local models
-aiRouter.get('/models', async (_req, res) => {
+aiRouter.get('/models', authenticate, async (_req, res) => {
   const isAvailable = await ollamaService.isOllamaAvailable();
   if (!isAvailable) {
     return res.json({

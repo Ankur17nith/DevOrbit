@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
 import { apiFetch } from '../lib/api.js';
+import { safeHref } from '../lib/safeHref.js';
 
 interface Problem {
   id: string;
@@ -360,7 +361,7 @@ export function DsaTrackerPage() {
                           <span className="font-mono uppercase">{prob.platform}</span>
                           {prob.url && (
                             <a 
-                              href={prob.url} 
+                              href={safeHref(prob.url)} 
                               target="_blank" 
                               rel="noreferrer"
                               className="text-[#8B5CF6] hover:underline flex items-center gap-0.5"

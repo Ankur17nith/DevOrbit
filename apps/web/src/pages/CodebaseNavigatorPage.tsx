@@ -22,7 +22,7 @@ import { PageContainer } from '../components/ui/PageContainer.js';
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
-  securityLevel: 'loose',
+  securityLevel: 'strict',
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   themeVariables: {
     darkMode: true,
@@ -97,10 +97,13 @@ export function CodebaseNavigatorPage() {
   const fetchSummary = async (targetPath?: string) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('devorbit_token');
       const url = targetPath 
-        ? `/api/v1/navigator/summary?targetPath=${encodeURIComponent(targetPath)}`
+        ? `/api/v1/navigator/summary?subPath=${encodeURIComponent(targetPath)}`
         : '/api/v1/navigator/summary';
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       if (json.success) {
         setSummary(json.data);
@@ -121,10 +124,14 @@ export function CodebaseNavigatorPage() {
   const handleIndexRepository = async () => {
     setIndexing(true);
     try {
+      const token = localStorage.getItem('devorbit_token');
       const res = await fetch('/api/v1/navigator/index', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetPath: repoPathInput || undefined }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
       });
       const json = await res.json();
       if (json.success) {
@@ -143,7 +150,10 @@ export function CodebaseNavigatorPage() {
     if (jumpLine) setHighlightLine(jumpLine);
 
     try {
-      const res = await fetch(`/api/v1/navigator/file?filePath=${encodeURIComponent(filePath)}`);
+      const token = localStorage.getItem('devorbit_token');
+      const res = await fetch(`/api/v1/navigator/file?filePath=${encodeURIComponent(filePath)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       if (json.success) {
         setFileContent(json.data.content);
@@ -157,10 +167,13 @@ export function CodebaseNavigatorPage() {
   // Graph fetch
   const fetchGraph = async () => {
     try {
-      const res = await fetch('/api/v1/navigator/graph?direction=LR&focus=dependencies');
+      const token = localStorage.getItem('devorbit_token');
+      const res = await fetch('/api/v1/navigator/graph', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       if (json.success) {
-        setMermaidCode(json.data.mermaidCode);
+        setMermaidCode(json.data.mermaid || json.data.mermaidCode);
       }
     } catch (err) {
       console.error('Failed to load architecture graph:', err);
@@ -174,17 +187,23 @@ export function CodebaseNavigatorPage() {
   }, [contextTab]);
 
   useEffect(() => {
-    if (contextTab === 'graph' && mermaidCode && mermaidRef.current) {
-      try {
-        mermaid.render('mermaid-nav-' + Date.now(), mermaidCode).then(({ svg }) => {
-          if (mermaidRef.current) {
+    let cancelled = false;
+    const renderGraph = async () => {
+      if (contextTab === 'graph' && mermaidCode && mermaidRef.current) {
+        try {
+          const { svg } = await mermaid.render('mermaid-nav-' + Date.now(), mermaidCode);
+          if (!cancelled && mermaidRef.current) {
             mermaidRef.current.innerHTML = svg;
           }
-        });
-      } catch (err) {
-        console.error('Mermaid render error:', err);
+        } catch (err) {
+          console.error('Mermaid render error:', err);
+        }
       }
-    }
+    };
+    renderGraph();
+    return () => {
+      cancelled = true;
+    };
   }, [mermaidCode, contextTab]);
 
   const handleAskContext = async () => {

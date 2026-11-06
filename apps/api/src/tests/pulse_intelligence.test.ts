@@ -60,7 +60,9 @@ describe('Orbit Recon, Local AI & Pulse Intelligence Tests (Milestone M8)', () =
 
   // 2. Orbit AI Status Endpoint
   it('2. Serves /api/v1/ai/status reporting active local engine and privacy guarantee', async () => {
-    const res = await request(app).get('/api/v1/ai/status');
+    const res = await request(app)
+      .get('/api/v1/ai/status')
+      .set('Authorization', `Bearer ${userToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.privacy).toContain('Local-First');

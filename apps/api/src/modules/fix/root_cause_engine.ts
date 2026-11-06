@@ -8,27 +8,43 @@ import {
   RootCauseAnalysis, 
   StackFrame 
 } from './fix.types.js';
+import { NAVIGATOR_ROOT, resolveInsideRoot } from '../navigator/navigator.service.js';
 
 export class RootCauseEngine {
   /**
    * Analyze error to produce source-grounded root cause diagnosis
    */
-  public static analyze(parsed: ParsedError, workspaceRoot: string = process.cwd()): RootCauseAnalysis {
+  public static analyze(parsed: ParsedError, workspaceRoot: string = NAVIGATOR_ROOT): RootCauseAnalysis {
     const frame = parsed.primaryFrame;
     const category = this.categorizeBug(parsed);
     const confidence = this.computeConfidence(parsed, category);
 
     let codeContext: CodeContextLine[] = [];
     let affectedSymbol: string | undefined = frame?.functionName;
-    let absolutePath = '';
+    let safePath = '';
 
-    if (frame) {
-      // Resolve absolute path
-      absolutePath = path.isAbsolute(frame.filePath)
-        ? frame.filePath
-        : path.resolve(workspaceRoot, frame.filePath);
-
-      codeContext = this.extractCodeContext(absolutePath, frame.lineNumber);
+    if (frame && frame.filePath) {
+      try {
+        let candidate = frame.filePath;
+        if (path.isAbsolute(candidate)) {
+          const normalizedRoot = NAVIGATOR_ROOT.endsWith(path.sep) ? NAVIGATOR_ROOT : NAVIGATOR_ROOT + path.sep;
+          if (candidate === NAVIGATOR_ROOT || candidate.startsWith(normalizedRoot)) {
+            candidate = path.relative(NAVIGATOR_ROOT, candidate);
+          } else {
+            candidate = '';
+          }
+        }
+        if (candidate) {
+          const resolved = resolveInsideRoot(NAVIGATOR_ROOT, candidate);
+          const base = path.basename(resolved);
+          if (!base.startsWith('.')) {
+            safePath = resolved;
+            codeContext = this.extractCodeContext(resolved, frame.lineNumber);
+          }
+        }
+      } catch {
+        codeContext = [];
+      }
     }
 
     const { summary, explanation, recommendedAction } = this.generateExplanation(parsed, category, frame, codeContext);
@@ -52,7 +68,7 @@ export class RootCauseEngine {
    */
   public static proposePatch(
     analysis: RootCauseAnalysis,
-    workspaceRoot: string = process.cwd()
+    workspaceRoot: string = NAVIGATOR_ROOT
   ): PatchProposal {
     const filePath = analysis.filePath || 'src/index.ts';
     const lineNumber = analysis.lineNumber || 1;
@@ -177,9 +193,12 @@ export class RootCauseEngine {
    */
   private static extractCodeContext(absolutePath: string, errorLine: number): CodeContextLine[] {
     const lines: CodeContextLine[] = [];
-    if (!fs.existsSync(absolutePath)) return lines;
+    if (!absolutePath || !fs.existsSync(absolutePath)) return lines;
 
     try {
+      const stat = fs.statSync(absolutePath);
+      if (stat.size > 1024 * 1024) return lines;
+
       const content = fs.readFileSync(absolutePath, 'utf8');
       const allLines = content.split('\n');
       const start = Math.max(0, errorLine - 4);

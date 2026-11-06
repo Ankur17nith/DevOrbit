@@ -30,7 +30,9 @@ describe('AI Intelligence & Provenance Transparency Tests', () => {
   });
 
   it('1. GET /api/v1/ai/status returns local-first runtime status', async () => {
-    const res = await request(app).get('/api/v1/ai/status');
+    const res = await request(app)
+      .get('/api/v1/ai/status')
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -41,7 +43,9 @@ describe('AI Intelligence & Provenance Transparency Tests', () => {
   });
 
   it('2. GET /api/v1/ai/models returns reachable flag and honest model list', async () => {
-    const res = await request(app).get('/api/v1/ai/models');
+    const res = await request(app)
+      .get('/api/v1/ai/models')
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);

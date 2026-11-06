@@ -1,3 +1,5 @@
+import { BadRequestError } from '../../../lib/errors.js';
+
 export interface RawProblemInput {
   title: string;
   platform?: string;
@@ -72,13 +74,27 @@ export function normalizeProblem(raw: RawProblemInput): NormalizedProblem {
   const difficulty = normalizeDifficulty(raw.difficulty, platform);
   const topic = raw.topic?.trim() || 'General Algorithms';
 
+  let validatedUrl = `https://leetcode.com/problems/${canonical}/`;
+  if (raw.url) {
+    try {
+      const parsed = new URL(raw.url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new BadRequestError(`Invalid problem URL protocol: ${parsed.protocol}. Only HTTP and HTTPS URLs are allowed.`);
+      }
+      validatedUrl = raw.url;
+    } catch (err: any) {
+      if (err instanceof BadRequestError) throw err;
+      throw new BadRequestError(`Invalid problem URL: ${raw.url}`);
+    }
+  }
+
   return {
     title: cleanTitle,
     slug,
     canonicalSlug: canonical,
     platform: ['LEETCODE', 'CODEFORCES', 'STRIVER_A2Z', 'TLE', 'TUF', 'CUSTOM'].includes(platform) ? platform : 'CUSTOM',
     externalId: raw.externalId,
-    url: raw.url || `https://leetcode.com/problems/${canonical}/`,
+    url: validatedUrl,
     difficulty,
     topic,
     subtopic: raw.subtopic?.trim(),

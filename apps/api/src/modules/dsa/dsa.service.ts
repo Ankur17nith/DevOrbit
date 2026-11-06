@@ -407,7 +407,15 @@ export class DsaService {
     if (type === 'CSV') {
       return sheetImporter.importFromCsv(content as string, defaultCategory);
     } else {
-      return sheetImporter.importFromJson(content as any[], defaultCategory);
+      let parsed = content;
+      if (typeof content === 'string') {
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          parsed = content;
+        }
+      }
+      return sheetImporter.importFromJson(parsed as any[], defaultCategory);
     }
   }
 }

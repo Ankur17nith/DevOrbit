@@ -144,7 +144,7 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3">
-            {onLaunchDemo && (
+            {onLaunchDemo && import.meta.env.VITE_ENABLE_DEMO === 'true' && (
               <button
                 onClick={onLaunchDemo}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs font-semibold border border-[#8B5CF6]/30 transition-all shadow-xs"
@@ -210,7 +210,7 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
             >
               Explore features
             </a>
-            {onLaunchDemo && (
+            {onLaunchDemo && import.meta.env.VITE_ENABLE_DEMO === 'true' && (
               <button
                 onClick={onLaunchDemo}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] font-semibold text-sm hover:bg-[#8B5CF6]/20 transition-all flex items-center justify-center gap-1.5"

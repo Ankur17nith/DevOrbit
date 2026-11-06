@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { FixService } from './fix.service.js';
+import { BadRequestError } from '../../lib/errors.js';
 
 export class FixController {
   private service: FixService;
@@ -8,54 +9,58 @@ export class FixController {
     this.service = new FixService();
   }
 
-  public analyze = (req: Request, res: Response) => {
+  public analyze = (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { rawLog, workspaceRoot } = req.body;
+      const { rawLog } = req.body;
       if (!rawLog || typeof rawLog !== 'string') {
-        return res.status(400).json({ success: false, error: 'rawLog is required' });
+        throw new BadRequestError('rawLog is required and must be a string');
       }
 
-      const analysis = this.service.analyzeError(rawLog, workspaceRoot);
+      if (rawLog.length > 20480) {
+        throw new BadRequestError('Log exceeds 20KB limit');
+      }
+
+      const analysis = this.service.analyzeError(rawLog);
       res.json({ success: true, data: { analysis } });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public propose = (req: Request, res: Response) => {
+  public propose = (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { analysis, workspaceRoot } = req.body;
+      const { analysis } = req.body;
       if (!analysis) {
-        return res.status(400).json({ success: false, error: 'analysis object is required' });
+        throw new BadRequestError('analysis object is required');
       }
 
-      const patch = this.service.proposePatch(analysis, workspaceRoot);
+      const patch = this.service.proposePatch(analysis);
       res.json({ success: true, data: { patch } });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public verify = (req: Request, res: Response) => {
+  public verify = (req: Request, res: Response, next: NextFunction) => {
     try {
       const { patch } = req.body;
       if (!patch) {
-        return res.status(400).json({ success: false, error: 'patch object is required' });
+        throw new BadRequestError('patch object is required');
       }
 
       const verification = this.service.verifyPatch(patch);
       res.json({ success: true, data: { verification } });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public getSamples = (_req: Request, res: Response) => {
+  public getSamples = (_req: Request, res: Response, next: NextFunction) => {
     try {
       const samples = this.service.getSampleErrors();
       res.json({ success: true, data: { samples } });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 }

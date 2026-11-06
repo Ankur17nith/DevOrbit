@@ -125,16 +125,6 @@ export class GitHubOAuthHandler {
    * Exchanges authorization code for access token and refresh token (if expiring tokens enabled)
    */
   async exchangeCode(code: string): Promise<GitHubTokenExchangeResult> {
-    // Deterministic test fallback
-    if (code === 'test_oauth_code_valid' || code.startsWith('test_')) {
-      return {
-        accessToken: 'mock_token_alex_oauth',
-        scope: 'read:user,repo',
-        expiresIn: 28800,
-        tokenType: 'bearer',
-      };
-    }
-
     if (!this.isConfigured()) {
       throw new Error(
         'GitHub OAuth application is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in apps/api/.env'

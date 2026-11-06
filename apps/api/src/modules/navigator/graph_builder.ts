@@ -93,12 +93,13 @@ export class GraphBuilder {
       .slice(0, 12) // Limit for visual clarity
       .forEach(([groupName, groupNodes]) => {
         const subId = sanitizeId(`sub_${groupName}`);
-        lines.push(`  subgraph ${subId} ["${groupName}"]`);
+        const safeGroup = groupName.replace(/["<>\n]/g, '');
+        lines.push(`  subgraph ${subId} ["${safeGroup}"]`);
         
         groupNodes.slice(0, 8).forEach(node => {
           const nodeId = sanitizeId(node.id);
-          const label = `${node.label} (${node.linesOfCode}L)`;
-          lines.push(`    ${nodeId}["${label}"]`);
+          const safeLabel = `${node.label.replace(/["<>\n]/g, '')} (${node.linesOfCode}L)`;
+          lines.push(`    ${nodeId}["${safeLabel}"]`);
         });
 
         lines.push('  end');

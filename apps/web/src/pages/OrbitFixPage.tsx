@@ -55,7 +55,10 @@ export function OrbitFixPage() {
   const [selectedRuntime, setSelectedRuntime] = useState<string>('Node.js');
 
   useEffect(() => {
-    fetch('/api/v1/fix/samples')
+    const token = localStorage.getItem('devorbit_token');
+    fetch('/api/v1/fix/samples', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data?.samples) {
@@ -76,9 +79,13 @@ export function OrbitFixPage() {
     setVerification(null);
 
     try {
+      const token = localStorage.getItem('devorbit_token');
       const res = await fetch('/api/v1/fix/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ rawLog: errorLog }),
       });
       const json = await res.json();
@@ -96,9 +103,13 @@ export function OrbitFixPage() {
     if (!analysis) return;
     setPatching(true);
     try {
-      const res = await fetch('/api/v1/fix/patch', {
+      const token = localStorage.getItem('devorbit_token');
+      const res = await fetch('/api/v1/fix/propose', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ analysis }),
       });
       const json = await res.json();
@@ -116,10 +127,14 @@ export function OrbitFixPage() {
     if (!patch) return;
     setVerifying(true);
     try {
+      const token = localStorage.getItem('devorbit_token');
       const res = await fetch('/api/v1/fix/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patchId: patch.id, patchProposal: patch }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ patch }),
       });
       const json = await res.json();
       if (json.success) {

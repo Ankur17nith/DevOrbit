@@ -1,19 +1,82 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/index.js';
+import { GitHubOAuthHandler } from '../modules/integrations/github.oauth.js';
+import { GitHubClient } from '../modules/github/github.client.js';
 
 describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (Milestone M9)', () => {
   let userToken: string;
   let userId: string;
 
   beforeAll(async () => {
-    // Authenticate test user
-    const res = await request(app)
+    vi.spyOn(GitHubOAuthHandler.prototype, 'exchangeCode').mockImplementation(async (code: string) => {
+      if (code === 'test_oauth_code_valid') {
+        return {
+          accessToken: 'mock_valid_access_token_123',
+          scopes: ['read:user', 'repo'],
+        };
+      }
+      throw new Error('Invalid code');
+    });
+
+    vi.spyOn(GitHubClient.prototype, 'validateToken').mockImplementation(async (_token: string) => {
+      return {
+        valid: true,
+        user: {
+          login: 'alex-dev',
+          name: 'Alex Developer',
+          avatarUrl: 'https://avatars.githubusercontent.com/u/10001',
+          bio: 'Full-stack Systems & Distributed Computing Engineer',
+          publicRepos: 18,
+          totalPrivateRepos: 4,
+        },
+        scopes: ['read:user', 'repo', 'read:org'],
+        rateLimit: {
+          limit: 5000,
+          remaining: 4985,
+          reset: new Date(Date.now() + 3600000),
+        },
+      };
+    });
+
+    vi.spyOn(GitHubClient.prototype, 'fetchUserRepos').mockImplementation(async () => {
+      return {
+        repos: [],
+        notModified: false,
+        rateLimit: {
+          limit: 5000,
+          remaining: 4980,
+          reset: new Date(Date.now() + 3600000),
+        },
+      };
+    });
+
+    // Authenticate or register test user
+    let res = await request(app)
       .post('/api/v1/auth/login')
       .send({ login: 'alex_developer', password: 'DevOrbit123!' });
+    if (res.status !== 200) {
+      res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ login: 'alex_developer', password: 'DevOrbitPassword123!' });
+    }
+    if (res.status !== 200) {
+      res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email: `alex_developer_${Date.now()}@devorbit.local`,
+          username: `alex_dev_${Date.now()}`,
+          password: 'DevOrbitPassword123!',
+          name: 'Alex Developer',
+        });
+    }
     userToken = res.body.data.token;
     userId = res.body.data.user.id;
+  });
+
+  afterAll(async () => {
+    vi.restoreAllMocks();
   });
 
   // 1. Unified Integrations Status

@@ -174,24 +174,27 @@ export function LoginPage({ onNavigate, onSuccess }: LoginPageProps) {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-[#E2E8F0] w-full" />
-            <span className="bg-white px-3 text-[11px] font-mono uppercase text-[#94A3B8] shrink-0">
-              OR EXPLORE OFFLINE
-            </span>
-          </div>
+          {/* Fast Demo Mode Button (only visible if explicitly enabled via VITE_ENABLE_DEMO) */}
+          {import.meta.env.VITE_ENABLE_DEMO === 'true' && (
+            <>
+              <div className="relative flex items-center justify-center">
+                <div className="border-t border-[#E2E8F0] w-full" />
+                <span className="bg-white px-3 text-[11px] font-mono uppercase text-[#94A3B8] shrink-0">
+                  OR EXPLORE OFFLINE
+                </span>
+              </div>
 
-          {/* Fast Demo Mode Button */}
-          <button
-            type="button"
-            onClick={handleDemoSignIn}
-            disabled={loading}
-            className="w-full py-2.5 px-3 rounded-xl bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] text-xs font-semibold transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="size-3.5 text-[#8B5CF6]" />
-            <span>Launch Sandbox Session (Test Fixture)</span>
-          </button>
+              <button
+                type="button"
+                onClick={handleDemoSignIn}
+                disabled={loading}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] text-xs font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <Sparkles className="size-3.5 text-[#8B5CF6]" />
+                <span>Launch Sandbox Session (Test Fixture)</span>
+              </button>
+            </>
+          )}
 
           <div className="text-center pt-2">
             <button

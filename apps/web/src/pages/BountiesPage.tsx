@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, ExternalLink, Bookmark, Filter, ShieldCheck, DollarSign, Award, CircleAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { safeHref } from '../lib/safeHref.js';
 
 export function BountiesPage() {
   const { token } = useAuth();
@@ -179,7 +180,7 @@ export function BountiesPage() {
                       </div>
 
                       <a
-                        href={b.url}
+                        href={safeHref(b.url)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1.5 text-xs font-medium text-white hover:bg-black transition-colors"

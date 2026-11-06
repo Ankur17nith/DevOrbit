@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { dsaService } from './dsa.service.js';
 import { AuthRequest } from '../../middleware/auth.js';
+import { ForbiddenError } from '../../lib/errors.js';
 
 export class DsaController {
   async getProblems(req: AuthRequest, res: Response, next: NextFunction) {
@@ -71,6 +72,9 @@ export class DsaController {
 
   async importProblems(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      if (req.user?.role !== 'ADMIN') {
+        throw new ForbiddenError('Only administrators can import problems to the global catalog');
+      }
       const { type, content, defaultCategory } = req.body;
       const result = await dsaService.importProblems(type || 'JSON', content, defaultCategory);
       res.status(201).json({ success: true, data: result });

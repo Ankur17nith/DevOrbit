@@ -52,10 +52,16 @@ export function OrbitSafeChangePage() {
     if (!changeDescription.trim()) return;
     setAnalyzing(true);
     try {
+      const token = localStorage.getItem('devorbit_token');
+      const authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       // 1. Analyze code impact
       const res = await fetch('/api/v1/safechange/impact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ filePath: changeDescription.trim() }),
       });
       const json = await res.json();
@@ -66,7 +72,7 @@ export function OrbitSafeChangePage() {
       // 2. Also check migration risk if schema is mentioned
       const migRes = await fetch('/api/v1/safechange/migration', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ 
           schemaContent: changeDescription.includes('model') ? changeDescription : 'model User {\n  id String @id\n  token String\n}' 
         }),

@@ -38,68 +38,74 @@ async function main() {
 
   console.log('🧹 Cleaned existing records.');
 
-  // 2. Create Default Users (Salted Bcrypt Password)
-  const passwordHash = await bcrypt.hash('DevOrbit123!', 10);
+  // 2. Create Default Users (Only when SEED_DEMO=true and NODE_ENV !== 'production')
+  const shouldSeedDemo = process.env.SEED_DEMO === 'true' && process.env.NODE_ENV !== 'production';
+  let userAlex: any = null;
+  let userSara: any = null;
 
-  const userAlex = await prisma.user.create({
-    data: {
-      email: 'demo@devorbit.local',
-      username: 'alex_developer',
-      passwordHash,
-      name: 'Alex Rivera',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces',
-      bio: 'Full-stack software engineer, open-source enthusiast & algorithmic problem solver.',
-      role: 'ADMIN',
-      preference: {
-        create: {
-          theme: 'dark',
-          ecoMode: true,
-          notifyDesktop: true,
-          notifyTelegram: false,
+  if (shouldSeedDemo) {
+    const passwordHash = await bcrypt.hash('DevOrbit123!', 10);
+
+    userAlex = await prisma.user.create({
+      data: {
+        email: 'demo@devorbit.local',
+        username: 'alex_developer',
+        passwordHash,
+        name: 'Alex Rivera',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces',
+        bio: 'Full-stack software engineer, open-source enthusiast & algorithmic problem solver.',
+        role: 'USER',
+        preference: {
+          create: {
+            theme: 'dark',
+            ecoMode: true,
+            notifyDesktop: true,
+            notifyTelegram: false,
+          },
         },
       },
-    },
-  });
+    });
 
-  const userSara = await prisma.user.create({
-    data: {
-      email: 'collaborator@devorbit.local',
-      username: 'sara_chen',
-      passwordHash,
-      name: 'Sara Chen',
-      avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces',
-      bio: 'Systems programmer & distributed systems researcher. Specializing in Rust and Go.',
-      role: 'USER',
-      preference: {
-        create: {
-          theme: 'dark',
-          ecoMode: true,
-          notifyDesktop: true,
-          notifyTelegram: false,
+    userSara = await prisma.user.create({
+      data: {
+        email: 'collaborator@devorbit.local',
+        username: 'sara_chen',
+        passwordHash,
+        name: 'Sara Chen',
+        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=faces',
+        bio: 'Systems programmer & distributed systems researcher. Specializing in Rust and Go.',
+        role: 'USER',
+        preference: {
+          create: {
+            theme: 'dark',
+            ecoMode: true,
+            notifyDesktop: true,
+            notifyTelegram: false,
+          },
         },
       },
-    },
-  });
+    });
 
-  console.log(`👤 Created Users: ${userAlex.username} and ${userSara.username}`);
+    console.log(`👤 Created Demo Users: ${userAlex.username} and ${userSara.username}`);
 
-  // 3. Create Shared Workspace
-  const workspace = await prisma.workspace.create({
-    data: {
-      name: 'DevOrbit Core Space',
-      slug: 'devorbit-core',
-      description: 'Primary engineering workspace for multi-user open source collaboration and DSA prep.',
-      ownerId: userAlex.id,
-      memberships: {
-        create: [
-          { userId: userAlex.id, role: 'OWNER' },
-          { userId: userSara.id, role: 'MEMBER' },
-        ],
+    // 3. Create Shared Workspace
+    const workspace = await prisma.workspace.create({
+      data: {
+        name: 'DevOrbit Core Space',
+        slug: 'devorbit-core',
+        description: 'Primary engineering workspace for multi-user open source collaboration and DSA prep.',
+        ownerId: userAlex.id,
+        memberships: {
+          create: [
+            { userId: userAlex.id, role: 'OWNER' },
+            { userId: userSara.id, role: 'MEMBER' },
+          ],
+        },
       },
-    },
-  });
+    });
 
-  console.log(`🏢 Created Workspace: ${workspace.name}`);
+    console.log(`🏢 Created Workspace: ${workspace.name}`);
+  }
 
   // 4. Seed GSoC Programs & 606+ Organizations
   const gsocProgram = await prisma.ossProgram.create({
@@ -327,111 +333,113 @@ async function main() {
   }
 
   // 8. Seed Private User DSA Progress (Multi-User Isolation Demonstration)
-  console.log('📊 Seeding private DSA progress for Alex and Sara...');
-  // Alex solved Two Sum, 3Sum, Valid Parentheses, LRU Cache; needs revision on Coin Change
-  await prisma.userDsaProgress.create({
-    data: {
-      userId: userAlex.id,
-      problemId: createdProblems[0].id, // Two Sum
-      status: 'SOLVED',
-      attemptsCount: 1,
-      timeSpentSeconds: 320,
-      codeSnippet: 'function twoSum(nums, target) { const map = new Map(); ... }',
-      notes: 'Optimal O(n) time using single-pass Hash Map.',
-      lastSolvedAt: new Date(),
-    },
-  });
+  if (shouldSeedDemo && userAlex && userSara) {
+    console.log('📊 Seeding private DSA progress for Alex and Sara...');
+    // Alex solved Two Sum, 3Sum, Valid Parentheses, LRU Cache; needs revision on Coin Change
+    await prisma.userDsaProgress.create({
+      data: {
+        userId: userAlex.id,
+        problemId: createdProblems[0].id, // Two Sum
+        status: 'SOLVED',
+        attemptsCount: 1,
+        timeSpentSeconds: 320,
+        codeSnippet: 'function twoSum(nums, target) { const map = new Map(); ... }',
+        notes: 'Optimal O(n) time using single-pass Hash Map.',
+        lastSolvedAt: new Date(),
+      },
+    });
 
-  await prisma.userDsaProgress.create({
-    data: {
-      userId: userAlex.id,
-      problemId: createdProblems[10].id, // Coin Change
-      status: 'REVISE',
-      attemptsCount: 3,
-      timeSpentSeconds: 1800,
-      hintUsed: true,
-      notes: 'Remember unbounded knapsack bottom-up formulation. Base case dp[0] = 0.',
-      nextReviewDate: new Date(Date.now() + 86400000 * 2), // 2 days from now
-    },
-  });
+    await prisma.userDsaProgress.create({
+      data: {
+        userId: userAlex.id,
+        problemId: createdProblems[10].id, // Coin Change
+        status: 'REVISE',
+        attemptsCount: 3,
+        timeSpentSeconds: 1800,
+        hintUsed: true,
+        notes: 'Remember unbounded knapsack bottom-up formulation. Base case dp[0] = 0.',
+        nextReviewDate: new Date(Date.now() + 86400000 * 2), // 2 days from now
+      },
+    });
 
-  // Sara solved Trapping Rain Water, Course Schedule, Alien Dictionary
-  await prisma.userDsaProgress.create({
-    data: {
-      userId: userSara.id,
-      problemId: createdProblems[6].id, // Trapping Rain Water
-      status: 'SOLVED',
-      attemptsCount: 2,
-      timeSpentSeconds: 840,
-      notes: 'Solvable in O(1) auxiliary space using two pointers tracking leftMax and rightMax.',
-      lastSolvedAt: new Date(),
-    },
-  });
+    // Sara solved Trapping Rain Water, Course Schedule, Alien Dictionary
+    await prisma.userDsaProgress.create({
+      data: {
+        userId: userSara.id,
+        problemId: createdProblems[6].id, // Trapping Rain Water
+        status: 'SOLVED',
+        attemptsCount: 2,
+        timeSpentSeconds: 840,
+        notes: 'Solvable in O(1) auxiliary space using two pointers tracking leftMax and rightMax.',
+        lastSolvedAt: new Date(),
+      },
+    });
 
-  // 9. Seed Skill Profiles
-  await prisma.userSkillProfile.create({
-    data: {
-      userId: userAlex.id,
-      skillName: 'TypeScript',
-      category: 'LANGUAGE',
-      confidenceScore: 92.5,
-      verifiedEvidenceJson: JSON.stringify({
-        repos: ['devorbit/core', 'facebook/react'],
-        mergedPRs: 14,
-        confidenceBand: 'High',
-      }),
-    },
-  });
+    // 9. Seed Skill Profiles
+    await prisma.userSkillProfile.create({
+      data: {
+        userId: userAlex.id,
+        skillName: 'TypeScript',
+        category: 'LANGUAGE',
+        confidenceScore: 92.5,
+        verifiedEvidenceJson: JSON.stringify({
+          repos: ['devorbit/core', 'facebook/react'],
+          mergedPRs: 14,
+          confidenceBand: 'High',
+        }),
+      },
+    });
 
-  await prisma.userSkillProfile.create({
-    data: {
-      userId: userAlex.id,
-      skillName: 'Dynamic Programming',
-      category: 'DSA',
-      confidenceScore: 48.0,
-      verifiedEvidenceJson: JSON.stringify({
-        weaknesses: ['Unbounded knapsack', 'State compression DP'],
-        recommendedActions: ['Solve Coin Change II', 'Target Sum'],
-      }),
-    },
-  });
+    await prisma.userSkillProfile.create({
+      data: {
+        userId: userAlex.id,
+        skillName: 'Dynamic Programming',
+        category: 'DSA',
+        confidenceScore: 48.0,
+        verifiedEvidenceJson: JSON.stringify({
+          weaknesses: ['Unbounded knapsack', 'State compression DP'],
+          recommendedActions: ['Solve Coin Change II', 'Target Sum'],
+        }),
+      },
+    });
 
-  await prisma.userSkillProfile.create({
-    data: {
-      userId: userSara.id,
-      skillName: 'Rust',
-      category: 'LANGUAGE',
-      confidenceScore: 96.0,
-      verifiedEvidenceJson: JSON.stringify({
-        cratesPublished: 3,
-        mergedPRs: 28,
-        confidenceBand: 'Expert',
-      }),
-    },
-  });
+    await prisma.userSkillProfile.create({
+      data: {
+        userId: userSara.id,
+        skillName: 'Rust',
+        category: 'LANGUAGE',
+        confidenceScore: 96.0,
+        verifiedEvidenceJson: JSON.stringify({
+          cratesPublished: 3,
+          mergedPRs: 28,
+          confidenceBand: 'Expert',
+        }),
+      },
+    });
 
-  // 10. Seed Forum Posts & Replies
-  const post1 = await prisma.forumPost.create({
-    data: {
-      userId: userAlex.id,
-      title: 'Best approach for submitting first PR to a large GSoC organization?',
-      content: 'When joining a new community like CNCF or Apache, what is the best strategy to get mentor visibility without overwhelming the issue tracker?',
-      tagsJson: JSON.stringify(['gsoc', 'open-source', 'mentorship']),
-      upvotes: 14,
-      views: 120,
-      isSolved: true,
-    },
-  });
+    // 10. Seed Forum Posts & Replies
+    const post1 = await prisma.forumPost.create({
+      data: {
+        userId: userAlex.id,
+        title: 'Best approach for submitting first PR to a large GSoC organization?',
+        content: 'When joining a new community like CNCF or Apache, what is the best strategy to get mentor visibility without overwhelming the issue tracker?',
+        tagsJson: JSON.stringify(['gsoc', 'open-source', 'mentorship']),
+        upvotes: 14,
+        views: 120,
+        isSolved: true,
+      },
+    });
 
-  await prisma.forumReply.create({
-    data: {
-      postId: post1.id,
-      userId: userSara.id,
-      content: 'Start by setting up the dev environment and running the test suite locally. Pick a documentation fix or flaky unit test before proposing structural changes. Join their Slack/Zulip channels first!',
-      isAcceptedAnswer: true,
-      upvotes: 9,
-    },
-  });
+    await prisma.forumReply.create({
+      data: {
+        postId: post1.id,
+        userId: userSara.id,
+        content: 'Start by setting up the dev environment and running the test suite locally. Pick a documentation fix or flaky unit test before proposing structural changes. Join their Slack/Zulip channels first!',
+        isAcceptedAnswer: true,
+        upvotes: 9,
+      },
+    });
+  }
 
   console.log('✅ DevOrbit Database Seeding Complete!');
 }

@@ -4,11 +4,24 @@ import path from 'path';
 import { app } from '../app.js';
 import { AstParser } from '../modules/navigator/ast_parser.js';
 import { GraphBuilder } from '../modules/navigator/graph_builder.js';
-import { NavigatorService } from '../modules/navigator/navigator.service.js';
+import { NavigatorService, NAVIGATOR_ROOT } from '../modules/navigator/navigator.service.js';
 
 describe('Orbit Codebase Navigator & AST Indexing Tests (Milestone M5)', () => {
   const service = new NavigatorService();
-  const repoRoot = path.resolve(__dirname, '../../../../'); // DevOrbit root
+  const repoRoot = NAVIGATOR_ROOT;
+  let authToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: `navigator_test_${Date.now()}@devorbit.test`,
+        username: `nav_tester_${Date.now()}`,
+        password: 'NavPassword123!',
+        name: 'Nav Tester',
+      });
+    authToken = res.body.data.token;
+  });
 
   // 1. Language Detection
   it('1. Correctly classifies file extensions into language categories', () => {
@@ -166,30 +179,38 @@ pub fn initialize() -> bool {
   });
 
   // 7. File Details and Content Retrieval
-  it('7. Retrieves file outline and raw content for preview', () => {
-    const details = service.getFileDetails('apps/api/src/server.ts');
+  it('7. Retrieves file outline and raw content for preview', async () => {
+    const details = await service.getFileDetails('apps/api/src/server.ts');
     expect(details.content).toContain('DevOrbit API server');
     expect(details.fileIndex?.language).toBe('typescript');
   });
 
   // 8. End-to-End HTTP API Endpoints
   it('8. Serves Navigator API endpoints (/summary, /symbols, /graph, /file)', async () => {
-    const summaryRes = await request(app).get('/api/v1/navigator/summary');
+    const summaryRes = await request(app)
+      .get('/api/v1/navigator/summary')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(summaryRes.status).toBe(200);
     expect(summaryRes.body.success).toBe(true);
     expect(summaryRes.body.data.totalFiles).toBeGreaterThan(0);
 
-    const searchRes = await request(app).get('/api/v1/navigator/symbols?q=AstParser');
+    const searchRes = await request(app)
+      .get('/api/v1/navigator/symbols?q=AstParser')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(searchRes.status).toBe(200);
     expect(searchRes.body.success).toBe(true);
     expect(searchRes.body.data.count).toBeGreaterThan(0);
 
-    const graphRes = await request(app).get('/api/v1/navigator/graph');
+    const graphRes = await request(app)
+      .get('/api/v1/navigator/graph')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(graphRes.status).toBe(200);
     expect(graphRes.body.success).toBe(true);
     expect(graphRes.body.data.mermaid).toContain('flowchart TD');
 
-    const fileRes = await request(app).get('/api/v1/navigator/file?filePath=apps/api/src/server.ts');
+    const fileRes = await request(app)
+      .get('/api/v1/navigator/file?filePath=apps/api/src/server.ts')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(fileRes.status).toBe(200);
     expect(fileRes.body.success).toBe(true);
     expect(fileRes.body.data.content).toBeDefined();

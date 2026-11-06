@@ -1,6 +1,8 @@
-import { Request, Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { NavigatorService } from './navigator.service.js';
 import { SymbolKind } from './navigator.types.js';
+import { AuthRequest } from '../../middleware/auth.js';
+import { BadRequestError } from '../../lib/errors.js';
 
 export class NavigatorController {
   private service: NavigatorService;
@@ -9,56 +11,60 @@ export class NavigatorController {
     this.service = new NavigatorService();
   }
 
-  public indexRepository = async (req: Request, res: Response) => {
+  public indexRepository = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { targetPath } = req.body;
-      const summary = await this.service.indexRepository(targetPath);
+      const userId = req.user?.id || 'default';
+      const subPath = typeof req.body?.subPath === 'string' ? req.body.subPath : undefined;
+      const summary = await this.service.indexRepository(userId, subPath);
       res.json({ success: true, data: summary });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public getSummary = async (req: Request, res: Response) => {
+  public getSummary = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const targetPath = req.query.targetPath as string | undefined;
-      const summary = await this.service.getSummary(targetPath);
+      const userId = req.user?.id || 'default';
+      const summary = await this.service.getSummary(userId);
       res.json({ success: true, data: summary });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public searchSymbols = (req: Request, res: Response) => {
+  public searchSymbols = (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user?.id || 'default';
       const q = (req.query.q as string) || '';
       const kind = req.query.kind as SymbolKind | undefined;
-      const results = this.service.searchSymbols(q, kind);
+      const results = this.service.searchSymbols(userId, q, kind);
       res.json({ success: true, data: { count: results.length, symbols: results } });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public getGraph = (_req: Request, res: Response) => {
+  public getGraph = (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const graph = this.service.getGraph();
+      const userId = req.user?.id || 'default';
+      const graph = this.service.getGraph(userId);
       res.json({ success: true, data: graph });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      next(err);
     }
   };
 
-  public getFile = (req: Request, res: Response) => {
+  public getFile = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user?.id || 'default';
       const filePath = req.query.filePath as string;
       if (!filePath) {
-        return res.status(400).json({ success: false, error: 'filePath is required' });
+        throw new BadRequestError('filePath is required');
       }
-      const details = this.service.getFileDetails(filePath);
+      const details = await this.service.getFileDetails(userId, filePath);
       res.json({ success: true, data: details });
     } catch (err: any) {
-      res.status(404).json({ success: false, error: err.message });
+      next(err);
     }
   };
 }

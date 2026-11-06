@@ -17,6 +17,7 @@ import {
 import { Button } from './ui/index.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
+import { safeHref } from '../lib/safeHref.js';
 
 interface OrganizationDetailModalProps {
   organizationIdOrSlug: string | null;
@@ -187,7 +188,7 @@ export function OrganizationDetailModal({
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   {data.websiteUrl && (
                     <a
-                      href={data.websiteUrl}
+                      href={safeHref(data.websiteUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-black/8 bg-[#F7F7F8] px-3 py-1.5 text-xs font-medium text-[#11141B] hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition-colors"
@@ -199,7 +200,7 @@ export function OrganizationDetailModal({
 
                   {data.officialLinks?.repositoryOrg && (
                     <a
-                      href={data.officialLinks.repositoryOrg}
+                      href={safeHref(data.officialLinks.repositoryOrg)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-black/8 bg-[#F7F7F8] px-3 py-1.5 text-xs font-medium text-[#11141B] hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition-colors"
@@ -211,7 +212,7 @@ export function OrganizationDetailModal({
 
                   {data.officialLinks?.contributingGuide && (
                     <a
-                      href={data.officialLinks.contributingGuide}
+                      href={safeHref(data.officialLinks.contributingGuide)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-black/8 bg-[#F7F7F8] px-3 py-1.5 text-xs font-medium text-[#11141B] hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition-colors"
@@ -362,7 +363,7 @@ export function OrganizationDetailModal({
                         </div>
 
                         <a
-                          href={issue.url}
+                          href={safeHref(issue.url)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 rounded-md border border-black/8 bg-white px-2.5 py-1 text-xs font-medium text-[#11141B] hover:bg-zinc-50 shrink-0"

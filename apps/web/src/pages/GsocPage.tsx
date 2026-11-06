@@ -23,6 +23,7 @@ import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { OrganizationDetailModal } from '../components/OrganizationDetailModal.js';
+import { safeHref } from '../lib/safeHref.js';
 
 interface Program {
   id: string;
@@ -358,7 +359,7 @@ export function GsocPage() {
                     </div>
 
                     <a
-                      href={prog.websiteUrl}
+                      href={safeHref(prog.websiteUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/9 bg-[#11141B] py-2 text-xs font-semibold text-white hover:bg-black transition-colors"

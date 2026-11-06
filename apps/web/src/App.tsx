@@ -202,9 +202,9 @@ function AppContent() {
     return (
       <PublicLandingPage 
         onNavigate={handleSelectTab} 
-        onLaunchDemo={() => {
+        onLaunchDemo={import.meta.env.VITE_ENABLE_DEMO === 'true' ? () => {
           handleSelectTab('login');
-        }} 
+        } : undefined} 
       />
     );
   }
@@ -214,7 +214,7 @@ function AppContent() {
     return (
       <DocumentationPage 
         onNavigate={handleSelectTab} 
-        onLaunchWorkspace={() => handleSelectTab('dashboard')} 
+        onLaunchWorkspace={import.meta.env.VITE_ENABLE_DEMO === 'true' ? () => handleSelectTab('dashboard') : undefined} 
       />
     );
   }
@@ -223,7 +223,7 @@ function AppContent() {
     return (
       <PublicLandingPage 
         onNavigate={handleSelectTab} 
-        onLaunchDemo={() => handleSelectTab('dashboard')} 
+        onLaunchDemo={import.meta.env.VITE_ENABLE_DEMO === 'true' ? () => handleSelectTab('dashboard') : undefined} 
       />
     );
   }

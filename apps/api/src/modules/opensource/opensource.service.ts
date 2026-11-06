@@ -483,6 +483,18 @@ export class OpenSourceService {
       throw new NotFoundError('Contribution pipeline item not found');
     }
 
+    if (data.prUrl) {
+      try {
+        const parsed = new URL(data.prUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new BadRequestError(`Invalid PR URL protocol: ${parsed.protocol}. Only HTTP and HTTPS URLs are allowed.`);
+        }
+      } catch (err: any) {
+        if (err instanceof BadRequestError) throw err;
+        throw new BadRequestError(`Invalid PR URL format: ${data.prUrl}`);
+      }
+    }
+
     const updated = await prisma.contributionPipelineItem.update({
       where: { id: pipelineItemId },
       data: {

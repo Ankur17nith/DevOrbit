@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 import { apiFetch } from '../lib/api.js';
+import { safeHref } from '../lib/safeHref.js';
 
 interface PipelineItem {
   id: string;
@@ -524,7 +525,7 @@ export function IssuesPage() {
                           </button>
 
                           <a
-                            href={issue.url}
+                            href={safeHref(issue.url)}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
@@ -671,7 +672,7 @@ export function IssuesPage() {
 
                             {url && (
                               <a
-                                href={url}
+                                href={safeHref(url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center gap-1 rounded-md border border-black/9 bg-[#11141B] px-2.5 py-1 text-xs font-medium text-white hover:bg-black transition-colors"
@@ -760,7 +761,7 @@ export function IssuesPage() {
 
                               {item.issue?.url && (
                                 <a
-                                  href={item.issue.url}
+                                  href={safeHref(item.issue.url)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="text-[#999CA3] hover:text-[#11141B]"

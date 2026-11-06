@@ -5,21 +5,22 @@ import {
   RootCauseAnalysis, 
   VerificationResult 
 } from './fix.types.js';
+import { NAVIGATOR_ROOT } from '../navigator/navigator.service.js';
 
 export class FixService {
   /**
-   * Parse error log and generate root cause analysis
+   * Parse error log and generate root cause analysis scoped to NAVIGATOR_ROOT
    */
-  public analyzeError(rawLog: string, workspaceRoot: string = process.cwd()): RootCauseAnalysis {
+  public analyzeError(rawLog: string): RootCauseAnalysis {
     const parsed = StackParser.parse(rawLog);
-    return RootCauseEngine.analyze(parsed, workspaceRoot);
+    return RootCauseEngine.analyze(parsed, NAVIGATOR_ROOT);
   }
 
   /**
-   * Generate patch proposal from analysis
+   * Generate patch proposal from analysis scoped to NAVIGATOR_ROOT
    */
-  public proposePatch(analysis: RootCauseAnalysis, workspaceRoot: string = process.cwd()): PatchProposal {
-    return RootCauseEngine.proposePatch(analysis, workspaceRoot);
+  public proposePatch(analysis: RootCauseAnalysis): PatchProposal {
+    return RootCauseEngine.proposePatch(analysis, NAVIGATOR_ROOT);
   }
 
   /**

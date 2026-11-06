@@ -10,6 +10,7 @@ import {
   SymbolKind,
   TreeNode,
 } from './navigator.types.js';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
 
 const IGNORED_DIRS = new Set([
   '.git',
@@ -24,7 +25,7 @@ const IGNORED_DIRS = new Set([
   'target',
 ]);
 
-const ALLOWED_EXTENSIONS = new Set([
+export const ALLOWED_EXTENSIONS = new Set([
   'ts',
   'tsx',
   'mts',
@@ -40,23 +41,85 @@ const ALLOWED_EXTENSIONS = new Set([
   'md',
 ]);
 
+function findRepoRoot(): string {
+  let cur = process.cwd();
+  while (cur !== path.dirname(cur)) {
+    if (fs.existsSync(path.join(cur, 'package.json')) && fs.existsSync(path.join(cur, '.git'))) {
+      return cur;
+    }
+    cur = path.dirname(cur);
+  }
+  return process.cwd();
+}
+
+const rawNavigatorRoot = process.env.NAVIGATOR_ROOT || findRepoRoot();
+export const NAVIGATOR_ROOT = fs.existsSync(rawNavigatorRoot)
+  ? fs.realpathSync(rawNavigatorRoot)
+  : path.resolve(rawNavigatorRoot);
+
+/**
+ * Resolves a relative path inside an allowed root, preventing path traversal and symlink escapes.
+ */
+export function resolveInsideRoot(root: string, rel: string): string {
+  if (!rel || typeof rel !== 'string') {
+    throw new BadRequestError('Relative path must be a non-empty string');
+  }
+
+  const normalizedRel = path.normalize(rel);
+  const segments = normalizedRel.split(path.sep);
+  if (segments.some(seg => seg === '..' || seg.startsWith('.env') || seg === '.git')) {
+    throw new ForbiddenError('Path traversal detected: access to sensitive files or parent directories is denied');
+  }
+
+  const resolved = path.resolve(root, rel);
+  const normalizedRoot = root.endsWith(path.sep) ? root : root + path.sep;
+
+  if (resolved !== root && !resolved.startsWith(normalizedRoot)) {
+    throw new ForbiddenError('Path traversal detected: path is outside the allowed root directory');
+  }
+
+  if (fs.existsSync(resolved)) {
+    const real = fs.realpathSync(resolved);
+    if (real !== root && !real.startsWith(normalizedRoot)) {
+      throw new ForbiddenError('Path traversal detected: symlink points outside the allowed root directory');
+    }
+    return real;
+  }
+
+  return resolved;
+}
+
+interface UserIndexCache {
+  rootPath: string;
+  files: FileIndex[];
+  tree: TreeNode;
+  graph: DependencyGraph;
+  indexedAt: string;
+}
+
 export class NavigatorService {
-  private static cachedRoot: string | null = null;
-  private static cachedFiles: FileIndex[] = [];
-  private static cachedTree: TreeNode | null = null;
-  private static cachedGraph: DependencyGraph | null = null;
-  private static lastIndexedAt: string | null = null;
+  private static userCaches = new Map<string, UserIndexCache>();
 
   /**
-   * Index a local repository path
+   * Index a local repository path scoped to the user
    */
   public async indexRepository(
-    targetPath: string = process.cwd()
+    userIdOrPath: string = 'default',
+    maybeSubPath?: string
   ): Promise<RepositorySummary> {
-    const rootPath = path.resolve(targetPath);
+    let userId = userIdOrPath;
+    let subPath = maybeSubPath;
+
+    if (path.isAbsolute(userIdOrPath) || userIdOrPath.startsWith('.')) {
+      userId = 'default';
+      const resolved = path.resolve(userIdOrPath);
+      subPath = resolved === NAVIGATOR_ROOT ? undefined : path.relative(NAVIGATOR_ROOT, resolved);
+    }
+
+    const rootPath = subPath ? resolveInsideRoot(NAVIGATOR_ROOT, subPath) : NAVIGATOR_ROOT;
 
     if (!fs.existsSync(rootPath)) {
-      throw new Error(`Target path does not exist: ${rootPath}`);
+      throw new NotFoundError(`Target path does not exist: ${rootPath}`);
     }
 
     const fileIndices: FileIndex[] = [];
@@ -69,20 +132,22 @@ export class NavigatorService {
       symbolCount: 0,
     };
 
-    // Recursive directory scanner
-    const scanDir = (dir: string, currentTreeNode: TreeNode) => {
+    // Recursive directory scanner with 5,000 files limit and 1MB size limit
+    const scanDir = async (dir: string, currentTreeNode: TreeNode) => {
+      if (fileIndices.length >= 5000) return;
+
       let entries: fs.Dirent[] = [];
       try {
-        entries = fs.readdirSync(dir, { withFileTypes: true });
-      } catch (err) {
+        entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      } catch {
         return;
       }
 
       for (const entry of entries) {
-        if (entry.name.startsWith('.') && entry.name !== '.env') {
-          // Skip dot folders (e.g. .git, .gemini)
-          if (entry.isDirectory()) continue;
-        }
+        if (fileIndices.length >= 5000) break;
+
+        // Skip all dotfiles and hidden folders (.git, .env*, .gemini, etc.)
+        if (entry.name.startsWith('.')) continue;
 
         if (entry.isDirectory()) {
           if (IGNORED_DIRS.has(entry.name)) continue;
@@ -99,7 +164,7 @@ export class NavigatorService {
           };
 
           currentTreeNode.children?.push(childDirNode);
-          scanDir(subDirPath, childDirNode);
+          await scanDir(subDirPath, childDirNode);
 
           currentTreeNode.linesOfCode = (currentTreeNode.linesOfCode || 0) + (childDirNode.linesOfCode || 0);
           currentTreeNode.symbolCount = (currentTreeNode.symbolCount || 0) + (childDirNode.symbolCount || 0);
@@ -111,7 +176,10 @@ export class NavigatorService {
           const relativeFilePath = path.relative(rootPath, fullFilePath);
 
           try {
-            const content = fs.readFileSync(fullFilePath, 'utf8');
+            const stat = await fs.promises.stat(fullFilePath);
+            if (stat.size > 1024 * 1024) continue; // Skip files > 1MB
+
+            const content = await fs.promises.readFile(fullFilePath, 'utf8');
             const fileIndex = AstParser.parseFile(relativeFilePath, fullFilePath, content);
             fileIndices.push(fileIndex);
 
@@ -127,14 +195,14 @@ export class NavigatorService {
             currentTreeNode.children?.push(fileNode);
             currentTreeNode.linesOfCode = (currentTreeNode.linesOfCode || 0) + fileIndex.linesOfCode;
             currentTreeNode.symbolCount = (currentTreeNode.symbolCount || 0) + fileIndex.symbols.length;
-          } catch (readErr) {
+          } catch {
             // Non-fatal: skip binary or locked files
           }
         }
       }
     };
 
-    scanDir(rootPath, rootTree);
+    await scanDir(rootPath, rootTree);
 
     // Build Graph
     const graph = GraphBuilder.buildGraph(fileIndices);
@@ -154,12 +222,16 @@ export class NavigatorService {
       languages[f.language].lines += f.linesOfCode;
     });
 
-    // Cache results
-    NavigatorService.cachedRoot = rootPath;
-    NavigatorService.cachedFiles = fileIndices;
-    NavigatorService.cachedTree = rootTree;
-    NavigatorService.cachedGraph = graph;
-    NavigatorService.lastIndexedAt = new Date().toISOString();
+    const indexedAt = new Date().toISOString();
+    const cacheEntry: UserIndexCache = {
+      rootPath,
+      files: fileIndices,
+      tree: rootTree,
+      graph,
+      indexedAt,
+    };
+
+    NavigatorService.userCaches.set(userId, cacheEntry);
 
     return {
       rootPath,
@@ -168,23 +240,32 @@ export class NavigatorService {
       totalSymbols,
       languages,
       fileTree: rootTree,
-      indexedAt: NavigatorService.lastIndexedAt,
+      indexedAt,
     };
   }
 
   /**
-   * Get cached summary or re-index if not yet indexed
+   * Get cached summary or re-index if not yet indexed for this user
    */
-  public async getSummary(targetPath?: string): Promise<RepositorySummary> {
-    if (!NavigatorService.cachedRoot || (targetPath && NavigatorService.cachedRoot !== path.resolve(targetPath))) {
-      return this.indexRepository(targetPath);
+  public async getSummary(userIdOrSubPath?: string, maybeSubPath?: string): Promise<RepositorySummary> {
+    let userId = userIdOrSubPath || 'default';
+    let subPath = maybeSubPath;
+
+    if (userIdOrSubPath && (userIdOrSubPath.startsWith('/') || userIdOrSubPath.startsWith('.'))) {
+      userId = 'default';
+      subPath = userIdOrSubPath === NAVIGATOR_ROOT ? undefined : path.relative(NAVIGATOR_ROOT, userIdOrSubPath);
+    }
+
+    const cached = NavigatorService.userCaches.get(userId);
+    if (!cached) {
+      return this.indexRepository(userId, subPath);
     }
 
     const languages: Record<string, { files: number; lines: number }> = {};
     let totalLines = 0;
     let totalSymbols = 0;
 
-    NavigatorService.cachedFiles.forEach(f => {
+    cached.files.forEach(f => {
       totalLines += f.linesOfCode;
       totalSymbols += f.symbols.length;
       if (!languages[f.language]) {
@@ -195,34 +276,47 @@ export class NavigatorService {
     });
 
     return {
-      rootPath: NavigatorService.cachedRoot,
-      totalFiles: NavigatorService.cachedFiles.length,
+      rootPath: cached.rootPath,
+      totalFiles: cached.files.length,
       totalLines,
       totalSymbols,
       languages,
-      fileTree: NavigatorService.cachedTree!,
-      indexedAt: NavigatorService.lastIndexedAt || new Date().toISOString(),
+      fileTree: cached.tree,
+      indexedAt: cached.indexedAt,
     };
   }
 
   /**
-   * Search indexed symbols across the repository
+   * Search indexed symbols across the user's indexed repository
    */
   public searchSymbols(
-    query: string,
+    userIdOrQuery: string = 'default',
+    query?: string,
     kind?: SymbolKind
   ): Array<CodeSymbol & { filePath: string; link: string }> {
-    const q = query.toLowerCase().trim();
+    let userId = userIdOrQuery;
+    let q = query;
+
+    if (query === undefined) {
+      userId = 'default';
+      q = userIdOrQuery;
+    }
+
+    const cached = NavigatorService.userCaches.get(userId);
+    const files = cached ? cached.files : [];
+    const rootPath = cached ? cached.rootPath : NAVIGATOR_ROOT;
+
+    const searchTerm = (q || '').toLowerCase().trim();
     const results: Array<CodeSymbol & { filePath: string; link: string }> = [];
 
-    for (const file of NavigatorService.cachedFiles) {
+    for (const file of files) {
       for (const sym of file.symbols) {
         if (kind && sym.kind !== kind) continue;
-        if (!q || sym.name.toLowerCase().includes(q)) {
+        if (!searchTerm || sym.name.toLowerCase().includes(searchTerm)) {
           results.push({
             ...sym,
             filePath: file.filePath,
-            link: `file:///${path.join(NavigatorService.cachedRoot || '', file.filePath)}#L${sym.startLine}-L${sym.endLine}`,
+            link: `file:///${path.join(rootPath, file.filePath)}#L${sym.startLine}-L${sym.endLine}`,
           });
         }
       }
@@ -232,35 +326,64 @@ export class NavigatorService {
   }
 
   /**
-   * Get dependency graph & Mermaid string
+   * Get dependency graph & Mermaid string for user
    */
-  public getGraph(): DependencyGraph {
-    if (!NavigatorService.cachedGraph) {
-      throw new Error('Repository has not been indexed yet.');
+  public getGraph(userId: string = 'default'): DependencyGraph {
+    const cached = NavigatorService.userCaches.get(userId);
+    if (!cached || !cached.graph) {
+      throw new BadRequestError('Repository has not been indexed yet. Call /navigator/index first.');
     }
-    return NavigatorService.cachedGraph;
+    return cached.graph;
   }
 
   /**
-   * Read source file details, symbols, and contents
+   * Read source file details, symbols, and contents with strict path traversal prevention
    */
-  public getFileDetails(
-    relativeFilePath: string
-  ): { fileIndex: FileIndex | null; content: string } {
-    if (!NavigatorService.cachedRoot) {
-      throw new Error('Repository has not been indexed yet.');
+  public async getFileDetails(
+    userIdOrFile: string = 'default',
+    maybeFilePath?: string
+  ): Promise<{ fileIndex: FileIndex | null; content: string }> {
+    let userId = userIdOrFile;
+    let relativeFilePath = maybeFilePath;
+
+    if (!maybeFilePath) {
+      userId = 'default';
+      relativeFilePath = userIdOrFile;
+    }
+
+    if (!relativeFilePath) {
+      throw new BadRequestError('filePath is required');
+    }
+
+    const cached = NavigatorService.userCaches.get(userId);
+    const root = cached ? cached.rootPath : NAVIGATOR_ROOT;
+
+    // Strict path traversal check
+    const fullPath = resolveInsideRoot(root, relativeFilePath);
+    const baseName = path.basename(fullPath);
+
+    if (baseName.startsWith('.')) {
+      throw new ForbiddenError('Access to hidden or dotfiles is denied');
+    }
+
+    const ext = baseName.split('.').pop()?.toLowerCase() || '';
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      throw new BadRequestError(`File extension .${ext} is not allowed`);
+    }
+
+    if (!fs.existsSync(fullPath)) {
+      throw new NotFoundError(`File not found: ${relativeFilePath}`);
+    }
+
+    const stat = await fs.promises.stat(fullPath);
+    if (stat.size > 1024 * 1024) {
+      throw new BadRequestError('File exceeds 1MB limit');
     }
 
     const normalizedPath = path.normalize(relativeFilePath).replace(/^\//, '');
-    const fileIndex =
-      NavigatorService.cachedFiles.find(f => f.filePath === normalizedPath) || null;
+    const fileIndex = cached?.files.find(f => f.filePath === normalizedPath) || null;
 
-    const fullPath = path.join(NavigatorService.cachedRoot, normalizedPath);
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`File not found: ${normalizedPath}`);
-    }
-
-    const content = fs.readFileSync(fullPath, 'utf8');
+    const content = await fs.promises.readFile(fullPath, 'utf8');
     return {
       fileIndex,
       content,

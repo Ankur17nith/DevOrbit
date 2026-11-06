@@ -128,8 +128,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const demoLogin = async (): Promise<boolean> => {
+    if (import.meta.env.VITE_ENABLE_DEMO !== 'true') {
+      setAuthError('Demo mode is disabled in this environment.');
+      return false;
+    }
+    const demoUser = import.meta.env.VITE_DEMO_USER || '';
+    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || '';
+    if (!demoUser || !demoPassword) {
+      setAuthError('Demo credentials are not configured.');
+      return false;
+    }
     setIsLoading(true);
-    const success = await login('alex_developer', 'DevOrbit123!');
+    const success = await login(demoUser, demoPassword);
     setIsLoading(false);
     return success;
   };

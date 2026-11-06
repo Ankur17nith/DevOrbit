@@ -343,9 +343,9 @@ export class RecommendationEngine {
     action: 'VIEWED' | 'SAVED' | 'DISMISSED' | 'PR_SUBMITTED' | 'MERGED';
     reason?: string;
   }) {
-    // Locate or create Recommendation record
-    let recRecord = await prisma.recommendation.findUnique({
-      where: { id: data.recommendationId },
+    // Locate or create Recommendation record scoped to the authenticated user (prevent IDOR)
+    let recRecord = await prisma.recommendation.findFirst({
+      where: { id: data.recommendationId, userId },
     });
 
     if (!recRecord) {

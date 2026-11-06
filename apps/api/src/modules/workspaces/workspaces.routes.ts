@@ -88,7 +88,7 @@ workspacesRouter.post('/:workspaceId/members', authenticate, async (req: AuthReq
   try {
     const userId = req.user!.id;
     const workspaceId = String(req.params.workspaceId);
-    const { targetUsername, role } = req.body;
+    const { targetUsername, userId: targetUserId, role } = req.body;
 
     const callerMembership = await prisma.workspaceMembership.findUnique({
       where: {
@@ -103,16 +103,34 @@ workspacesRouter.post('/:workspaceId/members', authenticate, async (req: AuthReq
       throw new ForbiddenError('Only workspace Owners and Admins can invite members');
     }
 
-    const targetUser = await prisma.user.findUnique({ where: { username: targetUsername } });
+    let targetUser: any = null;
+    if (targetUserId) {
+      targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+    } else if (targetUsername) {
+      targetUser = await prisma.user.findUnique({ where: { username: targetUsername } });
+    } else {
+      throw new BadRequestError('targetUsername or userId is required');
+    }
     if (!targetUser) {
       throw new NotFoundError('Target user not found');
+    }
+
+    const assignedRole = role || 'MEMBER';
+    if (assignedRole === 'OWNER') {
+      throw new ForbiddenError('Cannot grant OWNER role');
+    }
+    if (!['ADMIN', 'MEMBER', 'VIEWER'].includes(assignedRole)) {
+      throw new BadRequestError('Invalid workspace role. Allowed roles are ADMIN, MEMBER, VIEWER');
+    }
+    if (assignedRole === 'ADMIN' && callerMembership.role !== 'OWNER') {
+      throw new ForbiddenError('Only workspace OWNER can grant ADMIN role');
     }
 
     const newMembership = await prisma.workspaceMembership.create({
       data: {
         workspaceId,
         userId: targetUser.id,
-        role: role || 'MEMBER',
+        role: assignedRole,
       },
     });
 
@@ -200,6 +218,53 @@ workspacesRouter.delete('/:workspaceId', authenticate, async (req: AuthRequest, 
   }
 });
 
+// Update member role in workspace (Owner/Admin only)
+workspacesRouter.patch('/:workspaceId/members/:targetUserId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const workspaceId = String(req.params.workspaceId);
+    const targetUserId = String(req.params.targetUserId);
+    const { role } = req.body;
+
+    const callerMembership = await prisma.workspaceMembership.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+
+    if (!callerMembership || !['OWNER', 'ADMIN'].includes(callerMembership.role)) {
+      throw new ForbiddenError('Only workspace Owners and Admins can update member roles');
+    }
+
+    const targetMembership = await prisma.workspaceMembership.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: targetUserId } },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundError('Target member not found in workspace');
+    }
+
+    if (role === 'OWNER') {
+      throw new ForbiddenError('Cannot grant OWNER role');
+    }
+
+    if (!['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
+      throw new BadRequestError('Invalid workspace role. Allowed roles are ADMIN, MEMBER, VIEWER');
+    }
+
+    if (role === 'ADMIN' && callerMembership.role !== 'OWNER') {
+      throw new ForbiddenError('Only workspace OWNER can grant ADMIN role');
+    }
+
+    const updated = await prisma.workspaceMembership.update({
+      where: { workspaceId_userId: { workspaceId, userId: targetUserId } },
+      data: { role },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Remove member from workspace (Owner/Admin only)
 workspacesRouter.delete('/:workspaceId/members/:targetUserId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -225,6 +290,10 @@ workspacesRouter.delete('/:workspaceId/members/:targetUserId', authenticate, asy
 
     if (targetMembership.role === 'OWNER') {
       throw new ForbiddenError('Cannot remove workspace owner');
+    }
+
+    if (callerMembership.role === 'ADMIN' && targetMembership.role === 'ADMIN') {
+      throw new ForbiddenError('ADMIN cannot remove another ADMIN');
     }
 
     await prisma.workspaceMembership.delete({

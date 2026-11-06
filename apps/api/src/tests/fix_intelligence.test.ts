@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { StackParser } from '../modules/fix/stack_parser.js';
@@ -7,6 +7,19 @@ import { FixService } from '../modules/fix/fix.service.js';
 
 describe('Orbit Fix & Root-Cause Debugging Tests (Milestone M6)', () => {
   const fixService = new FixService();
+  let authToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: `fix_test_${Date.now()}@devorbit.test`,
+        username: `fix_tester_${Date.now()}`,
+        password: 'FixPassword123!',
+        name: 'Fix Tester',
+      });
+    authToken = res.body.data.token;
+  });
 
   // 1. Node.js / V8 Stack Trace Parsing
   it('1. Parses Node.js/V8 stack traces, extracting error type, message, and project frames', () => {
@@ -110,7 +123,9 @@ IndexError: list index out of range`;
   // 7. End-to-End HTTP API Endpoints
   it('7. Exposes /analyze, /propose, /verify, and /samples HTTP API endpoints', async () => {
     // 1. Get Samples
-    const samplesRes = await request(app).get('/api/v1/fix/samples');
+    const samplesRes = await request(app)
+      .get('/api/v1/fix/samples')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(samplesRes.status).toBe(200);
     expect(samplesRes.body.data.samples.length).toBeGreaterThanOrEqual(2);
 
@@ -118,6 +133,7 @@ IndexError: list index out of range`;
     const sampleLog = samplesRes.body.data.samples[0].log;
     const analyzeRes = await request(app)
       .post('/api/v1/fix/analyze')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ rawLog: sampleLog });
     expect(analyzeRes.status).toBe(200);
     expect(analyzeRes.body.data.analysis.category).toBeDefined();
@@ -125,6 +141,7 @@ IndexError: list index out of range`;
     // 3. Propose Patch
     const proposeRes = await request(app)
       .post('/api/v1/fix/propose')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ analysis: analyzeRes.body.data.analysis });
     expect(proposeRes.status).toBe(200);
     expect(proposeRes.body.data.patch.unifiedDiff).toContain('--- a/');
@@ -132,6 +149,7 @@ IndexError: list index out of range`;
     // 4. Verify Patch
     const verifyRes = await request(app)
       .post('/api/v1/fix/verify')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ patch: proposeRes.body.data.patch });
     expect(verifyRes.status).toBe(200);
     expect(verifyRes.body.data.verification.verified).toBe(true);

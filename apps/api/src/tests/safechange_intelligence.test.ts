@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { SafeChangeService } from '../modules/safechange/safechange.service.js';
@@ -7,6 +7,19 @@ import { DependencyGuardian } from '../modules/safechange/dependency_guardian.js
 
 describe('Orbit SafeChange & Engineering Quality Tests (Milestone M7)', () => {
   const service = new SafeChangeService();
+  let authToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: `safechange_test_${Date.now()}@devorbit.test`,
+        username: `sc_tester_${Date.now()}`,
+        password: 'ScPassword123!',
+        name: 'SafeChange Tester',
+      });
+    authToken = res.body.data.token;
+  });
 
   // 1. Change Impact & Blast Radius Analysis
   it('1. Analyzes change impact and traces downstream dependents across codebase', async () => {
@@ -78,6 +91,7 @@ model User {
     // 1. Impact Endpoint
     const impactRes = await request(app)
       .post('/api/v1/safechange/impact')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ filePath: 'apps/api/src/lib/jwt.ts' });
     expect(impactRes.status).toBe(200);
     expect(impactRes.body.data.impact.riskLevel).toBeDefined();
@@ -85,6 +99,7 @@ model User {
     // 2. Migration Safety Endpoint
     const migrationRes = await request(app)
       .post('/api/v1/safechange/migration')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         schemaContent: `model User { id String @id email String @unique }`,
       });
@@ -92,7 +107,9 @@ model User {
     expect(migrationRes.body.data.report.warnings).toBeDefined();
 
     // 3. Quality Guardian Endpoint
-    const qualityRes = await request(app).get('/api/v1/safechange/quality');
+    const qualityRes = await request(app)
+      .get('/api/v1/safechange/quality')
+      .set('Authorization', `Bearer ${authToken}`);
     expect(qualityRes.status).toBe(200);
     expect(qualityRes.body.data.quality.healthGrade).toBeDefined();
     expect(qualityRes.body.data.quality.dependencies.length).toBeGreaterThan(0);
