@@ -14,12 +14,12 @@ export class IntegrationsService {
    * Aggregate connection status across all supported developer platforms
    */
   async getAllStatus(userId: string) {
-    const [credentials, githubStatus, isOllamaOnline, oauthStatus] = await Promise.all([
+    const [credentials, githubStatus, isOllamaOnline] = await Promise.all([
       prisma.integrationCredential.findMany({ where: { userId } }),
       githubService.getIntegrationStatus(userId).catch(() => ({ isConnected: false })),
       this.ollama.isOllamaAvailable(),
-      githubOAuthHandler.getOAuthStatus(userId).catch(() => null),
     ]);
+    const oauthStatus = githubOAuthHandler.getOAuthConfiguration();
 
     const credMap = new Map(credentials.map(c => [c.provider, c]));
 

@@ -113,9 +113,8 @@ v1Router.use('/safechange', safechangeRouter);
 v1Router.use('/integrations', integrationsRouter);
 v1Router.use('/profile', profileRouter);
 
-// Support both /api/v1/... and direct /api/... mounting for maximum compatibility
+// Canonical Versioned API Mount (only /api/v1)
 app.use('/api/v1', v1Router);
-app.use('/api', v1Router);
 
 // Catch-all for undefined API routes - NEVER return HTML
 app.all(['/api', '/api/*'], (req, res) => {

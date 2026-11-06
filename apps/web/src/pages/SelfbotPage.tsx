@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bot, Save, ShieldAlert, CheckCircle2, Terminal, ExternalLink, GitPullRequest } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 export function SelfbotPage() {
   const { token } = useAuth();
@@ -15,10 +16,7 @@ export function SelfbotPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/v1/opensource/selfbot/config?repo=${repo}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
+    apiFetch(`/api/v1/opensource/selfbot/config?repo=${encodeURIComponent(repo)}`)
       .then(json => {
         if (json.success && json.data) {
           setWelcomeEnabled(json.data.welcomeEnabled ?? true);
@@ -36,7 +34,7 @@ export function SelfbotPage() {
     setSaving(true);
 
     try {
-      const res = await fetch('/api/v1/opensource/selfbot/config', {
+      const json = await apiFetch('/api/v1/opensource/selfbot/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +49,6 @@ export function SelfbotPage() {
           isEnabled: true,
         }),
       });
-      const json = await res.json();
       if (json.success) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);

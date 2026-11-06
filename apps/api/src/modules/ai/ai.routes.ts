@@ -227,3 +227,29 @@ aiRouter.post('/chat', authenticate, aiRateLimiter, async (req: AuthRequest, res
     next(err);
   }
 });
+
+// 8. One-shot prompt / query (Codebase Navigator & contextual queries)
+aiRouter.post('/prompt', authenticate, aiRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { prompt, context, modelName } = req.body;
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      throw new BadRequestError('Prompt is required');
+    }
+
+    const aiResponse = await ollamaService.generate(prompt.trim(), modelName || 'qwen2.5-coder');
+    const content = aiResponse.content;
+
+    res.json({
+      success: true,
+      data: {
+        reply: content,
+        content,
+        model: aiResponse.model,
+        source: aiResponse.source,
+        context: context || null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});

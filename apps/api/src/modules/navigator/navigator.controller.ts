@@ -48,7 +48,7 @@ export class NavigatorController {
     try {
       const userId = req.user?.id || 'default';
       const graph = this.service.getGraph(userId);
-      res.json({ success: true, data: graph });
+      res.json({ success: true, data: { ...graph, mermaidCode: graph.mermaid } });
     } catch (err: any) {
       next(err);
     }

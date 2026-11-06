@@ -64,23 +64,52 @@ export async function parseApiResponse<T = any>(res: Response): Promise<ApiRespo
   };
 }
 
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem('devorbit_token') || localStorage.getItem('token') || null;
+}
+
 /**
- * Standard HTTP Fetch Wrapper using the centralized response parser
+ * Standard HTTP Fetch Wrapper using the centralized response parser.
+ * Automatically injects VITE_API_URL base, Bearer token, and handles 401s.
  */
 export async function apiFetch<T = any>(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<ApiResponse<T>> {
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
+  let url = input;
+  if (typeof input === 'string' && input.startsWith('/') && API_BASE) {
+    url = `${API_BASE.replace(/\/$/, '')}${input}`;
+  }
+
   const headers = new Headers(init?.headers || {});
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
   }
 
+  if (!headers.has('Authorization')) {
+    const token = getAuthToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
   try {
-    const res = await fetch(input, {
+    const res = await fetch(url, {
       ...init,
       headers,
     });
+
+    if (res.status === 401 && unauthorizedHandler) {
+      unauthorizedHandler();
+    }
+
     return await parseApiResponse<T>(res);
   } catch (netErr: any) {
     return {

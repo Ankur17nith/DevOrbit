@@ -3,6 +3,7 @@ import { Star, ExternalLink, Bookmark, Filter, ShieldCheck, DollarSign, Award, C
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 import { safeHref } from '../lib/safeHref.js';
+import { apiFetch } from '../lib/api.js';
 
 export function BountiesPage() {
   const { token } = useAuth();
@@ -34,10 +35,9 @@ export function BountiesPage() {
   }, [selectedDifficulty, selectedCurrency]);
 
   useEffect(() => {
-    fetch('/api/v1/opensource/bounties')
-      .then(r => r.json())
+    apiFetch('/api/v1/opensource/bounties')
       .then(json => {
-        if (json.success) setBounties(json.data.bounties || []);
+        if (json.success && json.data) setBounties(json.data.bounties || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

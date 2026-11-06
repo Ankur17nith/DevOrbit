@@ -57,6 +57,37 @@ forumRouter.post('/posts', authenticate, async (req: AuthRequest, res: Response,
   }
 });
 
+// Upvote post
+forumRouter.post('/posts/:postId/upvote', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const postId = String(req.params.postId);
+    const post = await prisma.forumPost.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+
+    const updated = await prisma.forumPost.update({
+      where: { id: postId },
+      data: { upvotes: { increment: 1 } },
+      include: {
+        user: { select: { id: true, username: true, name: true, avatarUrl: true } },
+        _count: { select: { replies: true } },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...updated,
+        tags: updated.tagsJson ? JSON.parse(updated.tagsJson) : [],
+        replyCount: updated._count.replies,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Reply to post
 forumRouter.post('/posts/:postId/replies', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

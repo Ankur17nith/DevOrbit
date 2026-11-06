@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PageContainer } from '../components/ui/PageContainer.js';
 import { useAuth } from '../context/AuthContext.js';
+import { apiFetch } from '../lib/api.js';
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -31,12 +32,9 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
       return;
     }
     setLoading(true);
-    fetch('/api/v1/dashboard/summary', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
+    apiFetch('/api/v1/dashboard/summary')
       .then(json => {
-        if (json.success) setData(json.data);
+        if (json.success && json.data) setData(json.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

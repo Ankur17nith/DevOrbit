@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Star, GitFork, ExternalLink, TrendingUp, Sparkles, Filter } from 'lucide-react';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 export function TrendingPage() {
   const getInitialParams = () => {
@@ -33,10 +34,9 @@ export function TrendingPage() {
     if (language !== 'All') params.append('language', language);
     params.append('since', timeRange);
 
-    fetch(`/api/v1/opensource/trending?${params.toString()}`)
-      .then(r => r.json())
+    apiFetch(`/api/v1/opensource/trending?${params.toString()}`)
       .then(json => {
-        if (json.success) setRepos(json.data || []);
+        if (json.success && json.data) setRepos(json.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

@@ -100,6 +100,8 @@ reconRouter.post('/inspect', authenticate, async (req: AuthRequest, res: Respons
       borderColor: '#1F2430',
       primaryText: '#F8FAFC',
       accentColor: colorMatches.includes('#8B5CF6') ? '#8B5CF6' : '#8B5CF6',
+      colors: ['#0B0D12', '#12151D', '#1F2430', '#F8FAFC', '#8B5CF6'],
+      lineHeight: '1.5',
       fonts: extractedFonts.length > 0 ? Array.from(new Set(extractedFonts)).slice(0, 3) : ['Inter', 'SF Pro Display', 'JetBrains Mono'],
     };
 

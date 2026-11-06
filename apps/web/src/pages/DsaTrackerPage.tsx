@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
 import { apiFetch } from '../lib/api.js';
 import { safeHref } from '../lib/safeHref.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 interface Problem {
   id: string;
@@ -177,7 +178,7 @@ export function DsaTrackerPage() {
   const handleSaveProgress = async (status: 'SOLVED' | 'ATTEMPTED' | 'REVISE') => {
     if (!solveModalProblem || !token) return;
     try {
-      const json = await apiFetch(`/api/v1/dsa/problems/${solveModalProblem.id}/progress`, {
+      const json = await apiFetch(ENDPOINTS.dsa.progress(solveModalProblem.id), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -199,6 +200,27 @@ export function DsaTrackerPage() {
       }
     } catch (err) {
       console.error('Failed to update progress', err);
+    }
+  };
+
+  const handleReviewSubmit = async (rating: number) => {
+    if (!solveModalProblem || !token) return;
+    try {
+      const json = await apiFetch(ENDPOINTS.dsa.review(solveModalProblem.id), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (json.success) {
+        setSolveModalProblem(null);
+        await Promise.all([fetchData(), fetchAnalytics(), fetchRevisionQueue()]);
+      }
+    } catch (err) {
+      console.error('Failed to submit review', err);
     }
   };
 
@@ -473,7 +495,7 @@ export function DsaTrackerPage() {
                   Recall Quality (0-5 SM-2 Scale)
                 </label>
                 <div className="flex gap-1.5">
-                  {[1, 2, 3, 4, 5].map(q => (
+                  {[0, 1, 2, 3, 4, 5].map(q => (
                     <button
                       key={q}
                       onClick={() => setConfidenceRating(q)}
@@ -516,16 +538,22 @@ export function DsaTrackerPage() {
 
             <div className="flex gap-2 pt-2 border-t border-black/7">
               <button
-                onClick={() => handleSaveProgress('SOLVED')}
-                className="flex-1 py-2 rounded-md bg-[#11141B] hover:bg-black text-white text-[10px] font-semibold transition"
+                onClick={() => handleReviewSubmit(confidenceRating)}
+                className="flex-1 py-2 rounded-md bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[10px] font-semibold transition flex items-center justify-center gap-1"
               >
-                Save as Solved
+                <span>Submit Review ({confidenceRating}/5)</span>
+              </button>
+              <button
+                onClick={() => handleSaveProgress('SOLVED')}
+                className="py-2 px-3 rounded-md bg-[#11141B] hover:bg-black text-white text-[10px] font-semibold transition"
+              >
+                Save
               </button>
               <button
                 onClick={() => handleSaveProgress('REVISE')}
-                className="px-4 py-2 rounded-md border border-black/8 text-[#0B0D12] text-[10px] font-semibold hover:bg-black/5 transition"
+                className="px-3 py-2 rounded-md border border-black/8 text-[#0B0D12] text-[10px] font-semibold hover:bg-black/5 transition"
               >
-                Mark for Revision
+                Revise
               </button>
             </div>
           </div>

@@ -124,8 +124,8 @@ npm run dev`}
           <div className="rounded-xl bg-[#0B0D12] p-4 text-xs font-mono text-[#F8FAFC] border border-[#1F2430]">
             <pre className="overflow-x-auto">
 {`# Initiate GitHub OAuth Authorization
-GET /api/v1/integrations/github/oauth/authorize
-Response: { "authUrl": "https://github.com/login/oauth/authorize?client_id=...&state=..." }
+GET /api/v1/integrations/github/oauth/url
+Response: { "authorizationUrl": "https://github.com/login/oauth/authorize?client_id=...&state=..." }
 
 # Complete OAuth Callback
 POST /api/v1/integrations/github/oauth/callback
@@ -235,7 +235,7 @@ ollama pull qwen2.5-coder:7b
 
           <h3 className="text-base font-bold text-[#0E121B]">Database Backup & Export</h3>
           <p>
-            DevOrbit provides one-click JSON database export at <code className="text-[#8B5CF6]">GET /api/v1/backup/export</code>, ensuring complete data ownership and zero lock-in.
+            DevOrbit provides one-click JSON database export at <code className="text-[#8B5CF6]">GET /api/v1/system/backup</code>, ensuring complete data ownership and zero lock-in.
           </p>
         </div>
       )

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 export function OrbitReconPage() {
   const { token } = useAuth();
@@ -26,7 +28,7 @@ export function OrbitReconPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/v1/recon/inspect', {
+      const json = await apiFetch(ENDPOINTS.recon.inspect, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,8 +36,7 @@ export function OrbitReconPage() {
         },
         body: JSON.stringify({ url }),
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setResult(json.data);
       }
     } catch (err) {

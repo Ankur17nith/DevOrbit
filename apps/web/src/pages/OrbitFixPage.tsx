@@ -11,6 +11,8 @@ import {
   Play
 } from 'lucide-react';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 interface CodeContextLine {
   lineNumber: number;
@@ -56,11 +58,7 @@ export function OrbitFixPage() {
   const [selectedRuntime, setSelectedRuntime] = useState<string>('Node.js');
 
   useEffect(() => {
-    const token = localStorage.getItem('devorbit_token');
-    fetch('/api/v1/fix/samples', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(res => res.json())
+    apiFetch(ENDPOINTS.fix.samples)
       .then(json => {
         if (json.success && json.data?.samples) {
           setSamples(json.data.samples);
@@ -80,16 +78,11 @@ export function OrbitFixPage() {
     setVerification(null);
 
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch('/api/v1/fix/analyze', {
+      const json = await apiFetch(ENDPOINTS.fix.analyze, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rawLog: errorLog }),
       });
-      const json = await res.json();
       if (json.success) {
         setAnalysis(json.data.analysis);
       }
@@ -104,16 +97,11 @@ export function OrbitFixPage() {
     if (!analysis) return;
     setPatching(true);
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch('/api/v1/fix/propose', {
+      const json = await apiFetch(ENDPOINTS.fix.propose, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysis }),
       });
-      const json = await res.json();
       if (json.success) {
         setPatch(json.data.patch || null);
         setPatchReason(json.data.reason || null);
@@ -129,16 +117,11 @@ export function OrbitFixPage() {
     if (!patch) return;
     setVerifying(true);
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch('/api/v1/fix/verify', {
+      const json = await apiFetch(ENDPOINTS.fix.verify, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patch }),
       });
-      const json = await res.json();
       if (json.success) {
         setVerification(json.data.verification);
       }

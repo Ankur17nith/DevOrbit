@@ -67,4 +67,39 @@ describe('Frontend Centralized API Client & Response Parser', () => {
     expect(result.error?.statusCode).toBe(0);
     expect(result.error?.message).toContain('Failed to fetch');
   });
+
+  it('6. apiFetch automatically injects Authorization header from localStorage', async () => {
+    localStorage.setItem('devorbit_token', 'token-test-xyz');
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: {} }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await apiFetch('/api/v1/authenticated-endpoint');
+    const headersUsed = fetchMock.mock.calls[0][1].headers;
+    expect(headersUsed.get('Authorization')).toBe('Bearer token-test-xyz');
+    localStorage.removeItem('devorbit_token');
+  });
+
+  it('7. apiFetch invokes registered onUnauthorized callback upon receiving 401', async () => {
+    const { setUnauthorizedHandler } = await import('../lib/api.js');
+    const on401 = vi.fn();
+    setUnauthorizedHandler(on401);
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: false, error: { message: 'Unauthorized' } }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await apiFetch('/api/v1/protected-route');
+    expect(result.success).toBe(false);
+    expect(on401).toHaveBeenCalledTimes(1);
+    setUnauthorizedHandler(null);
+  });
 });

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { setUnauthorizedHandler } from '../lib/api.js';
 
 export interface User {
   id: string;
@@ -63,6 +64,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      localStorage.removeItem('devorbit_token');
+      setToken(null);
+      setUser(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     fetchCurrentUser(token);

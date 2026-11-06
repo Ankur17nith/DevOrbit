@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 export function OssCatalogPage() {
   const { token } = useAuth();
@@ -36,10 +37,9 @@ export function OssCatalogPage() {
     if (search.trim()) params.append('search', search.trim());
     if (selectedLanguage !== 'All') params.append('language', selectedLanguage);
 
-    fetch(`/api/v1/opensource/catalog?${params.toString()}`)
-      .then(res => res.json())
+    apiFetch(`/api/v1/opensource/catalog?${params.toString()}`)
       .then(json => {
-        if (json.success) setRepos(json.data.repos || []);
+        if (json.success && json.data) setRepos(json.data.repos || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -53,10 +53,9 @@ export function OssCatalogPage() {
   // Load user bookmarks
   useEffect(() => {
     if (!token) return;
-    fetch('/api/v1/opensource/bookmarks', {
+    apiFetch('/api/v1/opensource/bookmarks', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
       .then(json => {
         if (json.success && Array.isArray(json.data)) {
           const ids = new Set<string>(json.data.map((b: any) => b.repositoryId).filter(Boolean));
@@ -71,7 +70,7 @@ export function OssCatalogPage() {
     if (!token) return;
 
     try {
-      const res = await fetch('/api/v1/opensource/bookmarks/toggle', {
+      const json = await apiFetch('/api/v1/opensource/bookmarks/toggle', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +78,6 @@ export function OssCatalogPage() {
         },
         body: JSON.stringify({ targetType: 'REPO', repositoryId: repoId }),
       });
-      const json = await res.json();
       if (json.success) {
         setBookmarkedIds(prev => {
           const next = new Set(prev);

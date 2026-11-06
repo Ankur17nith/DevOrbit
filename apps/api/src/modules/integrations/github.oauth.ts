@@ -89,6 +89,19 @@ export class GitHubOAuthHandler {
     return result.count === 1;
   }
 
+  getOAuthConfiguration(): { isConfigured: boolean; clientId?: string; setupInstructions?: string } {
+    const configured = this.isConfigured();
+    return {
+      isConfigured: configured,
+      clientId: configured ? this.clientId : undefined,
+      setupInstructions: !configured
+        ? 'GitHub OAuth application credentials are not yet configured in apps/api/.env. ' +
+          'To enable one-click OAuth, create an OAuth app at https://github.com/settings/developers and set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET. ' +
+          'Alternatively, you can connect instantly using a GitHub Personal Access Token (PAT) with read:user, repo scopes.'
+        : undefined,
+    };
+  }
+
   async getOAuthStatus(userId: string, browserBinding?: string): Promise<GitHubOAuthStatus> {
     const state = await this.generateOAuthState(userId, browserBinding);
 

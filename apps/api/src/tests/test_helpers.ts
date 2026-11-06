@@ -6,6 +6,7 @@ import { prisma } from '../config/index.js';
 export interface TestUser {
   user: any;
   token: string;
+  authHeader: string;
   userId: string;
   email: string;
   username: string;
@@ -107,6 +108,7 @@ export async function createTestUser(role: string = 'USER'): Promise<TestUser> {
   return {
     user,
     token,
+    authHeader: `Bearer ${token}`,
     userId: user.id,
     email,
     username,

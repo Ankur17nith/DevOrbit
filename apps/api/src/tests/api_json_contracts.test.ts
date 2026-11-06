@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('API Structured JSON Error Handling & HTML Prevention Contract', () => {
   it('1. Returns structured JSON for unknown /api/v1 route and never returns HTML', async () => {
@@ -83,5 +84,117 @@ describe('API Structured JSON Error Handling & HTML Prevention Contract', () => 
     expect([413, 400]).toContain(res.status);
     expect(res.headers['content-type']).toContain('application/json');
     expect(res.body.success).toBe(false);
+  });
+
+  describe('Frontend-Backend Contract Mismatch Alignments (C1-C18)', () => {
+    it('C1-C5: GET /api/v1/integrations/status returns aligned properties for all providers', async () => {
+      const user = await createTestUser();
+      const res = await request(app)
+        .get('/api/v1/integrations/status')
+        .set('Authorization', user.authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      const data = res.body.data;
+
+      // GitHub contract
+      expect(data.github).toHaveProperty('isConnected');
+      expect(data.github).toHaveProperty('connected');
+      expect(data.github).toHaveProperty('repoCount');
+      expect(data.github).toHaveProperty('publicReposCount');
+
+      // Codeforces contract
+      expect(data.codeforces).toHaveProperty('isConnected');
+      expect(data.codeforces).toHaveProperty('connected');
+      expect(data.codeforces).toHaveProperty('solvedCount');
+      expect(data.codeforces).toHaveProperty('totalSolved');
+
+      // LeetCode contract
+      expect(data.leetcode).toHaveProperty('isConnected');
+      expect(data.leetcode).toHaveProperty('connected');
+      expect(data.leetcode).toHaveProperty('totalSolved');
+
+      // Take U Forward contract
+      expect(data.tuf).toHaveProperty('isConnected');
+      expect(data.tuf).toHaveProperty('connected');
+      expect(data.tuf).toHaveProperty('completedProblems');
+
+      // Ollama contract
+      expect(data.ollama).toHaveProperty('isConnected');
+      expect(data.ollama).toHaveProperty('connected');
+      expect(data.ollama).toHaveProperty('hostUrl');
+    });
+
+    it('C3: GET /api/v1/integrations/github/oauth/url returns authorizationUrl', async () => {
+      const user = await createTestUser();
+      const res = await request(app)
+        .get('/api/v1/integrations/github/oauth/url')
+        .set('Authorization', user.authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('isConfigured');
+      expect(res.body.data).toHaveProperty('state');
+    });
+
+    it('C4: POST /api/v1/integrations/tuf/sync returns 400 manual only', async () => {
+      const user = await createTestUser();
+      const res = await request(app)
+        .post('/api/v1/integrations/tuf/sync')
+        .set('Authorization', user.authHeader);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Take U Forward sync is manual only');
+    });
+
+    it('C9: POST /api/v1/forum/posts/:postId/upvote increments post upvotes', async () => {
+      const user = await createTestUser();
+      const createRes = await request(app)
+        .post('/api/v1/forum/posts')
+        .set('Authorization', user.authHeader)
+        .send({ title: 'Test Post for Upvote', content: 'Content of upvote test post' });
+
+      expect(createRes.status).toBe(201);
+      const postId = createRes.body.data.id;
+
+      const upvoteRes = await request(app)
+        .post(`/api/v1/forum/posts/${postId}/upvote`)
+        .set('Authorization', user.authHeader);
+
+      expect(upvoteRes.status).toBe(200);
+      expect(upvoteRes.body.success).toBe(true);
+      expect(upvoteRes.body.data.upvotes).toBe(1);
+    });
+
+    it('C10: POST /api/v1/ai/prompt responds with reply and content', async () => {
+      const user = await createTestUser();
+      const res = await request(app)
+        .post('/api/v1/ai/prompt')
+        .set('Authorization', user.authHeader)
+        .send({ prompt: 'Explain the single responsibility principle' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('reply');
+      expect(res.body.data).toHaveProperty('content');
+    });
+
+    it('C11: GET /api/v1/navigator/graph returns both mermaid and mermaidCode', async () => {
+      const user = await createTestUser();
+      await request(app)
+        .get('/api/v1/navigator/summary')
+        .set('Authorization', user.authHeader);
+
+      const res = await request(app)
+        .get('/api/v1/navigator/graph')
+        .set('Authorization', user.authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('mermaid');
+      expect(res.body.data).toHaveProperty('mermaidCode');
+      expect(res.body.data.mermaid).toBe(res.body.data.mermaidCode);
+    });
   });
 });

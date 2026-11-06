@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
 
 export function WorkspacesPage() {
   const { token, user } = useAuth();
@@ -33,12 +34,9 @@ export function WorkspacesPage() {
   const fetchWorkspaces = () => {
     if (!token) return;
     setLoading(true);
-    fetch('/api/v1/workspaces', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
+    apiFetch('/api/v1/workspaces')
       .then(json => {
-        if (json.success) setWorkspaces(json.data || []);
+        if (json.success && json.data) setWorkspaces(json.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -53,7 +51,7 @@ export function WorkspacesPage() {
     if (!token) return;
 
     try {
-      const res = await fetch('/api/v1/workspaces', {
+      const json = await apiFetch('/api/v1/workspaces', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +59,6 @@ export function WorkspacesPage() {
         },
         body: JSON.stringify({ name, slug, description }),
       });
-      const json = await res.json();
       if (json.success) {
         setShowCreateModal(false);
         setName('');
@@ -79,7 +76,7 @@ export function WorkspacesPage() {
     if (!token || !selectedWsId) return;
 
     try {
-      const res = await fetch(`/api/v1/workspaces/${selectedWsId}/members`, {
+      const json = await apiFetch(`/api/v1/workspaces/${selectedWsId}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +84,6 @@ export function WorkspacesPage() {
         },
         body: JSON.stringify({ targetUsername, role }),
       });
-      const json = await res.json();
       if (json.success) {
         setShowInviteModal(false);
         setTargetUsername('');

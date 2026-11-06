@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 export function SettingsPage() {
   const { user, token } = useAuth();
@@ -31,19 +33,16 @@ export function SettingsPage() {
   const [selectedModel, setSelectedModel] = useState<string>('qwen2.5-coder:7b');
 
   useEffect(() => {
-    fetch('/api/v1/system/health')
-      .then(r => r.json())
-      .then(setHealthData)
+    apiFetch(ENDPOINTS.system.health)
+      .then(res => setHealthData(res.data || res))
       .catch(() => {});
 
-    fetch('/api/v1/ai/status')
-      .then(r => r.json())
+    apiFetch(ENDPOINTS.ai.status)
       .then(j => j.success && setAiStatus(j.data))
       .catch(() => {});
 
-    fetch('/api/v1/ai/models')
-      .then(r => r.json())
-      .then(j => j.success && setModels(j.data.models || []))
+    apiFetch(ENDPOINTS.ai.models)
+      .then(j => j.success && setModels(j.data?.models || []))
       .catch(() => {});
   }, []);
 
@@ -51,7 +50,9 @@ export function SettingsPage() {
     if (!token) return;
     setBackupLoading(true);
     try {
-      const res = await fetch('/api/v1/system/backup', {
+      const baseUrl = (import.meta as any).env?.VITE_API_URL ?? '';
+      const backupUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}${ENDPOINTS.system.backup}` : ENDPOINTS.system.backup;
+      const res = await fetch(backupUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await res.blob();
@@ -75,7 +76,7 @@ export function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
-        const res = await fetch('/api/v1/system/restore', {
+        const json = await apiFetch(ENDPOINTS.system.restore, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -83,11 +84,10 @@ export function SettingsPage() {
           },
           body: JSON.stringify({ backup: payload }),
         });
-        const json = await res.json();
         if (json.success) {
-          setRestoreStatus(json.message);
+          setRestoreStatus(json.message || 'Database restored successfully');
         } else {
-          setRestoreStatus('Failed to restore backup: ' + (json.error || 'Invalid file'));
+          setRestoreStatus('Failed to restore backup: ' + (json.error?.message || 'Invalid file'));
         }
       } catch (err: any) {
         setRestoreStatus('Error reading file: ' + err.message);

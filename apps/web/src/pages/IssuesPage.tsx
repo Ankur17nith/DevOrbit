@@ -128,10 +128,9 @@ export function IssuesPage() {
     if (difficulty !== 'All') params.append('difficulty', difficulty);
     if (search.trim()) params.append('search', search.trim());
 
-    fetch(`/api/v1/opensource/issues?${params.toString()}`)
-      .then(r => r.json())
+    apiFetch(`/api/v1/opensource/issues?${params.toString()}`)
       .then(json => {
-        if (json.success) setIssues(json.data.issues || []);
+        if (json.success && json.data) setIssues(json.data.issues || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -202,12 +201,11 @@ export function IssuesPage() {
   const fetchPipeline = () => {
     if (!token) return;
     setPipelineLoading(true);
-    fetch('/api/v1/opensource/pipeline', {
+    apiFetch('/api/v1/opensource/pipeline', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.json())
       .then(json => {
-        if (json.success) setPipeline(json.data.pipeline || []);
+        if (json.success && json.data) setPipeline(json.data.pipeline || []);
       })
       .catch(console.error)
       .finally(() => setPipelineLoading(false));
@@ -233,11 +231,10 @@ export function IssuesPage() {
     }
 
     try {
-      const res = await fetch(`/api/v1/opensource/issues/${issue.id}/match`, {
+      const data = await apiFetch(`/api/v1/opensource/issues/${issue.id}/match`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      if (data.success) {
+      if (data.success && data.data) {
         setMatchData(data.data);
       }
     } catch (err) {
@@ -254,7 +251,7 @@ export function IssuesPage() {
       return;
     }
     try {
-      const res = await fetch('/api/v1/opensource/pipeline', {
+      const data = await apiFetch('/api/v1/opensource/pipeline', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -262,7 +259,6 @@ export function IssuesPage() {
         },
         body: JSON.stringify({ issueId, stage }),
       });
-      const data = await res.json();
       if (data.success) {
         fetchPipeline();
         if (selectedIssueForMatch) setSelectedIssueForMatch(null);
@@ -276,7 +272,7 @@ export function IssuesPage() {
   const handleUpdateStage = async (id: string, newStage: PipelineItem['stage'], currentStage: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`/api/v1/opensource/pipeline/${id}`, {
+      const data = await apiFetch(`/api/v1/opensource/pipeline/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -284,7 +280,6 @@ export function IssuesPage() {
         },
         body: JSON.stringify({ stage: newStage }),
       });
-      const data = await res.json();
       if (data.success) {
         if (newStage === 'MERGED' && currentStage !== 'MERGED') {
           setMergedNotification('Congratulations! Contribution marked as MERGED. Your OSS skill profile has been updated!');
@@ -301,11 +296,10 @@ export function IssuesPage() {
   const handleRemoveFromPipeline = async (id: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`/api/v1/opensource/pipeline/${id}`, {
+      const data = await apiFetch(`/api/v1/opensource/pipeline/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
       if (data.success) {
         fetchPipeline();
       }

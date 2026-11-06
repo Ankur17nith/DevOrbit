@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plug, 
   Code, 
@@ -27,12 +27,14 @@ import { GithubIcon } from '../components/icons/GithubIcon.js';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
 import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 export function IntegrationCenterPage() {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [integrationsData, setIntegrationsData] = useState<any>(null);
   const [syncingMap, setSyncingMap] = useState<{ [key: string]: boolean }>({});
+  const oauthProcessedRef = useRef<boolean>(false);
   const [copiedCmd, setCopiedCmd] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -61,7 +63,7 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const json = await apiFetch('/api/v1/integrations/status', {
+      const json = await apiFetch(ENDPOINTS.integrations.status, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (json.success && json.data) {
@@ -101,9 +103,13 @@ export function IntegrationCenterPage() {
       return;
     }
 
-    if (code && state) {
+    if (code && state && !oauthProcessedRef.current) {
+      oauthProcessedRef.current = true;
+      // Immediately clear code/state from URL before posting to prevent replay under StrictMode
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       setModalLoading(true);
-      apiFetch('/api/v1/integrations/github/oauth/callback', {
+      apiFetch(ENDPOINTS.integrations.githubOAuthCallback, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +130,6 @@ export function IntegrationCenterPage() {
         })
         .finally(() => {
           setModalLoading(false);
-          window.history.replaceState({}, document.title, window.location.pathname);
         });
     }
   }, [token]);
@@ -134,7 +139,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setOauthFeedback(null);
     try {
-      const json = await apiFetch('/api/v1/integrations/github/oauth/start', {
+      const json = await apiFetch(ENDPOINTS.integrations.githubOAuthUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const authUrl = json.data?.authorizationUrl || json.data?.authUrl;
@@ -161,7 +166,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const json = await apiFetch('/api/v1/integrations/github', {
+      const json = await apiFetch(ENDPOINTS.integrations.githubConnect, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,7 +193,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const json = await apiFetch('/api/v1/integrations/codeforces', {
+      const json = await apiFetch(ENDPOINTS.integrations.codeforcesConnect, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +220,7 @@ export function IntegrationCenterPage() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const json = await apiFetch('/api/v1/integrations/leetcode', {
+      const json = await apiFetch(ENDPOINTS.integrations.leetcodeConnect, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +246,7 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setModalLoading(true);
     try {
-      const json = await apiFetch('/api/v1/integrations/tuf', {
+      const json = await apiFetch(ENDPOINTS.integrations.tufConnect, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +269,14 @@ export function IntegrationCenterPage() {
     if (!token) return;
     setSyncingMap(prev => ({ ...prev, [serviceKey]: true }));
     try {
-      const json = await apiFetch(`/api/v1/integrations/${serviceKey}/sync`, {
+      const syncEndpoint = serviceKey === 'github'
+        ? ENDPOINTS.integrations.githubSync
+        : serviceKey === 'codeforces'
+        ? ENDPOINTS.integrations.codeforcesSync
+        : serviceKey === 'leetcode'
+        ? ENDPOINTS.integrations.leetcodeSync
+        : ENDPOINTS.integrations.tufSync;
+      const json = await apiFetch(syncEndpoint, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -281,7 +293,14 @@ export function IntegrationCenterPage() {
   const handleDisconnectService = async (serviceKey: string) => {
     if (!token || !confirm(`Are you sure you want to disconnect ${serviceKey}?`)) return;
     try {
-      const json = await apiFetch(`/api/v1/integrations/${serviceKey}`, {
+      const disconnectEndpoint = serviceKey === 'github'
+        ? ENDPOINTS.integrations.githubDisconnect
+        : serviceKey === 'codeforces'
+        ? ENDPOINTS.integrations.codeforcesDisconnect
+        : serviceKey === 'leetcode'
+        ? ENDPOINTS.integrations.leetcodeDisconnect
+        : ENDPOINTS.integrations.tufDisconnect;
+      const json = await apiFetch(disconnectEndpoint, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

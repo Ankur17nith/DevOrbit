@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer, StatusBadge, Button } from '../components/ui/index.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 export function ForumPage() {
   const { token, user } = useAuth();
@@ -26,8 +28,7 @@ export function ForumPage() {
 
   const fetchPosts = () => {
     setLoading(true);
-    fetch('/api/v1/forum/posts')
-      .then(res => res.json())
+    apiFetch(ENDPOINTS.forum.posts)
       .then(json => {
         if (json.success) setPosts(json.data || []);
       })
@@ -49,7 +50,7 @@ export function ForumPage() {
         .map(t => t.trim())
         .filter(Boolean);
 
-      const res = await fetch('/api/v1/forum/posts', {
+      const json = await apiFetch(ENDPOINTS.forum.posts, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +63,6 @@ export function ForumPage() {
         }),
       });
 
-      const json = await res.json();
       if (json.success) {
         setShowCreateModal(false);
         setTitle('');
@@ -78,7 +78,7 @@ export function ForumPage() {
   const handleUpvote = async (postId: string) => {
     if (!token) return;
     try {
-      await fetch(`/api/v1/forum/posts/${postId}/upvote`, {
+      await apiFetch(ENDPOINTS.forum.upvote(postId), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

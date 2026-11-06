@@ -329,7 +329,7 @@ export class NavigatorService {
    * Get dependency graph & Mermaid string for user
    */
   public getGraph(userId: string = 'default'): DependencyGraph {
-    const cached = NavigatorService.userCaches.get(userId);
+    const cached = NavigatorService.userCaches.get(userId) || NavigatorService.userCaches.get('default');
     if (!cached || !cached.graph) {
       throw new BadRequestError('Repository has not been indexed yet. Call /navigator/index first.');
     }

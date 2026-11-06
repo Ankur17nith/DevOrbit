@@ -11,6 +11,7 @@ import {
   FileCode
 } from 'lucide-react';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
 
 interface ImpactReport {
   targetFile: string;
@@ -52,33 +53,25 @@ export function OrbitSafeChangePage() {
     if (!changeDescription.trim()) return;
     setAnalyzing(true);
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-
       // 1. Analyze code impact
-      const res = await fetch('/api/v1/safechange/impact', {
+      const json = await apiFetch('/api/v1/safechange/impact', {
         method: 'POST',
-        headers: authHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: changeDescription.trim() }),
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setImpactReport(json.data.impact);
       }
 
       // 2. Also check migration risk if schema is mentioned
-      const migRes = await fetch('/api/v1/safechange/migration', {
+      const migJson = await apiFetch('/api/v1/safechange/migration', {
         method: 'POST',
-        headers: authHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           schemaContent: changeDescription.includes('model') ? changeDescription : 'model User {\n  id String @id\n  token String\n}' 
         }),
       });
-      const migJson = await migRes.json();
-      if (migJson.success) {
+      if (migJson.success && migJson.data) {
         setMigrationReport(migJson.data.migration);
       }
     } catch (err) {

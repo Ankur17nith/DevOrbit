@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import mermaid from 'mermaid';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 // Initialize mermaid
 mermaid.initialize({
@@ -97,15 +99,11 @@ export function CodebaseNavigatorPage() {
   const fetchSummary = async (targetPath?: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('devorbit_token');
       const url = targetPath 
-        ? `/api/v1/navigator/summary?subPath=${encodeURIComponent(targetPath)}`
-        : '/api/v1/navigator/summary';
-      const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const json = await res.json();
-      if (json.success) {
+        ? `${ENDPOINTS.navigator.summary}?subPath=${encodeURIComponent(targetPath)}`
+        : ENDPOINTS.navigator.summary;
+      const json = await apiFetch(url);
+      if (json.success && json.data) {
         setSummary(json.data);
         if (!repoPathInput) setRepoPathInput(json.data.rootPath);
       }
@@ -124,17 +122,12 @@ export function CodebaseNavigatorPage() {
   const handleIndexRepository = async () => {
     setIndexing(true);
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch('/api/v1/navigator/index', {
+      const json = await apiFetch('/api/v1/navigator/index', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setSummary(json.data);
       }
     } catch (err) {
@@ -150,12 +143,8 @@ export function CodebaseNavigatorPage() {
     if (jumpLine) setHighlightLine(jumpLine);
 
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch(`/api/v1/navigator/file?filePath=${encodeURIComponent(filePath)}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const json = await res.json();
-      if (json.success) {
+      const json = await apiFetch(`${ENDPOINTS.navigator.file}?filePath=${encodeURIComponent(filePath)}`);
+      if (json.success && json.data) {
         setFileContent(json.data.content);
         setFileSymbols(json.data.fileIndex?.symbols || []);
       }
@@ -167,12 +156,8 @@ export function CodebaseNavigatorPage() {
   // Graph fetch
   const fetchGraph = async () => {
     try {
-      const token = localStorage.getItem('devorbit_token');
-      const res = await fetch('/api/v1/navigator/graph', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const json = await res.json();
-      if (json.success) {
+      const json = await apiFetch(ENDPOINTS.navigator.graph);
+      if (json.success && json.data) {
         setMermaidCode(json.data.mermaid || json.data.mermaidCode);
       }
     } catch (err) {
@@ -211,7 +196,7 @@ export function CodebaseNavigatorPage() {
     setAsking(true);
     setAskResponse('');
     try {
-      const res = await fetch('/api/v1/ai/prompt', {
+      const json = await apiFetch(ENDPOINTS.ai.prompt, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -219,9 +204,10 @@ export function CodebaseNavigatorPage() {
           context: { repository: summary?.rootPath, file: selectedFilePath },
         }),
       });
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         setAskResponse(json.data.reply || json.data.content || 'Analysis complete.');
+      } else {
+        setAskResponse(json.error?.message || 'Unable to complete request: AI service offline.');
       }
     } catch (err) {
       setAskResponse('Unable to complete request: AI service offline.');

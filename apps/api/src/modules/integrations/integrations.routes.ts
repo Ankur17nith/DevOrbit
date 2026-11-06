@@ -191,10 +191,9 @@ const handleConnectTuf = async (req: AuthRequest, res: Response, next: NextFunct
 integrationsRouter.post('/tuf/connect', handleConnectTuf);
 integrationsRouter.post('/tuf', handleConnectTuf);
 
-integrationsRouter.post('/tuf/sync', syncRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
+integrationsRouter.post('/tuf/sync', syncRateLimiter, async (_req: AuthRequest, _res: Response, next: NextFunction) => {
   try {
-    const result = await integrationsService.syncTuf(req.user!.id);
-    res.json({ success: true, data: result.stats });
+    throw new BadRequestError('Take U Forward sync is manual only via JSON/export import');
   } catch (err) {
     next(err);
   }

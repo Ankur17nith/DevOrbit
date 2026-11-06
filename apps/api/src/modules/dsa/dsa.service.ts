@@ -171,7 +171,15 @@ export class DsaService {
     const prevEase = existingProgress?.easeFactor || 2.5;
     const prevInterval = existingProgress?.reviewIntervalDays || 1;
 
-    const sm2 = this.calculateSm2Schedule(confidenceRating, prevRepetition, prevEase, prevInterval);
+    // Only compute new SM-2 schedule if problem is marked SOLVED
+    const sm2 = data.status === 'SOLVED'
+      ? this.calculateSm2Schedule(confidenceRating, prevRepetition, prevEase, prevInterval)
+      : {
+          repetitionCount: prevRepetition,
+          easeFactor: prevEase,
+          reviewIntervalDays: prevInterval,
+          nextReviewDate: existingProgress?.nextReviewDate || null,
+        };
 
     const repeatedMistakesJson = data.repeatedMistakes
       ? JSON.stringify(data.repeatedMistakes)
@@ -220,8 +228,8 @@ export class DsaService {
   }
 
   async submitSpacedReview(userId: string, problemId: string, rating: number) {
-    if (rating < 1 || rating > 5) {
-      throw new BadRequestError('Confidence rating must be between 1 (Blackout) and 5 (Perfect)');
+    if (rating < 0 || rating > 5) {
+      throw new BadRequestError('Confidence rating must be between 0 (Blackout) and 5 (Perfect)');
     }
 
     const progress = await prisma.userDsaProgress.findUnique({

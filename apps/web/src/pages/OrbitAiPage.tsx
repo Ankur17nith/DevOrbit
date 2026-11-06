@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { PageContainer } from '../components/ui/PageContainer.js';
+import { apiFetch } from '../lib/api.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 interface Message {
   id?: string;
@@ -57,15 +59,13 @@ export function OrbitAiPage() {
 
   const checkStatus = () => {
     setCheckingRuntime(true);
-    fetch('/api/v1/ai/status')
-      .then(res => res.json())
+    apiFetch(ENDPOINTS.ai.status)
       .then(json => {
-        if (json.success) setAiStatus(json.data);
+        if (json.success && json.data) setAiStatus(json.data);
       })
       .finally(() => setCheckingRuntime(false));
 
-    fetch('/api/v1/ai/models')
-      .then(res => res.json())
+    apiFetch(ENDPOINTS.ai.models)
       .then(json => {
         if (json.success && json.data) {
           const availableModels = json.data.models || [];
@@ -86,16 +86,13 @@ export function OrbitAiPage() {
   const fetchConversations = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/v1/ai/conversations', {
+      const json = await apiFetch(ENDPOINTS.ai.conversations, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          setConversations(json.data);
-          if (json.data.length > 0 && !activeConvId) {
-            handleSelectConversation(json.data[0].id);
-          }
+      if (json.success && json.data) {
+        setConversations(json.data);
+        if (json.data.length > 0 && !activeConvId) {
+          handleSelectConversation(json.data[0].id);
         }
       }
     } catch (err) {
@@ -115,10 +112,9 @@ export function OrbitAiPage() {
     setActiveConvId(convId);
     if (!token) return;
     try {
-      const res = await fetch(`/api/v1/ai/conversations/${convId}`, {
+      const json = await apiFetch(ENDPOINTS.ai.conversation(convId), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
       if (json.success && json.data) {
         const formatted: Message[] = json.data.messages.map((m: any) => ({
           id: m.id,
@@ -145,7 +141,7 @@ export function OrbitAiPage() {
     e.stopPropagation();
     if (!token) return;
     try {
-      await fetch(`/api/v1/ai/conversations/${convId}`, {
+      await apiFetch(ENDPOINTS.ai.conversation(convId), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -170,7 +166,7 @@ export function OrbitAiPage() {
       return;
     }
     try {
-      await fetch(`/api/v1/ai/conversations/${convId}`, {
+      await apiFetch(ENDPOINTS.ai.conversation(convId), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -202,21 +198,20 @@ export function OrbitAiPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/v1/ai/chat', {
+      const json = await apiFetch(ENDPOINTS.ai.chat, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          message: textToSend,
+          prompt: textToSend,
           conversationId: activeConvId || undefined,
-          model: selectedModel,
+          modelName: selectedModel,
         }),
       });
 
-      const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data) {
         const assistantMsg: Message = {
           role: 'assistant',
           content: json.data.response,
