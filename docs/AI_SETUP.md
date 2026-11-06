@@ -62,6 +62,7 @@ DevOrbit strictly adheres to honest AI reporting:
 | `/api/v1/ai/status` | GET | Probes Ollama connectivity and reports active engine mode. |
 | `/api/v1/ai/models` | GET | Queries `/api/tags` on Ollama to enumerate downloaded models. |
 | `/api/v1/ai/chat` | POST | Dispatches a prompt with conversation history. Streams output when supported. |
+| `/api/v1/ai/prompt` | POST | Dispatches a single stateless completion prompt to the local model. |
 | `/api/v1/ai/conversations` | GET | Lists all saved conversations for the authenticated user. |
 | `/api/v1/ai/conversations/:id` | GET | Retrieves full message history for a specific conversation. |
 | `/api/v1/ai/conversations/:id` | PATCH | Renames a conversation title. |

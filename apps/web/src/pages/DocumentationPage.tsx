@@ -19,6 +19,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { DevOrbitLogo } from '../components/DevOrbitLogo.js';
+import { ENDPOINTS } from '../lib/endpoints.js';
 
 interface DocumentationPageProps {
   onNavigate: (route: string) => void;
@@ -173,7 +174,7 @@ Two Sum,LeetCode,EASY,Arrays,Two Pointers,https://leetcode.com/problems/two-sum
       id: 'ai',
       category: 'INTELLIGENCE ENGINES',
       title: 'Orbit AI Studio & Local Ollama Pairing',
-      summary: 'Autonomous developer assistance with offline LLMs, zero simulated responses, and provenance tags.',
+      summary: 'Autonomous developer assistance with offline LLMs, honest offline fallbacks, and provenance tags.',
       content: (
         <div className="space-y-6 text-sm text-[#4B5565] leading-relaxed">
           <p>
@@ -237,6 +238,50 @@ ollama pull qwen2.5-coder:7b
           <p>
             DevOrbit provides one-click JSON database export at <code className="text-[#8B5CF6]">GET /api/v1/system/backup</code>, ensuring complete data ownership and zero lock-in.
           </p>
+        </div>
+      )
+    },
+    {
+      id: 'api-reference',
+      category: 'API REFERENCE',
+      title: 'Canonical Typed REST API Reference',
+      summary: 'Comprehensive directory of DevOrbit REST API endpoints and request contracts.',
+      content: (
+        <div className="space-y-6 text-sm text-[#4B5565] leading-relaxed">
+          <p>
+            All endpoints are served with prefix <code className="text-[#8B5CF6]">/api/v1</code> and return standardized JSON response envelopes. Authenticated routes require <code className="text-[#8B5CF6]">Authorization: Bearer &lt;token&gt;</code>.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] font-mono text-[#0E121B]">
+                <tr>
+                  <th className="p-3">Method</th>
+                  <th className="p-3">Endpoint</th>
+                  <th className="p-3">Auth</th>
+                  <th className="p-3">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E2E8F0] font-mono text-[11px]">
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.auth.register}</td><td className="p-2.5 text-[#64748B]">Public</td><td className="p-2.5 font-sans">Register user account</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.auth.login}</td><td className="p-2.5 text-[#64748B]">Public</td><td className="p-2.5 font-sans">Sign in & create session</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.auth.me}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Current authenticated profile</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.auth.logout}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Revoke session & invalidate token</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.dsa.problems}</td><td className="p-2.5 text-[#64748B]">Public</td><td className="p-2.5 font-sans">List curated DSA problems</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.dsa.revisionQueue}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">SM-2 Spaced repetition due queue</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">/api/v1/dsa/problems/:id/progress</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Record solve / progress attempt</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.integrations.status}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Third-party connection statuses</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.integrations.githubOAuthUrl}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Start GitHub OAuth PKCE state</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.integrations.codeforcesConnect}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Connect public Codeforces handle</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.ai.status}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Ollama daemon health check</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.ai.chat}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Dispatch chat prompt to local model</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.navigator.summary}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Directory tree structure & AST summary</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.navigator.graph}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Mermaid architecture graph</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.system.health}</td><td className="p-2.5 text-[#64748B]">Public</td><td className="p-2.5 font-sans">API health status probe</td></tr>
+                <tr><td className="p-2.5 text-[#3B82F6]">GET</td><td className="p-2.5">{ENDPOINTS.system.backup}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Export JSON user backup</td></tr>
+                <tr><td className="p-2.5 text-[#22C55E]">POST</td><td className="p-2.5">{ENDPOINTS.system.restore}</td><td className="p-2.5 text-[#8B5CF6]">Bearer</td><td className="p-2.5 font-sans">Restore JSON user backup</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       )
     }

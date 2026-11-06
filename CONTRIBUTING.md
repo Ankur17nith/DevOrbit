@@ -41,7 +41,7 @@ DevOrbit is organized as an npm workspaces monorepo:
 
 3. **Configure environment**:
    ```bash
-   cp .env.example apps/api/.env
+   cp apps/api/.env.example apps/api/.env
    ```
 
 4. **Initialize Database**:

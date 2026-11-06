@@ -674,7 +674,7 @@ export function PublicLandingPage({ onNavigate, onLaunchDemo }: PublicLandingPag
                       <ul className="text-xs text-[#94A3B8] space-y-2 list-disc list-inside">
                         <li>Strict local SQLite persistence with transactional guarantees.</li>
                         <li>Source-grounded AST extraction with AST-grep and tree-sitter.</li>
-                        <li>Deterministic algorithms with zero simulated or fake responses.</li>
+                        <li>Deterministic evaluation algorithms with honest unavailable states when services are offline.</li>
                       </ul>
                     </div>
 

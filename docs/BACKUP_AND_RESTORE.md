@@ -39,6 +39,32 @@ curl -X POST http://localhost:3001/api/v1/system/restore \
   -d @devorbit_backup.json
 ```
 
+### Backup Payload Schema
+The backup JSON structure validated by `POST /api/v1/system/restore`:
+```json
+{
+  "backup": {
+    "version": "1.0",
+    "exportedAt": "2026-11-06T12:00:00.000Z",
+    "user": { "username": "developer", "email": "dev@example.com" },
+    "dsaProgress": [
+      {
+        "problemSlug": "two-sum",
+        "status": "SOLVED",
+        "solutionMode": "INDEPENDENT",
+        "cognitiveMastery": "MASTERED",
+        "easinessFactor": 2.5,
+        "repetitionsCount": 3,
+        "intervalDays": 6,
+        "nextReviewDate": "2026-11-12T00:00:00.000Z"
+      }
+    ],
+    "skills": [],
+    "bookmarks": []
+  }
+}
+```
+
 ---
 
 ## 3. Physical SQLite Database Backups
