@@ -182,7 +182,7 @@ systemRouter.post('/restore', authenticate, async (req: AuthRequest, res: Respon
     const userId = req.user!.id;
     const parseResult = restoreBackupSchema.safeParse(req.body);
     if (!parseResult.success) {
-      throw new BadRequestError(parseResult.error.errors[0]?.message || 'Invalid DevOrbit backup payload');
+      throw new BadRequestError(parseResult.error.issues[0]?.message || 'Invalid DevOrbit backup payload');
     }
 
     const { backup } = parseResult.data;

@@ -43,3 +43,21 @@ DevOrbit is designed under a **Local-First, Zero-Trust Architecture**:
 ## 4. Reporting Security Vulnerabilities
 
 To report a vulnerability or cryptographic defect, please open a private advisory on the repository or contact the lead maintainers directly.
+
+---
+
+## 5. Dependency Audit Status & Known Transitive Advisories
+
+Dependency vulnerabilities are audited with `npm audit`. Resolved and known advisories:
+
+- **Resolved (Commit 9):**
+  - `tinypool <= 2.1.1` (GHSA-5gmw-xhrv-c9v3 / GHSA-85c8-ppgw-ccpr — Prototype Pollution / RCE): Resolved by upgrading `vitest` to `^5.1.0`.
+  - `katex <= 0.18.1` (GHSA-238p-pmpm-9mq7 — Prototype Pollution): Resolved by upgrading `mermaid` to `^12.3.0`.
+  - `zod < 4.6.6` (GHSA-mrhx-c7xc-m3w5 — Uncontrolled Resource Consumption): Resolved by upgrading `zod` to `^4.6.7`.
+
+- **Known Unfixable Upstream Transitive Advisories:**
+  - `deepmerge-ts < 8.0.0` (GHSA-ggr8-5vv4-36mx — Stack Exhaustion in recursive object merge):
+    - Path: `prisma` (devDependencies) -> `@prisma/config` -> `deepmerge-ts`.
+    - Risk Assessment: Build/dev-time tool only. Not included in production runtime bundles or exposed to untrusted external input. Prisma reads local `prisma/schema.prisma` without untrusted runtime schema merging.
+    - Upstream status: Fixing requires migrating to Prisma 7.10+ / breaking architectural changes, planned for next major release cycle.
+
