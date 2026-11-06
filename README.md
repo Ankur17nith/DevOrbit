@@ -6,7 +6,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite%20(Local--First)-003B57.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-143%2F143%20Passing%20(100%25)-success.svg)](./apps/api/src/tests/)
 [![Design System](https://img.shields.io/badge/Figma-Figma%20Brand%20Identity-8B5CF6.svg)](./docs/release/FIGMA_IMPLEMENTATION_REPORT.md)
 
 ---

@@ -2,52 +2,53 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/index.js';
+import { createTestUser, ensureSampleDsaProblems, ensureSampleRepos, TestUser } from './test_helpers.js';
 
 describe('Multi-User Security & Data Isolation Tests', () => {
+  let userA: TestUser;
+  let userB: TestUser;
+  let userC: TestUser;
   let userAToken: string;
   let userBToken: string;
+  let userCToken: string;
   let userAId: string;
   let userBId: string;
+  let userCId: string;
   let sampleProblemId: string;
 
-  let userCToken: string;
-  let userCId: string;
-
   beforeAll(async () => {
-    // Authenticate User A (Alex)
-    const resA = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    
-    expect(resA.status).toBe(200);
-    userAToken = resA.body.data.token;
-    userAId = resA.body.data.user.id;
+    await ensureSampleDsaProblems();
+    await ensureSampleRepos();
 
-    // Authenticate User B (Sara)
-    const resB = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'sara_chen', password: 'DevOrbit123!' });
+    // Authenticate User A
+    userA = await createTestUser();
+    userAToken = userA.token;
+    userAId = userA.userId;
 
-    expect(resB.status).toBe(200);
-    userBToken = resB.body.data.token;
-    userBId = resB.body.data.user.id;
+    // Authenticate User B
+    userB = await createTestUser();
+    userBToken = userB.token;
+    userBId = userB.userId;
 
-    // Create / Authenticate User C (Elena)
-    await prisma.session.deleteMany({ where: { user: { username: 'elena_vanguard' } } });
-    await prisma.user.deleteMany({ where: { username: 'elena_vanguard' } });
+    // Authenticate User C
+    userC = await createTestUser();
+    userCToken = userC.token;
+    userCId = userC.userId;
 
-    const resC = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'elena@devorbit.local',
-        username: 'elena_vanguard',
-        password: 'DevOrbitPassword999!',
-        name: 'Elena Rostova',
-      });
-
-    expect(resC.status).toBe(201);
-    userCToken = resC.body.data.token;
-    userCId = resC.body.data.user.id;
+    // Create a workspace for User A with User B as member
+    await prisma.workspace.create({
+      data: {
+        name: 'Orbit Core Engineering',
+        slug: `orbit-core-${userA.userId.slice(0, 8)}`,
+        ownerId: userA.userId,
+        memberships: {
+          create: [
+            { userId: userA.userId, role: 'OWNER' },
+            { userId: userB.userId, role: 'MEMBER' },
+          ],
+        },
+      },
+    });
 
     // Fetch a sample problem
     const prob = await prisma.dsaProblem.findFirst();
@@ -55,6 +56,35 @@ describe('Multi-User Security & Data Isolation Tests', () => {
   });
 
   afterAll(async () => {
+    if (userAId || userBId || userCId) {
+      const userIds = [userAId, userBId, userCId].filter(Boolean);
+      await prisma.workspaceMembership.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.workspace.deleteMany({ where: { ownerId: { in: userIds } } });
+    }
+    if (userAId) {
+      await prisma.notification.deleteMany({ where: { userId: userAId } });
+      await prisma.userDsaProgress.deleteMany({ where: { userId: userAId } });
+      await prisma.userBookmark.deleteMany({ where: { userId: userAId } });
+      await prisma.session.deleteMany({ where: { userId: userAId } });
+      await prisma.userPreference.deleteMany({ where: { userId: userAId } });
+      await prisma.user.deleteMany({ where: { id: userAId } });
+    }
+    if (userBId) {
+      await prisma.notification.deleteMany({ where: { userId: userBId } });
+      await prisma.userDsaProgress.deleteMany({ where: { userId: userBId } });
+      await prisma.userBookmark.deleteMany({ where: { userId: userBId } });
+      await prisma.session.deleteMany({ where: { userId: userBId } });
+      await prisma.userPreference.deleteMany({ where: { userId: userBId } });
+      await prisma.user.deleteMany({ where: { id: userBId } });
+    }
+    if (userCId) {
+      await prisma.notification.deleteMany({ where: { userId: userCId } });
+      await prisma.userDsaProgress.deleteMany({ where: { userId: userCId } });
+      await prisma.userBookmark.deleteMany({ where: { userId: userCId } });
+      await prisma.session.deleteMany({ where: { userId: userCId } });
+      await prisma.userPreference.deleteMany({ where: { userId: userCId } });
+      await prisma.user.deleteMany({ where: { id: userCId } });
+    }
     await prisma.$disconnect();
   });
 
@@ -70,7 +100,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
       .set('Authorization', `Bearer ${userAToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.user.username).toBe('alex_developer');
+    expect(res.body.data.user.username).toBe(userA.username);
   });
 
   it('3. Returns isolated private dashboard summary for User B', async () => {
@@ -79,7 +109,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
       .set('Authorization', `Bearer ${userBToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.user.username).toBe('sara_chen');
+    expect(res.body.data.user.username).toBe(userB.username);
     expect(res.body.data.user.id).toBe(userBId);
   });
 
@@ -89,7 +119,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
       .set('Authorization', `Bearer ${userCToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.user.username).toBe('elena_vanguard');
+    expect(res.body.data.user.username).toBe(userC.username);
     expect(res.body.data.user.id).toBe(userCId);
     expect(res.body.data.stats.solvedDsaCount).toBe(0);
   });
@@ -220,7 +250,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
     const inviteRes = await request(app)
       .post(`/api/v1/workspaces/${wsId}/members`)
       .set('Authorization', `Bearer ${userCToken}`)
-      .send({ targetUsername: 'sara_chen', role: 'MEMBER' });
+      .send({ targetUsername: userB.username, role: 'MEMBER' });
 
     expect(inviteRes.status).toBe(403);
   });
@@ -252,7 +282,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
     // 1. Log in a temporary session for User A
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
+      .send({ login: userA.username, password: userA.password });
 
     expect(loginRes.status).toBe(200);
     const tempToken = loginRes.body.data.token;
@@ -264,7 +294,7 @@ describe('Multi-User Security & Data Isolation Tests', () => {
       .set('Authorization', `Bearer ${tempToken}`);
 
     expect(meRes.status).toBe(200);
-    expect(meRes.body.data.username).toBe('alex_developer');
+    expect(meRes.body.data.username).toBe(userA.username);
 
     // 3. Log out with this token
     const logoutRes = await request(app)

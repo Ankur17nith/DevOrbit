@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/index.js';
 import { OllamaService } from '../modules/ai/ollama.service.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('Orbit Recon, Local AI & Pulse Intelligence Tests (Milestone M8)', () => {
   let userToken: string;
@@ -10,11 +11,9 @@ describe('Orbit Recon, Local AI & Pulse Intelligence Tests (Milestone M8)', () =
 
   beforeAll(async () => {
     // Authenticate test user
-    const res = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    userToken = res.body.data.token;
-    userId = res.body.data.user.id;
+    const testUser = await createTestUser();
+    userToken = testUser.token;
+    userId = testUser.userId;
 
     // Clean up any existing test urgent fellowship notification for this user
     await prisma.notification.deleteMany({
@@ -124,5 +123,15 @@ describe('Orbit Recon, Local AI & Pulse Intelligence Tests (Milestone M8)', () =
       .set('Authorization', `Bearer ${userToken}`);
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.some((n: any) => n.title.includes('Urgent Test Fellowship'))).toBe(true);
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      await prisma.notification.deleteMany({ where: { userId } });
+      await prisma.session.deleteMany({ where: { userId } });
+      await prisma.userPreference.deleteMany({ where: { userId } });
+      await prisma.user.deleteMany({ where: { id: userId } });
+    }
+    await prisma.$disconnect();
   });
 });

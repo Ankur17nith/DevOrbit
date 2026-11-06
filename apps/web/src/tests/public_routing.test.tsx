@@ -1,8 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import React from 'react';
+import { render, screen, act } from '@testing-library/react';
+import { App } from '../App.js';
 import fs from 'fs';
 import path from 'path';
 
 describe('Public Routing & Navigation Architecture Tests', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ success: false, data: null }),
+      text: async () => JSON.stringify({ success: false }),
+      headers: new Headers({ 'content-type': 'application/json' }),
+    }));
+    localStorage.clear();
+  });
+
   it('1. App.tsx properly registers public and authenticated view routes', () => {
     const appTsxPath = path.resolve(__dirname, '../App.tsx');
     const content = fs.readFileSync(appTsxPath, 'utf-8');
@@ -40,5 +55,36 @@ describe('Public Routing & Navigation Architecture Tests', () => {
     expect(content).toContain('Orbit DSA & Spaced Repetition Engine');
     expect(content).toContain('Orbit AI Studio & Local Ollama Pairing');
     expect(content).toContain('Local-First Data Guarantees & Multi-User Isolation');
+  });
+
+  it('4. Real render: renders PublicLandingPage on default root route', async () => {
+    window.location.hash = '';
+    window.history.pushState({}, '', '/');
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(screen.getByText(/Your Skills\. Your Code\. Your Opportunities\. One Universe\./i)).toBeInTheDocument();
+  });
+
+  it('5. Real render: renders LoginPage when navigated to #login', async () => {
+    window.location.hash = '#login';
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(screen.getByRole('heading', { name: /Sign in to DevOrbit/i })).toBeInTheDocument();
+  });
+
+  it('6. Real render: renders DocumentationPage when navigated to #docs', async () => {
+    window.location.hash = '#docs';
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(screen.getByRole('heading', { name: /Quick Start & Architecture Overview/i })).toBeInTheDocument();
   });
 });

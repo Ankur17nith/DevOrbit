@@ -35,6 +35,7 @@ import { SettingsPage } from './pages/SettingsPage.js';
 function getUrlRoute(): string {
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (hash) {
+    if (hash === 'docs' || hash === 'documentation') return 'documentation';
     if (hash === 'organizations') return 'gsoc';
     if (hash === 'app' || hash === 'dashboard') return 'dashboard';
     if (hash === 'app/codebase' || hash === 'codebase') return 'navigator';

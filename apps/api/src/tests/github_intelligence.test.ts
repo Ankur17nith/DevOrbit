@@ -4,6 +4,7 @@ import { app } from '../app.js';
 import { prisma } from '../config/index.js';
 import { encryptSecret, decryptSecret } from '../lib/encryption.js';
 import { GitHubClient, GitHubApiError } from '../modules/github/github.client.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('GitHub Intelligence & Repository Sync Tests (Milestone M2)', () => {
   let userAToken: string;
@@ -155,77 +156,41 @@ describe('GitHub Intelligence & Repository Sync Tests (Milestone M2)', () => {
       return { TypeScript: 50000 };
     });
 
-    // Authenticate or Register User A (Alex)
-    let resA = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    if (resA.status !== 200) {
-      resA = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ login: 'alex_developer', password: 'DevOrbitPassword123!' });
-    }
-    if (resA.status !== 200) {
-      resA = await request(app)
-        .post('/api/v1/auth/register')
-        .send({
-          email: `alex_developer_${Date.now()}@devorbit.local`,
-          username: `alex_dev_${Date.now()}`,
-          password: 'DevOrbitPassword123!',
-          name: 'Alex Developer',
-        });
-    }
-    userAToken = resA.body.data.token;
-    userAId = resA.body.data.user.id;
+    // Authenticate User A
+    const userA = await createTestUser();
+    userAToken = userA.token;
+    userAId = userA.userId;
 
-    // Authenticate or Register User B (Sara)
-    let resB = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'sara_chen', password: 'DevOrbit123!' });
-    if (resB.status !== 200) {
-      resB = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ login: 'sara_chen', password: 'DevOrbitPassword123!' });
-    }
-    if (resB.status !== 200) {
-      resB = await request(app)
-        .post('/api/v1/auth/register')
-        .send({
-          email: `sara_chen_${Date.now()}@devorbit.local`,
-          username: `sara_chen_${Date.now()}`,
-          password: 'DevOrbitPassword123!',
-          name: 'Sara Chen',
-        });
-    }
-    userBToken = resB.body.data.token;
-    userBId = resB.body.data.user.id;
+    // Authenticate User B
+    const userB = await createTestUser();
+    userBToken = userB.token;
+    userBId = userB.userId;
 
-    // Authenticate or Register User C (Elena Isolated)
-    let resC = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'elena_github_iso', password: 'DevOrbitPassword999!' });
-
-    if (resC.status !== 200) {
-      resC = await request(app)
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'elena_github_iso@devorbit.local',
-          username: 'elena_github_iso',
-          password: 'DevOrbitPassword999!',
-          name: 'Elena Rostova',
-        });
-    }
-    userCToken = resC.body.data.token;
-    userCId = resC.body.data.user.id;
+    // Authenticate User C
+    const userC = await createTestUser();
+    userCToken = userC.token;
+    userCId = userC.userId;
 
     // Clear prior integration data for clean state
-    await prisma.userGithubRepo.deleteMany();
-    await prisma.userContributionMetric.deleteMany();
-    await prisma.userSkillProfile.deleteMany();
-    await prisma.integrationCredential.deleteMany({ where: { provider: 'GITHUB' } });
+    const userIds = [userAId, userBId, userCId];
+    await prisma.userGithubRepo.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.userContributionMetric.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.userSkillProfile.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.integrationCredential.deleteMany({ where: { userId: { in: userIds }, provider: 'GITHUB' } });
   });
 
   afterAll(async () => {
     vi.restoreAllMocks();
+    const userIds = [userAId, userBId, userCId].filter(Boolean);
+    if (userIds.length > 0) {
+      await prisma.userGithubRepo.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.userContributionMetric.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.userSkillProfile.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.integrationCredential.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.userPreference.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    }
     await prisma.$disconnect();
   });
 

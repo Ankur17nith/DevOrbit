@@ -5,20 +5,26 @@ import { app } from '../app.js';
 import { prisma } from '../config/index.js';
 import { githubOAuthHandler } from '../modules/integrations/github.oauth.js';
 import { tufProvider } from '../modules/integrations/tuf.provider.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('Production Integrations, OAuth State & Data Provenance Tests (M9)', () => {
   let userToken: string;
   let userId: string;
 
   beforeAll(async () => {
-    const res = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    userToken = res.body.data.token;
-    userId = res.body.data.user.id;
+    const testUser = await createTestUser();
+    userToken = testUser.token;
+    userId = testUser.userId;
   });
 
   afterAll(async () => {
+    if (userId) {
+      await prisma.githubOAuthState.deleteMany({ where: { userId } });
+      await prisma.integrationCredential.deleteMany({ where: { userId } });
+      await prisma.session.deleteMany({ where: { userId } });
+      await prisma.userPreference.deleteMany({ where: { userId } });
+      await prisma.user.deleteMany({ where: { id: userId } });
+    }
     await prisma.$disconnect();
   });
 

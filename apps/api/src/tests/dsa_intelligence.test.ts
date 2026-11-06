@@ -3,6 +3,7 @@ import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/index.js';
 import { generateCanonicalSlug, normalizeDifficulty } from '../modules/dsa/adapters/deduplication.js';
+import { createTestUser, ensureSampleDsaProblems } from './test_helpers.js';
 
 describe('Advanced DSA Intelligence & Spaced Repetition Tests (Milestone M3)', () => {
   let userAToken: string;
@@ -13,19 +14,17 @@ describe('Advanced DSA Intelligence & Spaced Repetition Tests (Milestone M3)', (
   let sampleProblemB: any;
 
   beforeAll(async () => {
-    // Authenticate User A (Alex)
-    const resA = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    userAToken = resA.body.data.token;
-    userAId = resA.body.data.user.id;
+    await ensureSampleDsaProblems();
 
-    // Authenticate User B (Sara)
-    const resB = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'sara_chen', password: 'DevOrbit123!' });
-    userBToken = resB.body.data.token;
-    userBId = resB.body.data.user.id;
+    // Authenticate User A (ADMIN for problem import permission)
+    const userA = await createTestUser('ADMIN');
+    userAToken = userA.token;
+    userAId = userA.userId;
+
+    // Authenticate User B
+    const userB = await createTestUser();
+    userBToken = userB.token;
+    userBId = userB.userId;
 
     // Clear test user progress and test imported problems FIRST
     await prisma.userDsaProgress.deleteMany({
@@ -53,6 +52,20 @@ describe('Advanced DSA Intelligence & Spaced Repetition Tests (Milestone M3)', (
   });
 
   afterAll(async () => {
+    if (userAId || userBId) {
+      await prisma.userDsaProgress.deleteMany({
+        where: { userId: { in: [userAId, userBId].filter(Boolean) } },
+      });
+      await prisma.session.deleteMany({
+        where: { userId: { in: [userAId, userBId].filter(Boolean) } },
+      });
+      await prisma.userPreference.deleteMany({
+        where: { userId: { in: [userAId, userBId].filter(Boolean) } },
+      });
+      await prisma.user.deleteMany({
+        where: { id: { in: [userAId, userBId].filter(Boolean) } },
+      });
+    }
     await prisma.$disconnect();
   });
 

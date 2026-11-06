@@ -54,7 +54,7 @@ export interface CodeforcesAggregatedStats {
 export class CodeforcesProvider {
   private baseUrl = 'https://codeforces.com/api';
   private lastRequestTime = 0;
-  private minIntervalMs = process.env.NODE_ENV === 'test' ? 50 : 2000;
+  private minIntervalMs = parseInt(process.env.CODEFORCES_MIN_INTERVAL_MS || '2000', 10);
 
   /**
    * Throttles outgoing requests to Codeforces API to comply with the official 1 req / 2s policy

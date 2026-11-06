@@ -72,18 +72,18 @@ export function createRateLimiter(options: RateLimitOptions) {
 
 export const authRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 200 : 20,
+  max: parseInt(process.env.RATE_LIMIT_AUTH_MAX || '20', 10),
   message: 'Too many authentication attempts. Please try again after 60 seconds.',
 });
 
 export const syncRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 200 : 30,
+  max: parseInt(process.env.RATE_LIMIT_SYNC_MAX || '30', 10),
   message: 'Too many synchronization requests. Please wait a minute before syncing again.',
 });
 
 export const aiRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 200 : 30,
+  max: parseInt(process.env.RATE_LIMIT_AI_MAX || '30', 10),
   message: 'AI inference rate limit exceeded. Please wait a moment before sending more prompts.',
 });

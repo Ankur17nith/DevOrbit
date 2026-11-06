@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/index.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('Orbit OSS Intelligence & Contribution Pipeline Tests (Milestone M4)', () => {
   let userAToken: string;
@@ -13,34 +14,33 @@ describe('Orbit OSS Intelligence & Contribution Pipeline Tests (Milestone M4)', 
   let sampleIssue: any;
 
   beforeAll(async () => {
-    // Authenticate User A (Alex)
-    const resA = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    userAToken = resA.body.data.token;
-    userAId = resA.body.data.user.id;
+    // Authenticate User A
+    const userA = await createTestUser();
+    userAToken = userA.token;
+    userAId = userA.userId;
 
-    // Authenticate User B (Sara)
-    const resB = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'sara_chen', password: 'DevOrbit123!' });
-    userBToken = resB.body.data.token;
-    userBId = resB.body.data.user.id;
+    // Authenticate User B
+    const userB = await createTestUser();
+    userBToken = userB.token;
+    userBId = userB.userId;
 
-    // Authenticate User C (Elena Isolated)
-    const resC = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'elena_github_iso', password: 'DevOrbitPassword999!' });
-    userCToken = resC.body.data.token;
-    userCId = resC.body.data.user.id;
+    // Authenticate User C
+    const userC = await createTestUser();
+    userCToken = userC.token;
+    userCId = userC.userId;
 
     // Fetch or seed a sample issue with repository
     let issue = await prisma.ossIssue.findFirst({
+      where: {
+        repository: { language: 'TypeScript' },
+      },
       include: { repository: true },
     });
 
     if (!issue) {
-      let repo = await prisma.ossRepository.findFirst();
+      let repo = await prisma.ossRepository.findFirst({
+        where: { language: 'TypeScript' },
+      });
       if (!repo) {
         repo = await prisma.ossRepository.create({
           data: {
@@ -77,6 +77,13 @@ describe('Orbit OSS Intelligence & Contribution Pipeline Tests (Milestone M4)', 
   });
 
   afterAll(async () => {
+    const userIds = [userAId, userBId, userCId].filter(Boolean);
+    if (userIds.length > 0) {
+      await prisma.contributionPipelineItem.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.userPreference.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    }
     await prisma.$disconnect();
   });
 

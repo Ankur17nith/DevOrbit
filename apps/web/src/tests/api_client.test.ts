@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseApiResponse } from '../lib/api.js';
+import { describe, it, expect, vi } from 'vitest';
+import { parseApiResponse, apiFetch } from '../lib/api.js';
 
 describe('Frontend Centralized API Client & Response Parser', () => {
   it('1. Correctly parses valid JSON API responses', async () => {
@@ -39,5 +39,32 @@ describe('Frontend Centralized API Client & Response Parser', () => {
     const result = await parseApiResponse(mockResponse);
     expect(result.success).toBe(false);
     expect(result.error?.message).toContain('Malformed JSON returned from server');
+  });
+
+  it('4. apiFetch attaches Accept: application/json header and parses JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { items: [1, 2, 3] } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'x-request-id': 'req-fetch-1' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await apiFetch('/api/v1/test');
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ items: [1, 2, 3] });
+    expect(result.requestId).toBe('req-fetch-1');
+
+    const headersUsed = fetchMock.mock.calls[0][1].headers;
+    expect(headersUsed.get('Accept')).toBe('application/json');
+  });
+
+  it('5. apiFetch gracefully handles network disconnections without throwing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed to fetch')));
+
+    const result = await apiFetch('/api/v1/offline-test');
+    expect(result.success).toBe(false);
+    expect(result.error?.statusCode).toBe(0);
+    expect(result.error?.message).toContain('Failed to fetch');
   });
 });

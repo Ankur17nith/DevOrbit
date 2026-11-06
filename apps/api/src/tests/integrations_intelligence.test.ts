@@ -4,6 +4,7 @@ import { app } from '../app.js';
 import { prisma } from '../config/index.js';
 import { GitHubOAuthHandler } from '../modules/integrations/github.oauth.js';
 import { GitHubClient } from '../modules/github/github.client.js';
+import { createTestUser } from './test_helpers.js';
 
 describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (Milestone M9)', () => {
   let userToken: string;
@@ -52,31 +53,21 @@ describe('Integrations Center, Codeforces, LeetCode, TUF & System Backup Tests (
       };
     });
 
-    // Authenticate or register test user
-    let res = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ login: 'alex_developer', password: 'DevOrbit123!' });
-    if (res.status !== 200) {
-      res = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ login: 'alex_developer', password: 'DevOrbitPassword123!' });
-    }
-    if (res.status !== 200) {
-      res = await request(app)
-        .post('/api/v1/auth/register')
-        .send({
-          email: `alex_developer_${Date.now()}@devorbit.local`,
-          username: `alex_dev_${Date.now()}`,
-          password: 'DevOrbitPassword123!',
-          name: 'Alex Developer',
-        });
-    }
-    userToken = res.body.data.token;
-    userId = res.body.data.user.id;
+    // Authenticate test user
+    const testUser = await createTestUser();
+    userToken = testUser.token;
+    userId = testUser.userId;
   });
 
   afterAll(async () => {
     vi.restoreAllMocks();
+    if (userId) {
+      await prisma.integrationCredential.deleteMany({ where: { userId } });
+      await prisma.session.deleteMany({ where: { userId } });
+      await prisma.userPreference.deleteMany({ where: { userId } });
+      await prisma.user.deleteMany({ where: { id: userId } });
+    }
+    await prisma.$disconnect();
   });
 
   // 1. Unified Integrations Status

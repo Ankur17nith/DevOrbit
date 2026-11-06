@@ -51,6 +51,14 @@ jobs:
           echo "DATABASE_URL=\"file:${{ github.workspace }}/ci-test.db\"" >> .env
           echo "DATABASE_URL=\"file:${{ github.workspace }}/ci-test.db\"" >> apps/api/.env
 
+      - name: Cache Prisma Engines
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prisma
+          key: ${{ runner.os }}-prisma-${{ hashFiles('apps/api/prisma/schema.prisma') }}
+          restore-keys: |
+            ${{ runner.os }}-prisma-
+
       - name: Generate Prisma Client
         env:
           DATABASE_URL: "file:${{ github.workspace }}/ci-test.db"
@@ -62,6 +70,13 @@ jobs:
         run: |
           npm run db:push -- --accept-data-loss
           npm run db:seed
+
+      - name: Check Database Schema Drift
+        run: |
+          git diff --exit-code apps/api/prisma/schema.prisma || {
+            echo "Schema drift detected: schema.prisma has uncommitted modifications."
+            exit 1
+          }
 
       - name: Run TypeScript Type Checks (API & Web Monorepo)
         run: npm run typecheck
@@ -86,7 +101,7 @@ jobs:
           echo "Secret check clean: no .env, .db, or key files tracked."
 
       - name: Security Audit of Production Dependencies
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Build Complete Monorepo (Web & API)
         run: npm run build

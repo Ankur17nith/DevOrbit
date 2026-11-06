@@ -49,4 +49,21 @@ describe('Filter State Persistence & URL Query Parameters', () => {
     expect(content).toContain("urlParams.set('difficulty', selectedDifficulty)");
     expect(content).toContain("urlParams.set('topic', selectedTopic)");
   });
+
+  it('6. URLSearchParams faithfully parses and encodes multi-filter query strings', () => {
+    const params = new URLSearchParams();
+    params.set('language', 'TypeScript');
+    params.set('since', 'monthly');
+    params.set('search', 'reactive stream');
+
+    const serialized = params.toString();
+    expect(serialized).toContain('language=TypeScript');
+    expect(serialized).toContain('since=monthly');
+    expect(serialized).toContain('search=reactive+stream');
+
+    const parsed = new URLSearchParams(serialized);
+    expect(parsed.get('language')).toBe('TypeScript');
+    expect(parsed.get('since')).toBe('monthly');
+    expect(parsed.get('search')).toBe('reactive stream');
+  });
 });
